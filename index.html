@@ -4,14 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HandScenes — hand-tracked video effects</title>
-<meta name="description" content="Control retro 3D video effects with your hands using your webcam. Cat's cradle, a digital garden, and an ASCII terminal — no install, runs in your browser.">
+<meta name="description" content="Control retro 3D video effects with your hands using your webcam. Cat's cradle, a digital garden, and a pick-your-filter ASCII box — no install, runs in your browser.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #07080f;
-    --neon: #38f9d7;     /* primary neon (cyan-green) */
+    --neon: #38f9d7;
     --magenta: #ff4bd8;
     --amber: #ffcf5a;
     --panel: rgba(10, 14, 24, 0.82);
@@ -21,12 +21,11 @@
   * { box-sizing: border-box; }
   html, body {
     margin: 0; height: 100%; overflow: hidden; background: var(--bg);
-    font-family: var(--font); color: #d7fff6;
-    -webkit-font-smoothing: none;
+    font-family: var(--font); color: #d7fff6; -webkit-font-smoothing: none;
   }
   body { display: flex; align-items: center; justify-content: center; }
 
-  /* the recording area; sized by JS to Full / 16:9 / 9:16 */
+  /* the recording area; sized + centered by JS */
   #stage {
     position: relative; background: #000;
     box-shadow: 0 0 0 2px var(--line), 0 0 38px rgba(56,249,215,0.18);
@@ -36,39 +35,30 @@
 
   #cam {
     position: absolute; right: 12px; bottom: 12px; width: 22%;
-    max-width: 190px; min-width: 120px;
-    transform: scaleX(-1);
-    border-radius: 6px; opacity: 0.9; z-index: 6;
-    border: 2px solid var(--line);
+    max-width: 190px; min-width: 110px; transform: scaleX(-1);
+    border-radius: 6px; opacity: 0.9; z-index: 6; border: 2px solid var(--line);
   }
   #cam.hidden { display: none; }
 
-  /* ---- shared retro chrome ---- */
-  .ui { z-index: 8; }
-  body.clean .ui { display: none !important; }
+  /* ---- retro chrome ---- */
+  .ui { position: fixed; z-index: 8; }
+  body.hideui .ui { display: none !important; }
 
   .panel {
-    background: var(--panel);
-    border: 2px solid var(--line);
+    background: var(--panel); border: 2px solid var(--line);
     box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 6px 30px rgba(0,0,0,0.5);
     backdrop-filter: blur(4px);
-    /* faint CRT scanlines */
-    background-image: var(--panel-img),
-      repeating-linear-gradient(rgba(255,255,255,0.03) 0 1px, transparent 1px 3px);
+    background-image: repeating-linear-gradient(rgba(255,255,255,0.03) 0 1px, transparent 1px 3px);
   }
 
-  /* top bar */
-  #topbar {
-    position: absolute; top: 10px; left: 10px; right: 10px;
-    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    padding: 8px 12px; border-radius: 8px;
-  }
+  #topbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 12px; border-radius: 8px; }
+  body[data-ui="sides"] #topbar { flex-direction: column; align-items: stretch; }
   #brand {
-    font-family: 'Press Start 2P', monospace; font-size: 12px;
-    color: var(--neon); text-shadow: 0 0 8px rgba(56,249,215,0.6);
-    letter-spacing: 1px;
+    font-family: 'Press Start 2P', monospace; font-size: 12px; color: var(--neon);
+    text-shadow: 0 0 8px rgba(56,249,215,0.6); letter-spacing: 1px;
   }
   #scenes { display: flex; gap: 8px; flex-wrap: wrap; }
+  body[data-ui="sides"] #scenes { flex-direction: column; }
   .tab {
     display: flex; flex-direction: column; align-items: flex-start;
     background: rgba(255,255,255,0.04); color: #cfeee6; cursor: pointer;
@@ -78,106 +68,68 @@
   .tab b { font-size: 20px; letter-spacing: 0.5px; }
   .tab span { font-size: 14px; opacity: 0.65; }
   .tab:hover { border-color: var(--neon); background: rgba(56,249,215,0.08); }
-  .tab.active {
-    border-color: var(--neon); background: rgba(56,249,215,0.16);
-    box-shadow: 0 0 14px rgba(56,249,215,0.35);
-  }
+  .tab.active { border-color: var(--neon); background: rgba(56,249,215,0.16); box-shadow: 0 0 14px rgba(56,249,215,0.35); }
   .tab.active b { color: var(--neon); text-shadow: 0 0 8px rgba(56,249,215,0.5); }
 
-  #toprite { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  #toprite { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  body[data-ui="sides"] #toprite { margin-left: 0; }
   #status { font-size: 15px; color: var(--neon); opacity: 0.8; }
 
   .seg { display: flex; border: 2px solid rgba(56,249,215,0.25); border-radius: 6px; overflow: hidden; }
-  .seg button {
-    font-family: var(--font); font-size: 16px; background: transparent;
-    color: #cfeee6; border: 0; padding: 3px 11px; cursor: pointer;
-  }
+  .seg button { font-family: var(--font); font-size: 16px; background: transparent; color: #cfeee6; border: 0; padding: 3px 11px; cursor: pointer; }
   .seg button.active { background: var(--neon); color: #04120e; }
 
-  .pill {
-    font-family: var(--font); font-size: 16px; cursor: pointer;
-    background: rgba(255,255,255,0.05); color: #cfeee6;
-    border: 2px solid rgba(56,249,215,0.25); border-radius: 6px; padding: 3px 11px;
-  }
+  .pill { font-family: var(--font); font-size: 16px; cursor: pointer; background: rgba(255,255,255,0.05); color: #cfeee6; border: 2px solid rgba(56,249,215,0.25); border-radius: 6px; padding: 3px 11px; }
   .pill:hover { border-color: var(--neon); }
 
-  /* gesture instruction card */
-  #howto {
-    position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%);
-    max-width: min(620px, 80%); text-align: center; padding: 8px 18px;
-    border-radius: 8px;
+  /* always-visible UI toggle (survives hide) */
+  #ui-toggle {
+    position: fixed; top: 6px; right: 6px; z-index: 12;
+    font-family: var(--font); font-size: 15px; cursor: pointer; color: #04120e;
+    background: var(--neon); border: 0; border-radius: 6px; padding: 4px 10px;
+    box-shadow: 0 0 12px rgba(56,249,215,0.5); opacity: 0.85;
   }
+  #ui-toggle:hover { opacity: 1; }
+
+  #howto { max-width: min(620px, 92vw); text-align: center; padding: 8px 18px; border-radius: 8px; }
   #howto-title { font-size: 22px; color: var(--neon); letter-spacing: 0.5px; }
   #howto-body { font-size: 17px; line-height: 1.35; opacity: 0.9; }
   #howto-body .g { color: var(--amber); }
 
-  /* controls dock */
-  #panel {
-    position: absolute; left: 12px; bottom: 14px; width: 224px;
-    border-radius: 8px; padding: 8px 12px 12px;
-  }
-  #panel h3 {
-    margin: 2px 0 8px; font-size: 18px; letter-spacing: 1px; color: var(--neon);
-    display: flex; justify-content: space-between; align-items: center;
-  }
+  #panel { width: 224px; border-radius: 8px; padding: 8px 12px 12px; overflow-y: auto; }
+  #panel h3 { margin: 2px 0 8px; font-size: 18px; letter-spacing: 1px; color: var(--neon); display: flex; justify-content: space-between; align-items: center; }
   #panel h3 .min { cursor: pointer; opacity: 0.7; font-size: 16px; }
   #panel.collapsed #controls { display: none; }
   .ctrl { margin: 9px 0; }
   .ctrl .row { display: flex; justify-content: space-between; font-size: 16px; }
   .ctrl .row .val { color: var(--amber); }
-  input[type=range] {
-    -webkit-appearance: none; appearance: none; width: 100%; height: 14px;
-    background: transparent; margin: 3px 0 0;
-  }
-  input[type=range]::-webkit-slider-runnable-track {
-    height: 4px; background: rgba(56,249,215,0.25);
-    border: 1px solid var(--line);
-  }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none; width: 12px; height: 16px;
-    margin-top: -7px; background: var(--neon); border: 0; cursor: pointer;
-    box-shadow: 0 0 8px rgba(56,249,215,0.7);
-  }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; background: transparent; margin: 3px 0 0; }
+  input[type=range]::-webkit-slider-runnable-track { height: 4px; background: rgba(56,249,215,0.25); border: 1px solid var(--line); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 12px; height: 16px; margin-top: -7px; background: var(--neon); border: 0; cursor: pointer; box-shadow: 0 0 8px rgba(56,249,215,0.7); }
   input[type=range]::-moz-range-track { height: 4px; background: rgba(56,249,215,0.25); }
   input[type=range]::-moz-range-thumb { width: 12px; height: 16px; background: var(--neon); border: 0; cursor: pointer; }
   .opts { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
-  .opts button {
-    font-family: var(--font); font-size: 14px; cursor: pointer;
-    background: rgba(255,255,255,0.05); color: #cfeee6;
-    border: 1px solid rgba(56,249,215,0.3); border-radius: 4px; padding: 1px 8px;
-  }
+  .opts button { font-family: var(--font); font-size: 14px; cursor: pointer; background: rgba(255,255,255,0.05); color: #cfeee6; border: 1px solid rgba(56,249,215,0.3); border-radius: 4px; padding: 1px 8px; }
   .opts button.active { background: var(--neon); color: #04120e; }
-  .toggle {
-    width: 100%; font-family: var(--font); font-size: 16px; cursor: pointer;
-    background: rgba(255,255,255,0.05); color: #cfeee6;
-    border: 1px solid rgba(56,249,215,0.3); border-radius: 5px; padding: 3px;
-  }
+  .toggle { width: 100%; font-family: var(--font); font-size: 16px; cursor: pointer; background: rgba(255,255,255,0.05); color: #cfeee6; border: 1px solid rgba(56,249,215,0.3); border-radius: 5px; padding: 3px; }
   .toggle.on { background: var(--neon); color: #04120e; }
 
-  /* start / loading gate */
+  /* start gate */
   #gate {
-    position: fixed; inset: 0; z-index: 30; background: radial-gradient(circle at 50% 40%, #0c1226, #04050b 70%);
+    position: fixed; inset: 0; z-index: 30;
+    background: radial-gradient(circle at 50% 40%, #0c1226, #04050b 70%);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 22px; text-align: center; padding: 24px;
   }
-  #gate h1 {
-    font-family: 'Press Start 2P', monospace; font-size: 26px; color: var(--neon);
-    text-shadow: 0 0 14px rgba(56,249,215,0.6); margin: 0; line-height: 1.5;
-  }
+  #gate h1 { font-family: 'Press Start 2P', monospace; font-size: 26px; color: var(--neon); text-shadow: 0 0 14px rgba(56,249,215,0.6); margin: 0; line-height: 1.5; }
   #gate p { font-size: 19px; opacity: 0.8; max-width: 440px; margin: 0; }
-  #start {
-    font-family: 'Press Start 2P', monospace; font-size: 16px; cursor: pointer;
-    color: #04120e; background: var(--neon); border: 0; border-radius: 8px;
-    padding: 16px 26px; box-shadow: 0 0 22px rgba(56,249,215,0.6);
-    animation: pulse 1.4s ease-in-out infinite;
-  }
+  #start { font-family: 'Press Start 2P', monospace; font-size: 16px; cursor: pointer; color: #04120e; background: var(--neon); border: 0; border-radius: 8px; padding: 16px 26px; box-shadow: 0 0 22px rgba(56,249,215,0.6); animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 50% { box-shadow: 0 0 34px rgba(56,249,215,0.95); } }
   #gate small { font-size: 16px; opacity: 0.5; max-width: 420px; }
   #gate .err { color: #ff8f8f; }
 </style>
 </head>
 <body>
-  <!-- start gate (also the camera-permission fix: init runs on this click) -->
   <div id="gate">
     <h1>HAND<br>SCENES</h1>
     <p>Control retro video effects with your hands. Runs entirely in your browser — nothing is uploaded.</p>
@@ -186,37 +138,40 @@
   </div>
 
   <div id="stage">
-    <!-- canvas injected here by main.js -->
     <video id="cam" autoplay muted playsinline></video>
+    <!-- canvas injected here by main.js -->
+  </div>
 
-    <div id="topbar" class="ui panel" style="--panel-img:none">
-      <div id="brand">HANDSCENES</div>
-      <div id="scenes">
-        <button class="tab active" data-scene="1"><b>✋ Cat's Cradle</b><span>weave a web between your fingers</span></button>
-        <button class="tab" data-scene="2"><b>🌼 Garden</b><span>bloom flowers with your fist</span></button>
-        <button class="tab" data-scene="3"><b>⌨ ASCII</b><span>frame a box with both hands</span></button>
+  <!-- UI lives OUTSIDE the stage so it sits in the letterbox margins and is
+       never part of the recorded frame -->
+  <button id="ui-toggle">HIDE UI</button>
+
+  <div id="topbar" class="ui panel">
+    <div id="brand">HANDSCENES</div>
+    <div id="scenes">
+      <button class="tab active" data-scene="1"><b>✋ Cat's Cradle</b><span>weave a web between your fingers</span></button>
+      <button class="tab" data-scene="2"><b>🌼 Garden</b><span>bloom flowers with your fist</span></button>
+      <button class="tab" data-scene="3"><b>⌨ Filter Box</b><span>frame a box, pick a filter</span></button>
+    </div>
+    <div id="toprite">
+      <div class="seg" id="format">
+        <button data-fmt="full" class="active">FULL</button>
+        <button data-fmt="16:9">16:9</button>
+        <button data-fmt="9:16">9:16</button>
       </div>
-      <div id="toprite">
-        <div class="seg" id="format">
-          <button data-fmt="full" class="active">FULL</button>
-          <button data-fmt="16:9">16:9</button>
-          <button data-fmt="9:16">9:16</button>
-        </div>
-        <button class="pill" id="toggle-cam">CAM</button>
-        <button class="pill" id="toggle-clean" title="hide UI for recording (press H)">CLEAN</button>
-        <div id="status">–</div>
-      </div>
+      <button class="pill" id="toggle-cam">CAM</button>
+      <div id="status">–</div>
     </div>
+  </div>
 
-    <div id="panel" class="ui panel" style="--panel-img:none">
-      <h3>CONTROLS <span class="min" id="panel-min">_</span></h3>
-      <div id="controls"></div>
-    </div>
+  <div id="panel" class="ui panel">
+    <h3>CONTROLS <span class="min" id="panel-min">_</span></h3>
+    <div id="controls"></div>
+  </div>
 
-    <div id="howto" class="ui panel" style="--panel-img:none">
-      <div id="howto-title"></div>
-      <div id="howto-body"></div>
-    </div>
+  <div id="howto" class="ui panel">
+    <div id="howto-title"></div>
+    <div id="howto-body"></div>
   </div>
 
   <script type="importmap">

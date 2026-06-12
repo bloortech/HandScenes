@@ -1,8 +1,9 @@
 // HandScenes — hand-tracked video effects in the browser.
 // Everything (webcam, MediaPipe tracking, three.js) runs client-side; nothing
 // is uploaded. Init is gated behind PRESS START so getUserMedia runs from a
-// user gesture — that's what makes the camera come up reliably on first load
-// (no more "allow then refresh").
+// user gesture — that's what makes the camera come up reliably on first load.
+// The UI lives OUTSIDE the recording stage (in the letterbox margins) so a
+// screen-recording of the stage is clean; HIDE UI removes it entirely.
 
 import * as THREE from 'three';
 import { createHands } from './hands.js';
@@ -20,11 +21,11 @@ const controlsEl = $('controls');
 const gate = $('gate');
 const startBtn = $('start');
 const gateNote = $('gate-note');
+const uiToggle = $('ui-toggle');
 
 const SCENE_META = {
   1: {
     make: (r) => new CradleScene(r, video),
-    name: "cat's cradle",
     title: "✋ Cat's cradle",
     body: 'Hold up <span class="g">both hands</span> — glowing strings stretch ' +
       'between your fingers. <span class="g">Spread your fingers</span> to weave ' +
@@ -32,7 +33,6 @@ const SCENE_META = {
   },
   2: {
     make: (r) => new GardenScene(r, video),
-    name: 'garden',
     title: '🌼 Digital garden',
     body: '<span class="g">Open your fist</span> to bloom the big dandelion. ' +
       '<span class="g">Pinch your fingers apart</span> to grow the field, ' +
@@ -40,31 +40,80 @@ const SCENE_META = {
   },
   3: {
     make: (r) => new ShapesScene(r, video),
-    name: 'ascii terminal',
-    title: '⌨ ASCII terminal',
+    title: '⌨ Filter box',
     body: 'Use <span class="g">both hands</span> to frame a rectangle — ' +
-      '<span class="g">index fingers</span> set the top corners, ' +
-      '<span class="g">thumbs</span> the bottom. Everything inside becomes ' +
-      'live ASCII. Move your hands to reshape it.',
+      '<span class="g">index fingers</span> top corners, ' +
+      '<span class="g">thumbs</span> bottom. Pick the effect inside it with the ' +
+      '<span class="g">FILTER</span> control.',
   },
 };
 
 let renderer, hands, scenes, active;
 let aspectMode = 'full';
 
-// ---- stage / aspect sizing ----------------------------------------------
+// ---- stage sizing + UI placement ----------------------------------------
+function fitAspect(aw, ah, ratio) {
+  let w, h;
+  if (aw / ah > ratio) { h = ah; w = h * ratio; } else { w = aw; h = w / ratio; }
+  return [Math.round(w), Math.round(h)];
+}
+
+function positionUI(mode, sideM, topM) {
+  const tb = $('topbar'), pn = $('panel'), ht = $('howto');
+  for (const el of [tb, pn, ht]) {
+    el.style.left = el.style.right = el.style.top = el.style.bottom = '';
+    el.style.width = el.style.transform = el.style.maxHeight = '';
+  }
+  if (mode === 'sides') {
+    const rail = Math.max(150, Math.min(sideM - 16, 260));
+    pn.style.left = '8px'; pn.style.top = '70px'; pn.style.width = rail + 'px';
+    pn.style.maxHeight = (innerHeight - 90) + 'px';
+    tb.style.right = '8px'; tb.style.top = '8px'; tb.style.width = rail + 'px';
+    ht.style.right = '8px'; ht.style.bottom = '12px'; ht.style.width = rail + 'px';
+  } else if (mode === 'stacked') {
+    tb.style.top = '8px'; tb.style.left = '50%'; tb.style.transform = 'translateX(-50%)';
+    pn.style.left = '12px'; pn.style.bottom = '10px'; pn.style.width = '224px';
+    pn.style.maxHeight = Math.max(140, topM - 16) + 'px';
+    ht.style.right = '12px'; ht.style.bottom = '10px'; ht.style.width = 'min(340px, 40vw)';
+  } else { // overlay (full screen, or UI hidden)
+    tb.style.top = '10px'; tb.style.left = '10px'; tb.style.right = '10px';
+    pn.style.left = '12px'; pn.style.bottom = '14px'; pn.style.width = '224px';
+    pn.style.maxHeight = '60vh';
+    ht.style.left = '50%'; ht.style.bottom = '14px'; ht.style.transform = 'translateX(-50%)';
+  }
+}
+
 function layout() {
   const vw = innerWidth, vh = innerHeight;
-  let w, h;
+  const uiVisible = !document.body.classList.contains('hideui');
+  let w, h, mode = 'overlay';
+
   if (aspectMode === 'full') {
     w = vw; h = vh;
   } else {
-    const a = aspectMode === '16:9' ? 16 / 9 : 9 / 16;
-    if (vw / vh > a) { h = vh; w = h * a; } else { w = vw; h = w / a; }
+    const ratio = aspectMode === '16:9' ? 16 / 9 : 9 / 16;
+    [w, h] = fitAspect(vw, vh, ratio);
+    const sideM = (vw - w) / 2, topM = (vh - h) / 2;
+    if (!uiVisible) {
+      mode = 'overlay';                 // stage at full size; UI hidden anyway
+    } else if (sideM >= 200) {
+      mode = 'sides';                   // wide letterbox -> rails on the sides
+    } else if (topM >= 150) {
+      mode = 'stacked';                 // tall letterbox -> bars top/bottom
+    } else if (vw >= vh) {
+      [w, h] = fitAspect(vw - 2 * 210, vh - 16, ratio); // shrink, make side room
+      mode = 'sides';
+    } else {
+      [w, h] = fitAspect(vw - 12, vh - 96 - 160, ratio); // shrink, make top/bottom room
+      mode = 'stacked';
+    }
   }
-  w = Math.round(w); h = Math.round(h);
+
   stage.style.width = w + 'px';
   stage.style.height = h + 'px';
+  document.body.dataset.ui = mode;
+  positionUI(mode, (vw - w) / 2, (vh - h) / 2);
+
   if (renderer) {
     renderer.setSize(w, h);
     if (scenes) for (const s of Object.values(scenes)) s.resize(w, h);
@@ -82,8 +131,7 @@ function buildControls() {
     wrap.className = 'ctrl';
     if (c.type === 'slider') {
       const round = c.step < 1 ? (c.step < 0.1 ? 2 : 1) : 0;
-      wrap.innerHTML =
-        `<div class="row"><span>${c.label}</span><span class="val"></span></div>`;
+      wrap.innerHTML = `<div class="row"><span>${c.label}</span><span class="val"></span></div>`;
       const input = document.createElement('input');
       input.type = 'range';
       input.min = c.min; input.max = c.max; input.step = c.step; input.value = c.value;
@@ -127,7 +175,7 @@ function buildControls() {
 }
 
 function selectScene(key) {
-  if (!scenes[key]) return;
+  if (!scenes || !scenes[key]) return;
   active = { scene: scenes[key], ...SCENE_META[key] };
   howtoTitle.textContent = active.title;
   howtoBody.innerHTML = active.body;
@@ -136,7 +184,7 @@ function selectScene(key) {
   buildControls();
 }
 
-// ---- UI wiring (safe to attach before init) ------------------------------
+// ---- UI wiring -----------------------------------------------------------
 document.querySelectorAll('.tab').forEach((t) =>
   t.addEventListener('click', () => selectScene(t.dataset.scene)));
 
@@ -148,14 +196,19 @@ document.querySelectorAll('#format button').forEach((b) =>
     layout();
   }));
 
+function toggleUI() {
+  const hidden = document.body.classList.toggle('hideui');
+  uiToggle.textContent = hidden ? 'SHOW UI' : 'HIDE UI';
+  layout();
+}
+uiToggle.addEventListener('click', toggleUI);
 $('toggle-cam').addEventListener('click', () => video.classList.toggle('hidden'));
-$('toggle-clean').addEventListener('click', () => document.body.classList.toggle('clean'));
 $('panel-min').addEventListener('click', () => $('panel').classList.toggle('collapsed'));
 
 addEventListener('keydown', (e) => {
   if (['1', '2', '3'].includes(e.key)) selectScene(e.key);
   if (e.key === 'v') video.classList.toggle('hidden');
-  if (e.key === 'h') document.body.classList.toggle('clean');
+  if (e.key === 'h') toggleUI();
 });
 
 // ---- boot ----------------------------------------------------------------
@@ -168,9 +221,7 @@ async function init() {
       renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
       stage.insertBefore(renderer.domElement, stage.firstChild);
     }
-
     hands = await createHands(video);
-
     scenes = {
       1: SCENE_META[1].make(renderer),
       2: SCENE_META[2].make(renderer),

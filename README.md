@@ -18,12 +18,14 @@ perfect fit for static hosting (e.g. Vercel).
 - **🌼 Digital garden** — open your fist to bloom a wireframe dandelion; pinch
   your fingers apart/together to grow/shrink a field of flowers. Over a
   darkened black-and-white feed.
-- **⌨️ ASCII terminal** — both hands frame a rectangle (index fingers = top,
-  thumbs = bottom); everything inside renders as live green-on-black ASCII
-  characters.
+- **⌨️ Filter box** — both hands frame a rectangle (index fingers = top,
+  thumbs = bottom); pick the effect applied inside it (ASCII terminal,
+  thermal, risograph, cyanotype, halftone, b&w, invert, duotone).
 
-Switch scenes with the on-screen buttons or keys `1` / `2` / `3`. Toggle the
-camera preview with the button or `v`.
+Switch scenes with the on-screen buttons or keys `1` / `2` / `3`. Pick a
+recording shape with FULL / 16:9 / 9:16. Toggle the camera preview with the
+`CAM` button or `v`, and hide the whole UI for clean recording with `HIDE UI`
+or `h`. The UI sits in the letterbox margins (not over the video) in 16:9/9:16.
 
 ## Run locally
 

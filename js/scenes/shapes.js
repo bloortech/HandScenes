@@ -42,6 +42,7 @@ const bgFrag = /* glsl */ `
   uniform float uGrid;
   uniform vec3 uTerm;
   uniform float uScan;     // 1 = CRT scanlines on, 0 = off
+  uniform int uFilter;     // which effect to apply inside the shape
   uniform vec2 uQuad[4];   // the 4 corners of the shape, in plane uv space
   uniform int uActive;
   in vec2 vUv;
@@ -70,31 +71,66 @@ const bgFrag = /* glsl */ `
     return inside;
   }
 
+  float hash(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+  }
+
+  vec3 jet(float t) {  // thermal: cold blue -> green -> yellow -> hot red
+    return clamp(vec3(1.5 - abs(4.0 * t - 3.0),
+                      1.5 - abs(4.0 * t - 2.0),
+                      1.5 - abs(4.0 * t - 1.0)), 0.0, 1.0);
+  }
+
+  vec3 asciiAt(vec2 uv) {
+    vec2 cells = vec2(floor(uGrid * uAspect), uGrid);
+    vec2 p = uv * cells;
+    vec2 cellUv = (floor(p) + 0.5) / cells;
+    float gray = dot(texture(uMap, uOffset + cellUv * uRepeat).rgb, vec3(0.3, 0.59, 0.11));
+    int n = 4096;                  // .
+    if (gray > 0.2) n = 65600;     // :
+    if (gray > 0.3) n = 332772;    // *
+    if (gray > 0.4) n = 15255086;  // o
+    if (gray > 0.5) n = 23385164;  // &
+    if (gray > 0.6) n = 15252014;  // 8
+    if (gray > 0.7) n = 13199452;  // @
+    if (gray > 0.8) n = 11512810;  // #
+    float glyph = character(n, fract(p) - 0.5);
+    float scan = mix(1.0, 0.85 + 0.15 * sin(uv.y * uGrid * 3.14159 * 2.0), uScan);
+    return uTerm * glyph * (0.55 + 0.6 * gray) * scan + uTerm * 0.04;
+  }
+
   void main() {
     vec3 raw = texture(uMap, uOffset + vUv * uRepeat).rgb;
 
     if (uActive == 1 && insideQuad(vUv)) {
-      // snap to a character cell, sample the video at the cell's center
-      vec2 cells = vec2(floor(uGrid * uAspect), uGrid);
-      vec2 p = vUv * cells;
-      vec2 cellUv = (floor(p) + 0.5) / cells;
-      vec3 c = texture(uMap, uOffset + cellUv * uRepeat).rgb;
-      float gray = dot(c, vec3(0.3, 0.59, 0.11));
+      float luma = dot(raw, vec3(0.299, 0.587, 0.114));
+      vec3 paper = vec3(0.96, 0.95, 0.90);
+      vec3 col;
 
-      // brightness -> glyph (sparse for dark cells, dense for bright)
-      int n = 4096;                       // .
-      if (gray > 0.2) n = 65600;          // :
-      if (gray > 0.3) n = 332772;         // *
-      if (gray > 0.4) n = 15255086;       // o
-      if (gray > 0.5) n = 23385164;       // &
-      if (gray > 0.6) n = 15252014;       // 8
-      if (gray > 0.7) n = 13199452;       // @
-      if (gray > 0.8) n = 11512810;       // #
-
-      float glyph = character(n, fract(p) - 0.5);
-      float scan = mix(1.0, 0.85 + 0.15 * sin(vUv.y * uGrid * 3.14159 * 2.0), uScan);
-      vec3 col = uTerm * glyph * (0.55 + 0.6 * gray) * scan;
-      col += uTerm * 0.04; // faint phosphor glow in empty cells
+      if (uFilter == 0) {                 // ASCII terminal
+        col = asciiAt(vUv);
+      } else if (uFilter == 1) {          // thermal
+        col = jet(luma);
+      } else if (uFilter == 2) {          // risograph (grainy 2-ink)
+        float l = luma + (hash(vUv * 431.7) - 0.5) * 0.12;
+        col = paper;
+        if (l < 0.74) col = mix(col, vec3(0.07, 0.19, 0.62), 0.88);
+        if (l < 0.34) col = mix(col, vec3(0.92, 0.18, 0.22), 0.85);
+      } else if (uFilter == 3) {          // cyanotype
+        col = mix(vec3(0.04, 0.12, 0.34), vec3(0.93, 0.96, 0.98),
+                  smoothstep(0.05, 0.95, luma));
+      } else if (uFilter == 4) {          // halftone stipple
+        vec2 g = vec2(vUv.x * uAspect, vUv.y) * (uGrid * 0.8);
+        g = mat2(0.966, -0.259, 0.259, 0.966) * g;
+        float ink = step(length(fract(g) - 0.5), (1.0 - luma) * 0.62);
+        col = mix(paper, vec3(0.10, 0.10, 0.12), ink);
+      } else if (uFilter == 5) {          // black & white
+        col = vec3(smoothstep(0.05, 0.95, luma));
+      } else if (uFilter == 6) {          // invert
+        col = 1.0 - raw;
+      } else {                            // duotone (uses the phosphor color)
+        col = mix(vec3(0.10, 0.0, 0.25), uTerm, luma);
+      }
       fragColor = vec4(col, 1.0);
     } else {
       fragColor = vec4(raw * uDim, 1.0);
@@ -130,6 +166,7 @@ export class ShapesScene {
         uGrid: { value: PARAMS.asciiGrid },
         uTerm: { value: PARAMS.termColor.clone() },
         uScan: { value: 1 },
+        uFilter: { value: 0 },
         uQuad: { value: this.quadPts },
         uActive: { value: 0 },
       },
@@ -217,10 +254,19 @@ export class ShapesScene {
 
   getControls() {
     const u = this.bgMat.uniforms;
+    const filters = [
+      { label: 'ascii', value: 0 }, { label: 'thermal', value: 1 },
+      { label: 'riso', value: 2 }, { label: 'cyano', value: 3 },
+      { label: 'halftone', value: 4 }, { label: 'b&w', value: 5 },
+      { label: 'invert', value: 6 }, { label: 'duotone', value: 7 },
+    ];
     return [
+      { type: 'select', id: 'filter', label: 'FILTER',
+        value: u.uFilter.value, options: filters,
+        set: (v) => { u.uFilter.value = v; } },
       { type: 'slider', id: 'grid', label: 'TEXT SIZE', min: 30, max: 150, step: 5,
         value: u.uGrid.value, set: (v) => { u.uGrid.value = v; } },
-      { type: 'select', id: 'color', label: 'PHOSPHOR',
+      { type: 'select', id: 'color', label: 'ASCII / DUOTONE COLOR',
         value: PHOSPHORS[0].value,
         options: PHOSPHORS.map((p) => ({ label: p.label, value: p.value })),
         set: (v) => u.uTerm.value.set(v[0], v[1], v[2]) },
