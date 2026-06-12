@@ -380,4 +380,18 @@ export class CradleScene {
     this.finalComposer.setSize(w, h);
     this.updateLayout();
   }
+
+  getControls() {
+    return [
+      { type: 'slider', id: 'glow', label: 'GLOW', min: 0, max: 3, step: 0.1,
+        value: this.bloom.strength, set: (v) => { this.bloom.strength = v; } },
+      { type: 'slider', id: 'droop', label: 'DROOP', min: 1, max: 1.8, step: 0.02,
+        value: PARAMS.sag, set: (v) => { PARAMS.sag = v; } },
+      { type: 'slider', id: 'depth', label: 'DEPTH', min: 0, max: 6, step: 0.2,
+        value: PARAMS.depthScale, set: (v) => { PARAMS.depthScale = v; } },
+      { type: 'slider', id: 'feed', label: 'FEED', min: 0.2, max: 1, step: 0.05,
+        value: this.bgMat.uniforms.uDim.value,
+        set: (v) => { this.bgMat.uniforms.uDim.value = v; } },
+    ];
+  }
 }

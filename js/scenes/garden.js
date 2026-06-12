@@ -60,6 +60,8 @@ export class GardenScene {
     this.targetBloom = 0;
     this.targetGrowth = 0;
     this.time = 0;
+    this.densityFrac = 1;  // fraction of the field shown (FLOWERS control)
+    this.swayAmt = 1;      // idle-sway multiplier (SWAY control)
     this.updateBulb(0);
   }
 
@@ -195,14 +197,16 @@ export class GardenScene {
 
     this.updateBulb(ease(this.bloom));
     this.dandelion.rotation.y += dt * 0.18; // slow shimmer spin
-    this.dandelion.rotation.z = Math.sin(this.time * 0.6) * 0.015;
+    this.dandelion.rotation.z = Math.sin(this.time * 0.6) * 0.015 * this.swayAmt;
 
     const headScale = 0.3 + 0.7 * ease(this.bloom);
-    for (const f of this.field) {
-      const gi = ease(win(this.growth, f.startG, 0.35));
+    const visible = Math.round(this.densityFrac * this.field.length);
+    for (let i = 0; i < this.field.length; i++) {
+      const f = this.field[i];
+      const gi = i < visible ? ease(win(this.growth, f.startG, 0.35)) : 0;
       f.group.scale.setScalar(Math.max(gi, 0.001));
       f.head.scale.setScalar(headScale);
-      f.group.rotation.z = Math.sin(this.time * 0.8 + f.phase) * 0.04;
+      f.group.rotation.z = Math.sin(this.time * 0.8 + f.phase) * 0.04 * this.swayAmt;
     }
     // subtle twinkle
     this.dotMat.size = 0.035 + Math.sin(this.time * 3.1) * 0.007;
@@ -216,5 +220,29 @@ export class GardenScene {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.videoBg.updateLayout();
+  }
+
+  getControls() {
+    const ink = [
+      { label: 'white', value: 0xffffff },
+      { label: 'cyan', value: 0x6ff7ff },
+      { label: 'magenta', value: 0xff6fe0 },
+      { label: 'amber', value: 0xffd45e },
+      { label: 'green', value: 0x7cff6b },
+    ];
+    return [
+      { type: 'slider', id: 'feed', label: 'FEED', min: 0, max: 1, step: 0.05,
+        value: this.videoBg.mat.uniforms.uDim.value,
+        set: (v) => { this.videoBg.mat.uniforms.uDim.value = v; } },
+      { type: 'select', id: 'ink', label: 'INK', value: 0xffffff,
+        options: ink,
+        set: (v) => { this.lineMat.color.setHex(v); this.dotMat.color.setHex(v); } },
+      { type: 'slider', id: 'flowers', label: 'FLOWERS', min: 0, max: 1, step: 0.05,
+        value: this.densityFrac, set: (v) => { this.densityFrac = v; } },
+      { type: 'slider', id: 'bulb', label: 'BULB', min: 0.5, max: 1.6, step: 0.05,
+        value: 1, set: (v) => this.dandelion.scale.setScalar(v) },
+      { type: 'slider', id: 'sway', label: 'SWAY', min: 0, max: 2.5, step: 0.1,
+        value: this.swayAmt, set: (v) => { this.swayAmt = v; } },
+    ];
   }
 }

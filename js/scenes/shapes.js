@@ -15,6 +15,15 @@ const PARAMS = {
   termColor: new THREE.Vector3(0.25, 1.0, 0.45), // green phosphor
 };
 
+// retro phosphor palette for the PHOSPHOR control
+const PHOSPHORS = [
+  { label: 'green', value: [0.25, 1.0, 0.45] },
+  { label: 'amber', value: [1.0, 0.72, 0.2] },
+  { label: 'cyan', value: [0.3, 0.9, 1.0] },
+  { label: 'magenta', value: [1.0, 0.35, 0.8] },
+  { label: 'white', value: [0.9, 1.0, 0.95] },
+];
+
 const bgVert = /* glsl */ `
   out vec2 vUv;
   void main() {
@@ -32,6 +41,7 @@ const bgFrag = /* glsl */ `
   uniform float uAspect;
   uniform float uGrid;
   uniform vec3 uTerm;
+  uniform float uScan;     // 1 = CRT scanlines on, 0 = off
   uniform vec2 uQuad[4];   // the 4 corners of the shape, in plane uv space
   uniform int uActive;
   in vec2 vUv;
@@ -82,7 +92,7 @@ const bgFrag = /* glsl */ `
       if (gray > 0.8) n = 11512810;       // #
 
       float glyph = character(n, fract(p) - 0.5);
-      float scan = 0.85 + 0.15 * sin(vUv.y * uGrid * 3.14159 * 2.0); // CRT lines
+      float scan = mix(1.0, 0.85 + 0.15 * sin(vUv.y * uGrid * 3.14159 * 2.0), uScan);
       vec3 col = uTerm * glyph * (0.55 + 0.6 * gray) * scan;
       col += uTerm * 0.04; // faint phosphor glow in empty cells
       fragColor = vec4(col, 1.0);
@@ -118,7 +128,8 @@ export class ShapesScene {
         uDim: { value: PARAMS.videoDim },
         uAspect: { value: 1 },
         uGrid: { value: PARAMS.asciiGrid },
-        uTerm: { value: PARAMS.termColor },
+        uTerm: { value: PARAMS.termColor.clone() },
+        uScan: { value: 1 },
         uQuad: { value: this.quadPts },
         uActive: { value: 0 },
       },
@@ -202,5 +213,21 @@ export class ShapesScene {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.updateLayout();
+  }
+
+  getControls() {
+    const u = this.bgMat.uniforms;
+    return [
+      { type: 'slider', id: 'grid', label: 'TEXT SIZE', min: 30, max: 150, step: 5,
+        value: u.uGrid.value, set: (v) => { u.uGrid.value = v; } },
+      { type: 'select', id: 'color', label: 'PHOSPHOR',
+        value: PHOSPHORS[0].value,
+        options: PHOSPHORS.map((p) => ({ label: p.label, value: p.value })),
+        set: (v) => u.uTerm.value.set(v[0], v[1], v[2]) },
+      { type: 'slider', id: 'dim', label: 'OUTSIDE', min: 0, max: 1, step: 0.05,
+        value: u.uDim.value, set: (v) => { u.uDim.value = v; } },
+      { type: 'toggle', id: 'scan', label: 'SCANLINES',
+        value: u.uScan.value === 1, set: (v) => { u.uScan.value = v ? 1 : 0; } },
+    ];
   }
 }
