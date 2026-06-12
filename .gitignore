@@ -1,0 +1,10 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+
+# Vercel
+.vercel
+
+# Node (only if you ever add a build step)
+node_modules/

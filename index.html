@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HandScenes — hand-tracked video effects</title>
+<meta name="description" content="Control 3D effects with your hands using your webcam. Cat's cradle, a digital garden, and an ASCII terminal filter — no install, runs in your browser.">
+<style>
+  :root { --fg: #eaf2ff; --accent: #8fd3ff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #05060a;
+    font-family: system-ui, -apple-system, sans-serif; color: var(--fg); }
+  canvas { display: block; }
+
+  #cam {
+    position: fixed; right: 14px; bottom: 14px; width: 170px;
+    transform: scaleX(-1);              /* mirror = selfie view */
+    border-radius: 10px; opacity: 0.85; z-index: 10;
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+  }
+  #cam.hidden { display: none; }
+
+  /* top bar: title + scene switcher */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 12px 16px; user-select: none;
+    background: linear-gradient(180deg, rgba(0,0,0,0.55), rgba(0,0,0,0));
+  }
+  #title { font-weight: 700; letter-spacing: 0.3px; }
+  #title small { font-weight: 400; opacity: 0.55; margin-left: 8px; }
+  #scenes { display: flex; gap: 8px; flex-wrap: wrap; }
+  .scene-btn {
+    background: rgba(255,255,255,0.08); color: var(--fg);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 999px;
+    padding: 6px 14px; font-size: 13px; cursor: pointer; transition: 0.15s;
+    backdrop-filter: blur(6px);
+  }
+  .scene-btn:hover { background: rgba(255,255,255,0.16); }
+  .scene-btn.active {
+    background: var(--accent); color: #04121c; border-color: var(--accent);
+    font-weight: 600;
+  }
+  #status { margin-left: auto; font-size: 12px; color: var(--accent); opacity: 0.85; }
+
+  /* bottom-center instruction card */
+  #howto {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    z-index: 10; max-width: min(680px, 92vw); text-align: center;
+    background: rgba(8,12,20,0.6); backdrop-filter: blur(10px);
+    border: 1px solid rgba(255,255,255,0.12); border-radius: 14px;
+    padding: 12px 20px; user-select: none;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.45);
+  }
+  #howto-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  #howto-body { font-size: 14px; line-height: 1.5; opacity: 0.85; }
+  #howto-body .g { color: var(--accent); font-weight: 600; white-space: nowrap; }
+
+  #toggle-cam {
+    position: fixed; right: 14px; bottom: 190px; z-index: 10;
+    background: rgba(8,12,20,0.6); color: var(--fg); cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 999px;
+    padding: 5px 12px; font-size: 12px; backdrop-filter: blur(6px);
+  }
+
+  #loading {
+    position: fixed; inset: 0; display: flex; align-items: center;
+    justify-content: center; color: #cfe8ff; font-size: 18px; z-index: 20;
+    background: #05060a; flex-direction: column; gap: 12px; text-align: center;
+    padding: 24px;
+  }
+  #loading small { color: rgba(255,255,255,0.45); max-width: 360px; }
+  #loading .err { color: #ff9a9a; }
+</style>
+</head>
+<body>
+  <div id="loading">
+    starting hand tracker…
+    <small>allow camera access when your browser asks. nothing is uploaded — all tracking runs on your device.</small>
+  </div>
+
+  <div id="topbar">
+    <div id="title">HandScenes <small>hand-tracked video effects</small></div>
+    <div id="scenes">
+      <button class="scene-btn active" data-scene="1">✋ Cat's cradle</button>
+      <button class="scene-btn" data-scene="2">🌼 Garden</button>
+      <button class="scene-btn" data-scene="3">⌨️ ASCII terminal</button>
+    </div>
+    <div id="status">–</div>
+  </div>
+
+  <div id="howto">
+    <div id="howto-title"></div>
+    <div id="howto-body"></div>
+  </div>
+
+  <button id="toggle-cam">hide camera</button>
+  <video id="cam" autoplay muted playsinline></video>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
