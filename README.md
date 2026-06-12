@@ -21,6 +21,8 @@ perfect fit for static hosting (e.g. Vercel).
 - **⌨️ Filter box** — both hands frame a rectangle (index fingers = top,
   thumbs = bottom); pick the effect applied inside it (ASCII terminal,
   thermal, risograph, cyanotype, halftone, b&w, invert, duotone).
+- **◈ Mandelbox fractal** — open your fist to zoom, move your hand to orbit,
+  raise/lower to fold, pinch to morph. Ported from the TouchDesigner build.
 
 Switch scenes with the on-screen buttons or keys `1` / `2` / `3`. Pick a
 recording shape with FULL / 16:9 / 9:16. Toggle the camera preview with the
@@ -78,7 +80,8 @@ js/
   scenes/
     cradle.js         cat's cradle (selective bloom: only strings glow)
     garden.js         wireframe dandelion garden
-    shapes.js         ASCII terminal filter
+    shapes.js         filter box (ASCII + 7 other pickable filters)
+    fractal.js        morphing Mandelbox raymarch (ported from TouchDesigner)
 models/
   hand_landmarker.task   MediaPipe model (served with the site)
 ```

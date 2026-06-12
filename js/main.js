@@ -10,6 +10,7 @@ import { createHands } from './hands.js';
 import { CradleScene } from './scenes/cradle.js';
 import { GardenScene } from './scenes/garden.js';
 import { ShapesScene } from './scenes/shapes.js';
+import { FractalScene } from './scenes/fractal.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -45,6 +46,14 @@ const SCENE_META = {
       '<span class="g">index fingers</span> top corners, ' +
       '<span class="g">thumbs</span> bottom. Pick the effect inside it with the ' +
       '<span class="g">FILTER</span> control.',
+  },
+  4: {
+    make: (r) => new FractalScene(r),
+    title: '◈ Mandelbox fractal',
+    body: '<span class="g">Open your fist</span> to zoom in, ' +
+      '<span class="g">move your hand left/right</span> to orbit, ' +
+      '<span class="g">up/down</span> to fold the box, and ' +
+      '<span class="g">pinch</span> to morph the shape.',
   },
 };
 
@@ -206,7 +215,7 @@ $('toggle-cam').addEventListener('click', () => video.classList.toggle('hidden')
 $('panel-min').addEventListener('click', () => $('panel').classList.toggle('collapsed'));
 
 addEventListener('keydown', (e) => {
-  if (['1', '2', '3'].includes(e.key)) selectScene(e.key);
+  if (['1', '2', '3', '4'].includes(e.key)) selectScene(e.key);
   if (e.key === 'v') video.classList.toggle('hidden');
   if (e.key === 'h') toggleUI();
 });
@@ -226,6 +235,7 @@ async function init() {
       1: SCENE_META[1].make(renderer),
       2: SCENE_META[2].make(renderer),
       3: SCENE_META[3].make(renderer),
+      4: SCENE_META[4].make(renderer),
     };
     layout();
     selectScene('1');
