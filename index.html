@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HandScenes — hand-tracked video effects</title>
 <meta name="description" content="Control retro 3D video effects with your hands using your webcam. Cat's cradle, a digital garden, and a pick-your-filter ASCII box — no install, runs in your browser.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/fonts/fonts.css">
 <style>
   :root {
     --bg: #07080f;
@@ -127,6 +126,8 @@
   @keyframes pulse { 50% { box-shadow: 0 0 34px rgba(56,249,215,0.95); } }
   #gate small { font-size: 16px; opacity: 0.5; max-width: 420px; }
   #gate .err { color: #ff8f8f; }
+  .gate-link { font-size: 16px; color: var(--neon); opacity: 0.7; text-decoration: none; border-bottom: 1px dotted var(--neon); }
+  .gate-link:hover { opacity: 1; }
 </style>
 </head>
 <body>
@@ -135,6 +136,7 @@
     <p>Control retro video effects with your hands. Runs entirely in your browser — nothing is uploaded.</p>
     <button id="start">▶ PRESS START</button>
     <small id="gate-note">you'll be asked for camera access — click allow</small>
+    <a class="gate-link" href="privacy.html">privacy &amp; how it works</a>
   </div>
 
   <div id="stage">
@@ -178,8 +180,8 @@
   <script type="importmap">
   {
     "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
-      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+      "three": "./vendor/three/three.module.js",
+      "three/addons/": "./vendor/three/addons/"
     }
   }
   </script>

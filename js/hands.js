@@ -4,7 +4,7 @@
 import {
   FilesetResolver,
   HandLandmarker,
-} from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+} from '../vendor/mediapipe/tasks-vision.mjs';
 
 const SMOOTHING = 0.45;       // 0 = frozen, 1 = raw (per-frame lerp toward new data)
 const LOST_AFTER_MS = 250;    // drop a hand slot if unseen this long
@@ -14,23 +14,26 @@ const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
 export async function createHands(video) {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { width: 640, height: 480 },
+    video: { facingMode: 'user', width: 640, height: 480 }, // front camera on mobile
     audio: false,
   });
   video.srcObject = stream;
   await video.play();
 
-  const vision = await FilesetResolver.forVisionTasks(
-    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
-  );
-  const landmarker = await HandLandmarker.createFromOptions(vision, {
-    baseOptions: {
-      modelAssetPath: 'models/hand_landmarker.task',
-      delegate: 'GPU',
-    },
+  const vision = await FilesetResolver.forVisionTasks('vendor/mediapipe/wasm');
+  const opts = (delegate) => ({
+    baseOptions: { modelAssetPath: 'models/hand_landmarker.task', delegate },
     runningMode: 'VIDEO',
     numHands: 2,
   });
+  // GPU is fast but unsupported on some devices (esp. iOS Safari) — fall back.
+  let landmarker;
+  try {
+    landmarker = await HandLandmarker.createFromOptions(vision, opts('GPU'));
+  } catch (e) {
+    console.warn('HandLandmarker GPU delegate failed, using CPU', e);
+    landmarker = await HandLandmarker.createFromOptions(vision, opts('CPU'));
+  }
 
   // Persistent slots keyed by handedness so scenes get stable hand identity.
   // slots[label] = { landmarks: [{x,y,z}*21], tips: [{x,y,z,vx,vy,speed}*5], lastSeen }

@@ -256,16 +256,21 @@ function loop(now) {
   const dt = Math.min((now - last) / 1000, 0.1);
   last = now;
 
-  const tracked = hands.update(now);
-  active.scene.update(dt, tracked);
-  active.scene.render();
+  // never let one bad frame stop the loop (lost GL context, camera unplugged…)
+  try {
+    const tracked = hands.update(now);
+    active.scene.update(dt, tracked);
+    active.scene.render();
 
-  fpsAccum += dt; fpsFrames++;
-  if (fpsAccum >= 0.5) {
-    const fps = Math.round(fpsFrames / fpsAccum);
-    fpsAccum = 0; fpsFrames = 0;
-    statusEl.textContent =
-      `${tracked.length} hand${tracked.length === 1 ? '' : 's'} · ${fps} fps`;
+    fpsAccum += dt; fpsFrames++;
+    if (fpsAccum >= 0.5) {
+      const fps = Math.round(fpsFrames / fpsAccum);
+      fpsAccum = 0; fpsFrames = 0;
+      statusEl.textContent =
+        `${tracked.length} hand${tracked.length === 1 ? '' : 's'} · ${fps} fps`;
+    }
+  } catch (err) {
+    console.error('frame error (continuing):', err);
   }
   requestAnimationFrame(loop);
 }

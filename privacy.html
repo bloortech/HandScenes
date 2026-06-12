@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HandScenes — Privacy &amp; How It Works</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="vendor/fonts/fonts.css">
+<style>
+  :root { --neon: #38f9d7; --amber: #ffcf5a; }
+  body {
+    margin: 0; background: #07080f; color: #d7fff6;
+    font-family: 'VT323', monospace; line-height: 1.5;
+    padding: 40px 20px 80px;
+  }
+  main { max-width: 680px; margin: 0 auto; }
+  h1 { font-family: 'Press Start 2P', monospace; font-size: 22px; color: var(--neon);
+       text-shadow: 0 0 12px rgba(56,249,215,0.5); line-height: 1.6; }
+  h2 { color: var(--neon); font-size: 24px; margin-top: 32px; letter-spacing: 0.5px; }
+  p, li { font-size: 19px; opacity: 0.92; }
+  a { color: var(--amber); }
+  .tldr { border: 2px solid rgba(56,249,215,0.35); border-radius: 10px; padding: 14px 20px; background: rgba(56,249,215,0.06); }
+  .updated { opacity: 0.5; font-size: 16px; }
+  .back { display: inline-block; margin-bottom: 20px; color: var(--neon); text-decoration: none; border-bottom: 1px dotted var(--neon); }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="index.html">‹ back to HandScenes</a>
+  <h1>Privacy &amp;<br>How It Works</h1>
+  <p class="updated">Last updated: 12 June 2026</p>
+
+  <div class="tldr">
+    <p><b>The short version:</b> HandScenes uses your webcam to track your hand
+    movements <b>entirely inside your browser, on your own device.</b> Your
+    camera video and the hand positions detected from it are <b>never recorded,
+    saved, or sent to us or anyone else.</b> Nothing you do here is uploaded.</p>
+  </div>
+
+  <h2>The camera</h2>
+  <p>When you press start, your browser asks permission to use your camera. We
+  use that feed only to detect where your hands are, in real time, so the
+  visual effects can react to them. The processing runs locally using
+  Google's MediaPipe library and your device's graphics hardware. The video
+  stream stays in your browser tab and is discarded as it plays — there is no
+  recording feature, no upload, and no server that ever sees your camera.</p>
+
+  <h2>What we collect</h2>
+  <p>Nothing. HandScenes has no accounts, no analytics, no advertising, no
+  cookies, and no local storage of your data. We do not build any profile of
+  you and we have no database.</p>
+
+  <h2>Third parties</h2>
+  <p>The app and everything it needs (3D library, hand-tracking model, fonts)
+  is served from our own host, <b>Vercel</b>. Like any website, Vercel's
+  servers automatically receive standard request information — your IP address,
+  browser type, and the time of the request — in order to deliver the page.
+  Vercel acts as our hosting provider; see
+  <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel's privacy policy</a>.
+  We do not load scripts, fonts, or trackers from any other third-party
+  service.</p>
+
+  <h2>Recording your own videos</h2>
+  <p>HandScenes does not record anything. If you screen-record yourself using
+  it, that recording is created and stored by you, on your device or in
+  whatever tool you chose — we are not involved and never receive it.</p>
+
+  <h2>Children</h2>
+  <p>HandScenes does not knowingly collect any personal information from anyone,
+  including children.</p>
+
+  <h2>Your rights</h2>
+  <p>Because we don't collect or store personal data, there is nothing for us to
+  access, correct, or delete on your behalf. You can revoke camera access at
+  any time from your browser's site settings.</p>
+
+  <h2>Changes</h2>
+  <p>If we ever add features that change how data is handled (for example
+  analytics or a built-in recorder), we will update this page before doing so.</p>
+
+  <h2>Contact</h2>
+  <p>Questions? Email <a href="mailto:bloortechnologies@gmail.com">bloortechnologies@gmail.com</a>.</p>
+</main>
+</body>
+</html>

@@ -83,13 +83,25 @@ js/
     shapes.js         filter box (ASCII + 7 other pickable filters)
     fractal.js        morphing Mandelbox raymarch (ported from TouchDesigner)
 models/
-  hand_landmarker.task   MediaPipe model (served with the site)
+  hand_landmarker.task   MediaPipe hand model (served with the site)
+privacy.html           privacy policy + "how it works"
+favicon.svg            site icon
+vendor/                self-hosted deps (no third-party CDNs at runtime):
+  three/               three.js core + postprocessing addons
+  mediapipe/           MediaPipe tasks-vision bundle + WASM runtime
+  fonts/               VT323 + Press Start 2P (woff2) + fonts.css
 ```
 
-Note: `js/scenes/water.js` and `js/scenes/flower.js` are earlier scenes kept on
-disk but not wired into the app.
+## Privacy & third parties
+
+Everything the app needs is **self-hosted** under `vendor/` — at runtime the
+page makes no requests to any third-party origin (no jsDelivr, no Google
+Fonts). The only data anyone receives is the standard request metadata your
+host (Vercel) logs. The camera feed and hand landmarks never leave the device.
+See `privacy.html`. `vercel.json` sets a Content-Security-Policy, a camera
+Permissions-Policy, and anti-framing headers.
 
 ## Credits
 
-three.js and MediaPipe are loaded from CDN (jsDelivr). Hand model:
-Google MediaPipe `hand_landmarker`.
+three.js (MIT), Google MediaPipe Tasks (Apache-2.0) and the `hand_landmarker`
+model, fonts VT323 + Press Start 2P (OFL) — all vendored under `vendor/`.
