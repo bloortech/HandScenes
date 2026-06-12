@@ -35,10 +35,11 @@ const ONE_HAND_PAIRS = [
 ];
 
 // Per-finger filter quads (two-hand mode): Ltip -> Rtip -> Rpip -> Lpip.
-// Inside each quad the video gets a different filter:
-// thumb=duotone, index=thermal, middle=b&w, ring=sepia, pinky=invert.
+// Each of the 5 quads shows a filter chosen by uRegionFilter[region] (the
+// CONTROLS "matrix"): 0 thermal,1 b&w,2 duotone,3 sepia,4 negative,5 pixelate,
+// 6 ascii. GLSL3 because the ascii glyphs need bitwise ops.
 const bgVert = /* glsl */ `
-  varying vec2 vUv;
+  out vec2 vUv;
   void main() {
     vUv = uv;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
@@ -46,21 +47,66 @@ const bgVert = /* glsl */ `
 `;
 
 const bgFrag = /* glsl */ `
+  precision highp float;
   uniform sampler2D uMap;
   uniform vec2 uRepeat;
   uniform vec2 uOffset;
   uniform float uDim;
+  uniform float uAspect;
+  uniform float uGrid;       // ascii cell density
+  uniform vec3 uTerm;        // ascii phosphor color
   uniform vec2 uQuads[20];   // 5 quads x 4 corners, in screen (plane uv) space
   uniform int uQuadCount;
-  varying vec2 vUv;
+  uniform int uRegionFilter[5];
+  in vec2 vUv;
+  out vec4 fragColor;
+
+  vec3 sampleVid(vec2 uv) { return texture(uMap, uOffset + uv * uRepeat).rgb; }
 
   vec3 thermal(float t) {
-    // jet-style false color (like the reference reel):
-    // cold = blue/cyan, mid = green/yellow, hot = orange/red
-    return clamp(vec3(
-      1.5 - abs(4.0 * t - 3.0),
-      1.5 - abs(4.0 * t - 2.0),
-      1.5 - abs(4.0 * t - 1.0)), 0.0, 1.0);
+    return clamp(vec3(1.5 - abs(4.0 * t - 3.0),
+                      1.5 - abs(4.0 * t - 2.0),
+                      1.5 - abs(4.0 * t - 1.0)), 0.0, 1.0);
+  }
+
+  float character(int n, vec2 p) {
+    p = floor(p * vec2(-4.0, 4.0) + 2.5);
+    if (clamp(p.x, 0.0, 4.0) == p.x && clamp(p.y, 0.0, 4.0) == p.y) {
+      int a = int(p.x) + 5 * int(p.y);
+      if (((n >> a) & 1) == 1) return 1.0;
+    }
+    return 0.0;
+  }
+
+  vec3 asciiAt(vec2 uv) {
+    vec2 cells = vec2(floor(uGrid * uAspect), uGrid);
+    vec2 p = uv * cells;
+    vec2 cellUv = (floor(p) + 0.5) / cells;
+    float gray = dot(sampleVid(cellUv), vec3(0.3, 0.59, 0.11));
+    int n = 4096;
+    if (gray > 0.2) n = 65600;   if (gray > 0.3) n = 332772;
+    if (gray > 0.4) n = 15255086; if (gray > 0.5) n = 23385164;
+    if (gray > 0.6) n = 15252014; if (gray > 0.7) n = 13199452;
+    if (gray > 0.8) n = 11512810;
+    float glyph = character(n, fract(p) - 0.5);
+    return uTerm * glyph * (0.55 + 0.6 * gray) + uTerm * 0.04;
+  }
+
+  vec3 applyFilter(int fid, vec2 uv) {
+    vec3 col = sampleVid(uv);
+    float luma = dot(col, vec3(0.299, 0.587, 0.114));
+    if (fid == 0) return thermal(luma);
+    if (fid == 1) return vec3(smoothstep(0.05, 0.95, luma));
+    if (fid == 2) return mix(vec3(0.10, 0.0, 0.25), vec3(0.20, 1.0, 0.90), luma);
+    if (fid == 3) return vec3(dot(col, vec3(0.393, 0.769, 0.189)),
+                              dot(col, vec3(0.349, 0.686, 0.168)),
+                              dot(col, vec3(0.272, 0.534, 0.131)));
+    if (fid == 4) return 1.0 - col;
+    if (fid == 5) {
+      vec2 g = vec2(80.0 * uAspect, 80.0);
+      return sampleVid((floor(uv * g) + 0.5) / g);
+    }
+    return asciiAt(uv);
   }
 
   void main() {
@@ -80,21 +126,10 @@ const bgFrag = /* glsl */ `
       if (inside && region < 0) region = q;
     }
 
-    vec3 col = texture2D(uMap, uOffset + vUv * uRepeat).rgb;
-    float luma = dot(col, vec3(0.299, 0.587, 0.114));
-
-    if (region == 0) col = mix(vec3(0.10, 0.00, 0.25),     // thumb: duotone
-                               vec3(0.20, 1.00, 0.90), luma);
-    else if (region == 1) col = thermal(luma);              // index: thermal
-    else if (region == 2) col = vec3(smoothstep(0.05, 0.95, luma)); // middle: b&w
-    else if (region == 3) col = vec3(                       // ring: sepia
-      dot(col, vec3(0.393, 0.769, 0.189)),
-      dot(col, vec3(0.349, 0.686, 0.168)),
-      dot(col, vec3(0.272, 0.534, 0.131)));
-    else if (region == 4) col = 1.0 - col;                  // pinky: invert
-    if (region < 0) col *= uDim; // only dim the unfiltered video
-
-    gl_FragColor = vec4(col, 1.0);
+    vec3 col = (region < 0)
+      ? sampleVid(vUv) * uDim
+      : applyFilter(uRegionFilter[region], vUv);
+    fragColor = vec4(col, 1.0);
   }
 `;
 
@@ -185,6 +220,7 @@ export class CradleScene {
     this.videoTex = new THREE.VideoTexture(video); // raw passthrough; filters run in sRGB
     this.quadPts = Array.from({ length: 20 }, () => new THREE.Vector2());
     this.bgMat = new THREE.ShaderMaterial({
+      glslVersion: THREE.GLSL3,
       vertexShader: bgVert,
       fragmentShader: bgFrag,
       uniforms: {
@@ -192,8 +228,14 @@ export class CradleScene {
         uRepeat: { value: new THREE.Vector2(1, 1) },
         uOffset: { value: new THREE.Vector2(0, 0) },
         uDim: { value: PARAMS.videoDim },
+        uAspect: { value: 1 },
+        uGrid: { value: 90 },
+        uTerm: { value: new THREE.Vector3(0.25, 1.0, 0.45) },
         uQuads: { value: this.quadPts },
         uQuadCount: { value: 0 },
+        // default per-region filters (thumb,index,middle,ring,pinky):
+        // duotone, thermal, b&w, sepia, negative
+        uRegionFilter: { value: [2, 0, 1, 3, 4] },
       },
     });
     this.bg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.bgMat);
@@ -281,6 +323,7 @@ export class CradleScene {
     // repeat.x negative = mirrored (selfie view, matches the mirrored landmarks)
     this.bgMat.uniforms.uRepeat.value.set(-cu, cv);
     this.bgMat.uniforms.uOffset.value.set(0.5 + cu / 2, 0.5 - cv / 2);
+    this.bgMat.uniforms.uAspect.value = sa;
     const dist = this.camera.position.z - this.bg.position.z;
     const h = 2 * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) * dist;
     this.bg.scale.set(h * sa, h, 1);
@@ -382,7 +425,20 @@ export class CradleScene {
   }
 
   getControls() {
+    const filters = [
+      { label: 'thermal', value: 0 }, { label: 'b&w', value: 1 },
+      { label: 'duotone', value: 2 }, { label: 'sepia', value: 3 },
+      { label: 'negative', value: 4 }, { label: 'pixel', value: 5 },
+      { label: 'ascii', value: 6 },
+    ];
+    const rf = this.bgMat.uniforms.uRegionFilter.value;
+    const region = (i, label) => ({
+      type: 'select', id: 'r' + i, label, value: rf[i], options: filters,
+      set: (v) => { rf[i] = v; },
+    });
     return [
+      region(0, 'THUMB ▸'), region(1, 'INDEX ▸'), region(2, 'MIDDLE ▸'),
+      region(3, 'RING ▸'), region(4, 'PINKY ▸'),
       { type: 'slider', id: 'glow', label: 'GLOW', min: 0, max: 3, step: 0.1,
         value: this.bloom.strength, set: (v) => { this.bloom.strength = v; } },
       { type: 'slider', id: 'droop', label: 'DROOP', min: 1, max: 1.8, step: 0.02,

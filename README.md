@@ -1,107 +1,108 @@
 # HandScenes
 
-Hand-tracked video effects that run entirely in your browser. Point a webcam
-at yourself and control 3D scenes with your hands — no install, nothing
-uploaded. Built with [three.js](https://threejs.org) (WebGL) and
-[MediaPipe Tasks](https://ai.google.dev/edge/mediapipe) (hand tracking, WASM).
+Hand-tracked video effects that run entirely in your browser. Point a webcam at
+yourself and control 3D scenes with your hands — no install, nothing uploaded.
 
-**Everything runs client-side on your own device's GPU** — that's why it's a
-static site with no backend. A live webcam app can't offload tracking/rendering
-to a server, so a "backend" would only add cost and latency. This makes it a
-perfect fit for static hosting (e.g. Vercel).
+## Tech stack
 
-## Scenes
+- **three.js** (WebGL2 / GLSL) — all rendering: post-processing bloom, custom
+  GLSL filter shaders, a fullscreen raymarcher.
+- **MediaPipe Tasks Vision** (`HandLandmarker`, WASM) — real-time hand tracking,
+  running on-device.
+- **Vanilla JS, ES modules, no build step.** No framework, no bundler, no
+  backend. It's a static site: a live-webcam app processes everything on the
+  viewer's own GPU, so there's nothing for a server to do.
+- **Self-hosted dependencies.** three.js, MediaPipe (JS + WASM) and the fonts
+  are vendored under `vendor/`; at runtime the page hits no third-party CDN.
+- **Hosting:** any static host. Designed for Vercel (`vercel.json` ships the
+  cache + security headers).
 
-- **✋ Cat's cradle** — both hands; glowing strings stretch between your
-  fingers. Spread your fingers to weave the web. Each finger paints the area
-  behind it with a different filter (thermal, b&w, duotone, sepia, invert).
-- **🌼 Digital garden** — open your fist to bloom a wireframe dandelion; pinch
-  your fingers apart/together to grow/shrink a field of flowers. Over a
-  darkened black-and-white feed.
-- **⌨️ Filter box** — both hands frame a rectangle (index fingers = top,
-  thumbs = bottom); pick the effect applied inside it (ASCII terminal,
-  thermal, risograph, cyanotype, halftone, b&w, invert, duotone).
-- **◈ Mandelbox fractal** — open your fist to zoom, move your hand to orbit,
-  raise/lower to fold, pinch to morph. Ported from the TouchDesigner build.
+## Install / run
 
-Switch scenes with the on-screen buttons or keys `1` / `2` / `3`. Pick a
-recording shape with FULL / 16:9 / 9:16. Toggle the camera preview with the
-`CAM` button or `v`, and hide the whole UI for clean recording with `HIDE UI`
-or `h`. The UI sits in the letterbox margins (not over the video) in 16:9/9:16.
-
-## Run locally
-
-It's static files, so any static server works. Easiest (no Node needed):
+There's nothing to install to *use* it — open the deployed URL and allow the
+camera. To run it locally for development you only need Python (no Node):
 
 ```
-cd HandScenes
-python serve.py      # http://localhost:8000  (no-cache, so edits show instantly)
+git clone <your-repo-url> handscenes
+cd handscenes
+python serve.py            # serves http://localhost:8000 with no-cache headers
 ```
 
-A local server is required — the camera and ES modules don't work from a
-`file://` page. Browsers also only allow the camera on `localhost` or `https`.
+Then open <http://localhost:8000>. A local server is required — the camera and
+ES modules don't work from a `file://` page, and browsers only allow the camera
+on `localhost` or `https`. Edit a file and refresh; there is no build step.
+
+> Note: `serve.py` is a tiny no-cache `http.server` for dev. It does **not**
+> apply the `vercel.json` headers (CSP etc.), so test those on a Vercel preview.
 
 ## Deploy to Vercel
 
-This is a zero-build static site. Two ways:
+Zero-build static deploy:
 
-**A. GitHub + Vercel dashboard (recommended)**
-1. Create an empty repo at <https://github.com/new> (signed in as the account
-   you want to own it).
-2. From this folder, push it (the local git repo is already initialized):
+1. Push to a GitHub repo (the local git repo is already initialized):
    ```
-   git remote add origin https://github.com/<you>/handscenes.git
+   git remote add origin https://github.com/<you>/<repo>.git
    git push -u origin main
    ```
-3. Go to <https://vercel.com/new>, import that repo. When asked for a
-   **Framework Preset** choose **Other**, leave **Build Command** empty and
-   **Output Directory** as `./`. Deploy.
+2. Import it at <https://vercel.com/new>: Framework Preset **Other**, empty
+   **Build Command**, Output Directory `./`. Deploy.
 
-**B. Vercel CLI** (if you install it: `npm i -g vercel`)
-```
-vercel        # follow prompts; accept the static defaults
-vercel --prod # promote to production
-```
+Or with the CLI (`npm i -g vercel`): `vercel` then `vercel --prod`.
 
-`vercel.json` already sets a long cache on the hand-tracking model and a
-camera permissions policy.
+## Scenes
+
+Switch with the on-screen tabs or keys `1`–`4`. Pick a recording shape with
+**FULL / 16:9 / 9:16**, toggle the selfie preview with **CAM** (`v`), and hide
+all UI for a clean capture with **HIDE UI** (`h`). In 16:9/9:16 the controls sit
+in the letterbox margins, never over the video.
+
+- **✋ Cat's cradle** — both hands; glowing strings span your fingers. Each of
+  the five finger panels shows a filter you pick in CONTROLS (thermal, b&w,
+  duotone, sepia, negative, pixelate, ascii).
+- **🌼 Garden** — open your fist to bloom a wireframe dandelion; pinch
+  apart/together to grow/shrink a field of flowers.
+- **⌨️ Filter box** — both hands frame a rectangle (index = top corners,
+  thumbs = bottom); pick the effect inside it (ascii terminal, thermal, riso,
+  cyanotype, halftone, b&w, invert, duotone).
+- **◈ Mandelbox fractal** — open fist zooms, hand x orbits, hand y folds, pinch
+  morphs. Ported from a TouchDesigner build.
+
+Each scene exposes live knobs (colors, density, glow, etc.) in the CONTROLS
+panel.
+
+## Privacy
+
+Everything the app needs is self-hosted under `vendor/`, so at runtime the page
+makes **no third-party requests** (no jsDelivr, no Google Fonts). The camera
+feed and the hand positions detected from it **never leave the device** — there
+is no upload, recording, analytics, or storage. The only data anyone receives is
+the standard request metadata your host (Vercel) logs. See `privacy.html`;
+`vercel.json` sets a Content-Security-Policy, a camera Permissions-Policy, and
+anti-framing headers.
 
 ## Project layout
 
 ```
-index.html            UI shell, scene switcher, instruction card
-serve.py              local no-cache dev server
-vercel.json           static hosting config (headers)
+index.html          UI shell, scene tabs, controls panel, start gate
+privacy.html        privacy policy + "how it works"
+serve.py            local no-cache dev server
+vercel.json         static hosting headers (cache, CSP, permissions)
+favicon.svg
 js/
-  main.js             boot: webcam -> tracker -> active scene; scene switching
-  hands.js            webcam + MediaPipe HandLandmarker; smoothed landmarks +
-                      openness / pinch gestures
-  videobg.js          shared "live camera as 3D backdrop" helper
+  main.js           boot, scene switching, layout, control-panel builder
+  hands.js          webcam + MediaPipe; smoothed landmarks + openness/pinch
+  videobg.js        shared "live camera as 3D backdrop" helper
   scenes/
-    cradle.js         cat's cradle (selective bloom: only strings glow)
-    garden.js         wireframe dandelion garden
-    shapes.js         filter box (ASCII + 7 other pickable filters)
-    fractal.js        morphing Mandelbox raymarch (ported from TouchDesigner)
+    cradle.js       cat's cradle + per-finger filter matrix (selective bloom)
+    garden.js       wireframe dandelion garden
+    shapes.js       filter box (8 pickable filters)
+    fractal.js      morphing Mandelbox raymarch
 models/
-  hand_landmarker.task   MediaPipe hand model (served with the site)
-privacy.html           privacy policy + "how it works"
-favicon.svg            site icon
-vendor/                self-hosted deps (no third-party CDNs at runtime):
-  three/               three.js core + postprocessing addons
-  mediapipe/           MediaPipe tasks-vision bundle + WASM runtime
-  fonts/               VT323 + Press Start 2P (woff2) + fonts.css
+  hand_landmarker.task   MediaPipe hand model
+vendor/             self-hosted deps: three/, mediapipe/ (+wasm), fonts/
 ```
-
-## Privacy & third parties
-
-Everything the app needs is **self-hosted** under `vendor/` — at runtime the
-page makes no requests to any third-party origin (no jsDelivr, no Google
-Fonts). The only data anyone receives is the standard request metadata your
-host (Vercel) logs. The camera feed and hand landmarks never leave the device.
-See `privacy.html`. `vercel.json` sets a Content-Security-Policy, a camera
-Permissions-Policy, and anti-framing headers.
 
 ## Credits
 
-three.js (MIT), Google MediaPipe Tasks (Apache-2.0) and the `hand_landmarker`
+three.js (MIT), Google MediaPipe Tasks (Apache-2.0) + the `hand_landmarker`
 model, fonts VT323 + Press Start 2P (OFL) — all vendored under `vendor/`.

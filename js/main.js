@@ -30,7 +30,8 @@ const SCENE_META = {
     title: "✋ Cat's cradle",
     body: 'Hold up <span class="g">both hands</span> — glowing strings stretch ' +
       'between your fingers. <span class="g">Spread your fingers</span> to weave ' +
-      'the web; each finger paints the space behind it with a different filter.',
+      'the web; each finger fills its panel with a filter you choose in ' +
+      '<span class="g">CONTROLS</span>.',
   },
   2: {
     make: (r) => new GardenScene(r, video),
