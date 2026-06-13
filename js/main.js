@@ -224,7 +224,8 @@ addEventListener('keydown', (e) => {
 // ---- boot ----------------------------------------------------------------
 async function init() {
   startBtn.disabled = true;
-  gateNote.textContent = 'starting camera + hand tracker…';
+  gate.classList.add('loading');
+  gateNote.textContent = 'Setting up… this may take a few seconds.';
   try {
     if (!renderer) {
       renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -243,6 +244,7 @@ async function init() {
     gate.remove();
     requestAnimationFrame(loop);
   } catch (err) {
+    gate.classList.remove('loading');
     startBtn.disabled = false;
     gateNote.innerHTML =
       `<span class="err">camera failed: ${err.message}</span><br>` +

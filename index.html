@@ -128,6 +128,19 @@
   #gate .err { color: #ff8f8f; }
   .gate-link { font-size: 16px; color: var(--neon); opacity: 0.7; text-decoration: none; border-bottom: 1px dotted var(--neon); }
   .gate-link:hover { opacity: 1; }
+  /* indeterminate "progressing" bar shown while loading */
+  #gate-loader {
+    display: none; width: 270px; max-width: 80vw; height: 14px; overflow: hidden;
+    border: 2px solid var(--line); border-radius: 4px; background: rgba(56,249,215,0.08);
+  }
+  #gate-loader::before {
+    content: ''; display: block; height: 100%; width: 38%;
+    background: var(--neon); box-shadow: 0 0 12px var(--neon);
+    animation: scan 1.1s ease-in-out infinite;
+  }
+  @keyframes scan { 0% { transform: translateX(-110%); } 100% { transform: translateX(285%); } }
+  #gate.loading #start { display: none; }
+  #gate.loading #gate-loader { display: block; }
 </style>
 </head>
 <body>
@@ -135,6 +148,7 @@
     <h1>HAND<br>SCENES</h1>
     <p>Control retro video effects with your hands. Runs entirely in your browser — nothing is uploaded.</p>
     <button id="start">▶ PRESS START</button>
+    <div id="gate-loader" aria-hidden="true"></div>
     <small id="gate-note">you'll be asked for camera access — click allow</small>
     <a class="gate-link" href="privacy.html">privacy &amp; how it works</a>
   </div>
