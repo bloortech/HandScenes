@@ -11,6 +11,7 @@ import { CradleScene } from './scenes/cradle.js';
 import { GardenScene } from './scenes/garden.js';
 import { ShapesScene } from './scenes/shapes.js';
 import { FractalScene } from './scenes/fractal.js';
+import { CosmosScene } from './scenes/cosmos.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -55,6 +56,14 @@ const SCENE_META = {
       '<span class="g">move your hand left/right</span> to orbit, ' +
       '<span class="g">up/down</span> to fold the box, and ' +
       '<span class="g">pinch</span> to morph the shape.',
+  },
+  5: {
+    make: (r) => new CosmosScene(r),
+    title: '🪐 Cosmos',
+    body: '<span class="g">Open your fist</span> to fly out from the solar ' +
+      'system into the whole galaxy, <span class="g">move left/right</span> to ' +
+      'orbit, <span class="g">up/down</span> to tilt, and ' +
+      '<span class="g">pinch open</span> to spin faster.',
   },
 };
 
@@ -216,7 +225,7 @@ $('toggle-cam').addEventListener('click', () => video.classList.toggle('hidden')
 $('panel-min').addEventListener('click', () => $('panel').classList.toggle('collapsed'));
 
 addEventListener('keydown', (e) => {
-  if (['1', '2', '3', '4'].includes(e.key)) selectScene(e.key);
+  if (['1', '2', '3', '4', '5'].includes(e.key)) selectScene(e.key);
   if (e.key === 'v') video.classList.toggle('hidden');
   if (e.key === 'h') toggleUI();
 });
@@ -238,6 +247,7 @@ async function init() {
       2: SCENE_META[2].make(renderer),
       3: SCENE_META[3].make(renderer),
       4: SCENE_META[4].make(renderer),
+      5: SCENE_META[5].make(renderer),
     };
     layout();
     selectScene('1');

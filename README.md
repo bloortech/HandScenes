@@ -51,7 +51,7 @@ Or with the CLI (`npm i -g vercel`): `vercel` then `vercel --prod`.
 
 ## Scenes
 
-Switch with the on-screen tabs or keys `1`–`4`. Pick a recording shape with
+Switch with the on-screen tabs or keys `1`–`5`. Pick a recording shape with
 **FULL / 16:9 / 9:16**, toggle the selfie preview with **CAM** (`v`), and hide
 all UI for a clean capture with **HIDE UI** (`h`). In 16:9/9:16 the controls sit
 in the letterbox margins, never over the video.
@@ -66,6 +66,9 @@ in the letterbox margins, never over the video.
   cyanotype, halftone, b&w, invert, duotone).
 - **◈ Mandelbox fractal** — open fist zooms, hand x orbits, hand y folds, pinch
   morphs. Ported from a TouchDesigner build.
+- **🪐 Cosmos** — a solar system at the heart of a spiral galaxy. Open your fist
+  to fly out from the planets into the whole galaxy; hand x orbits, hand y tilts
+  the disk, pinch spins it faster.
 
 Each scene exposes live knobs (colors, density, glow, etc.) in the CONTROLS
 panel.
@@ -97,6 +100,7 @@ js/
     garden.js       wireframe dandelion garden
     shapes.js       filter box (8 pickable filters)
     fractal.js      morphing Mandelbox raymarch
+    cosmos.js       solar system <-> spiral galaxy (geometry + bloom)
 models/
   hand_landmarker.task   MediaPipe hand model
 vendor/             self-hosted deps: three/, mediapipe/ (+wasm), fonts/
