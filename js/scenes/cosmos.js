@@ -88,8 +88,14 @@ export class CosmosScene {
     this.theme = 'classic';
     this.speed = 1;
 
+    // lighter star field + smaller bloom buffer on phones / low-core machines
+    this.low = matchMedia('(pointer: coarse)').matches ||
+      (navigator.hardwareConcurrency || 8) <= 4;
+    const nDisk = this.low ? 5200 : PARAMS.nDisk;
+    const nBulge = this.low ? 1800 : PARAMS.nBulge;
+
     // ---- galaxy stars ----
-    const N = PARAMS.nDisk + PARAMS.nBulge;
+    const N = nDisk + nBulge;
     const pos = new Float32Array(N * 3);
     const sizes = new Float32Array(N);
     this.starT = new Float32Array(N);     // 0 core .. 1 rim, drives color
@@ -97,7 +103,7 @@ export class CosmosScene {
     const gauss = () => (Math.random() + Math.random() + Math.random() - 1.5) / 1.5;
     const { galaxyR: R, bulgeR, arms, turns } = PARAMS;
 
-    for (let i = 0; i < PARAMS.nDisk; i++) {
+    for (let i = 0; i < nDisk; i++) {
       const rr = Math.sqrt(Math.random());
       const r = bulgeR * 0.4 + rr * (R - bulgeR * 0.4);
       const t = r / R;
@@ -113,7 +119,7 @@ export class CosmosScene {
       this.starT[i] = t;
       this.starAccent[i] = Math.random() < 0.07 ? 1 : 0;
     }
-    for (let i = PARAMS.nDisk; i < N; i++) {
+    for (let i = nDisk; i < N; i++) {
       const theta = 2 * Math.PI * Math.random();
       const phi = Math.acos(2 * Math.random() - 1);
       const rb = Math.sqrt(Math.random()) * bulgeR;
@@ -147,7 +153,7 @@ export class CosmosScene {
     this.sunMat = new THREE.MeshBasicMaterial({ color: 0xffcf6a });
     this.sun = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 4), this.sunMat);
     this.system.add(this.sun);
-    const sunLight = new THREE.PointLight(0xfff0d0, 1600, 0, 2);
+    const sunLight = new THREE.PointLight(0xfff0d0, 420, 0, 2);
     this.sun.add(sunLight);
     this.system.add(new THREE.AmbientLight(0x223044, 1.2));
 
@@ -182,8 +188,10 @@ export class CosmosScene {
 
     // ---- bloom ----
     this.composer = new EffectComposer(renderer);
+    // on low-power devices render the (expensive) bloom buffer at 1x, not retina
+    if (this.low) this.composer.setPixelRatio(Math.min(renderer.getPixelRatio(), 1));
     this.composer.addPass(new RenderPass(this.scene, this.camera));
-    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 1.2, 0.85, 0.18);
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.9, 0.8, 0.24);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
 
