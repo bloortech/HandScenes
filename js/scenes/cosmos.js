@@ -263,7 +263,7 @@ export class CosmosScene {
     return [
       { type: 'slider', id: 'spin', label: 'SPIN', min: 0, max: 4, step: 0.1,
         value: this.speed, set: (v) => { this.speed = v; } },
-      { type: 'slider', id: 'glow', label: 'GLOW', min: 0.3, max: 2.5, step: 0.1,
+      { type: 'slider', id: 'glow', label: 'GLOW', min: 0.2, max: 1.3, step: 0.05,
         value: this.bloom.strength, set: (v) => { this.bloom.strength = v; } },
       { type: 'select', id: 'theme', label: 'THEME', value: this.theme,
         options: Object.keys(THEMES).map((k) => ({ label: k, value: k })),
