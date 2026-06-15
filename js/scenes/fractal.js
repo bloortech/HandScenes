@@ -111,6 +111,19 @@ export class FractalScene {
     });
     this.scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.mat));
 
+    // Raymarching is the most fragment-heavy scene; render it to a 0.75x buffer
+    // and upscale. Cuts per-frame GPU work a lot (esp. on retina), which is what
+    // was adding input latency here vs the lighter scenes.
+    this.scale = 0.75;
+    this.rt = new THREE.WebGLRenderTarget(2, 2, { depthBuffer: false, stencilBuffer: false });
+    this.presentScene = new THREE.Scene();
+    this.presentCam = new THREE.Camera();
+    this.presentScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.ShaderMaterial({
+      uniforms: { tDiffuse: { value: this.rt.texture } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position, 1.0); }',
+      fragmentShader: 'uniform sampler2D tDiffuse; varying vec2 vUv; void main(){ gl_FragColor = texture2D(tDiffuse, vUv); }',
+    })));
+
     this.time = 0;
     // smoothed gesture state (held when no hand is visible, like the TD build)
     this.open = 0.5; this.x = 0.5; this.y = 0.5; this.pinch = 0.5;
@@ -136,11 +149,15 @@ export class FractalScene {
   }
 
   render() {
+    this.renderer.setRenderTarget(this.rt);
     this.renderer.render(this.scene, this.camera);
+    this.renderer.setRenderTarget(null);
+    this.renderer.render(this.presentScene, this.presentCam);
   }
 
   resize(w, h) {
     this.mat.uniforms.u_aspect.value = w / h;
+    this.rt.setSize(Math.max(2, Math.round(w * this.scale)), Math.max(2, Math.round(h * this.scale)));
   }
 
   getControls() {

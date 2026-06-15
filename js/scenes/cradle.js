@@ -289,6 +289,9 @@ export class CradleScene {
       new THREE.Vector2(innerWidth, innerHeight),
       PARAMS.bloomStrength, PARAMS.bloomRadius, PARAMS.bloomThreshold);
     this.bloomComposer.addPass(this.bloom);
+    // bloom is a blur, so rendering the glow layer at 0.66x is invisible but
+    // much cheaper — this is the main latency win for this scene.
+    this.bloomComposer.setPixelRatio(0.66);
 
     // Pass 2: render the clean video, then add the bloomed glow on top.
     this.finalComposer = new EffectComposer(renderer);
@@ -309,6 +312,8 @@ export class CradleScene {
     }), 'baseTexture');
     mixPass.needsSwap = true;
     this.finalComposer.addPass(mixPass);
+
+    this.showStrings = true; // STRINGS toggle — hide the glowing web if desired
   }
 
   // Size the video plane to fill the frustum ("cover" fit, like CSS) and
@@ -391,7 +396,7 @@ export class CradleScene {
       if (i < pairs.length) {
         this.ropes[i].step(pairs[i].a, pairs[i].b, Math.min(dt, 1 / 30));
         line.geometry.attributes.position.needsUpdate = true;
-        line.visible = true;
+        line.visible = this.showStrings;
       } else {
         line.visible = false;
         this.ropes[i].alive = false;
@@ -399,13 +404,15 @@ export class CradleScene {
     }
 
     let d = 0;
-    for (const hand of hands) {
-      for (const id of ANCHORS) {
-        if (d >= this.tipDots.length) break;
-        const w = this.toWorld(hand.landmarks[id]);
-        const dot = this.tipDots[d++];
-        dot.position.set(w.x, w.y, w.z);
-        dot.visible = true;
+    if (this.showStrings) {
+      for (const hand of hands) {
+        for (const id of ANCHORS) {
+          if (d >= this.tipDots.length) break;
+          const w = this.toWorld(hand.landmarks[id]);
+          const dot = this.tipDots[d++];
+          dot.position.set(w.x, w.y, w.z);
+          dot.visible = true;
+        }
       }
     }
     for (; d < this.tipDots.length; d++) this.tipDots[d].visible = false;
@@ -437,6 +444,8 @@ export class CradleScene {
       set: (v) => { rf[i] = v; },
     });
     return [
+      { type: 'toggle', id: 'strings', label: 'STRINGS', value: this.showStrings,
+        set: (on) => { this.showStrings = on; } },
       region(0, 'THUMB ▸'), region(1, 'INDEX ▸'), region(2, 'MIDDLE ▸'),
       region(3, 'RING ▸'), region(4, 'PINKY ▸'),
       { type: 'slider', id: 'glow', label: 'GLOW', min: 0, max: 3, step: 0.1,

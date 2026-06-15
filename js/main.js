@@ -24,6 +24,16 @@ const gate = $('gate');
 const startBtn = $('start');
 const gateNote = $('gate-note');
 const uiToggle = $('ui-toggle');
+const overlay = $('overlay');
+const octx = overlay.getContext('2d');
+let showTrack = false;
+const TRACK_DPR = Math.min(devicePixelRatio || 1, 2);
+// MediaPipe hand skeleton edges (21 landmarks)
+const HAND_CONNECTIONS = [
+  [0, 1], [1, 2], [2, 3], [3, 4], [0, 5], [5, 6], [6, 7], [7, 8],
+  [5, 9], [9, 10], [10, 11], [11, 12], [9, 13], [13, 14], [14, 15], [15, 16],
+  [13, 17], [17, 18], [18, 19], [19, 20], [0, 17],
+];
 
 const SCENE_META = {
   1: {
@@ -45,9 +55,10 @@ const SCENE_META = {
     make: (r) => new ShapesScene(r, video),
     title: '⌨ Filter box',
     body: 'Use <span class="g">both hands</span> to frame a rectangle — ' +
-      '<span class="g">index fingers</span> top corners, ' +
-      '<span class="g">thumbs</span> bottom. Pick the effect inside it with the ' +
-      '<span class="g">FILTER</span> control.',
+      '<span class="g">index fingers</span> top, <span class="g">thumbs</span> ' +
+      'bottom. Switch <span class="g">MODE</span> to 3D and ' +
+      '<span class="g">move your middle fingers</span> to pull it into a box, ' +
+      'with a filter on each face.',
   },
   4: {
     make: (r) => new FractalScene(r),
@@ -58,12 +69,11 @@ const SCENE_META = {
       '<span class="g">pinch</span> to morph the shape.',
   },
   5: {
-    make: (r) => new CosmosScene(r),
+    make: (r) => new CosmosScene(r, video),
     title: '🪐 Cosmos',
-    body: '<span class="g">Open your fist</span> to fly out from the solar ' +
-      'system into the whole galaxy, <span class="g">move left/right</span> to ' +
-      'orbit, <span class="g">up/down</span> to tilt, and ' +
-      '<span class="g">pinch open</span> to spin faster.',
+    body: '<span class="g">Right hand</span>: open your fist to zoom out, close ' +
+      'to zoom in, move left/right to orbit. ' +
+      '<span class="g">Left hand</span>: up/down to tilt, left/right to pan.',
   },
 };
 
@@ -193,6 +203,47 @@ function buildControls() {
   }
 }
 
+// MediaPipe overlay — the green skeleton + gesture readout, drawn ON the small
+// camera preview box (not the recorded output). The preview shows the whole
+// frame and is CSS-mirrored; landmarks are already mirrored, so they map 1:1.
+function drawTrack(tracked) {
+  const cw = video.clientWidth, ch = video.clientHeight;
+  if (!cw || !ch) { octx.clearRect(0, 0, overlay.width, overlay.height); return; }
+  // pin the overlay canvas exactly over the camera preview
+  overlay.style.left = video.offsetLeft + 'px';
+  overlay.style.top = video.offsetTop + 'px';
+  overlay.style.width = cw + 'px';
+  overlay.style.height = ch + 'px';
+  const w = Math.round(cw * TRACK_DPR), h = Math.round(ch * TRACK_DPR);
+  if (overlay.width !== w) overlay.width = w;
+  if (overlay.height !== h) overlay.height = h;
+  octx.clearRect(0, 0, w, h);
+  if (!tracked || !tracked.length) return;
+
+  const X = (p) => p.x * w, Y = (p) => p.y * h;
+  const u = Math.max(1, h * 0.012);              // line/dot scale relative to box
+  octx.lineWidth = u * 1.6;
+  octx.font = `${Math.max(9, h * 0.07)}px VT323, monospace`;
+  octx.textBaseline = 'bottom';
+  for (const hand of tracked) {
+    const lm = hand.landmarks;
+    octx.strokeStyle = 'rgba(57,255,20,0.9)';   // mediapipe green
+    octx.beginPath();
+    for (const [a, b] of HAND_CONNECTIONS) {
+      octx.moveTo(X(lm[a]), Y(lm[a]));
+      octx.lineTo(X(lm[b]), Y(lm[b]));
+    }
+    octx.stroke();
+    octx.fillStyle = '#ff4bd8';                  // landmark dots
+    for (const p of lm) { octx.beginPath(); octx.arc(X(p), Y(p), u, 0, Math.PI * 2); octx.fill(); }
+    const txt = `${hand.label[0]} fist${Math.round(hand.openness * 100)} pinch${Math.round(hand.pinch * 100)}`;
+    octx.fillStyle = 'rgba(0,0,0,0.5)';
+    octx.fillRect(2, 2 + (hand.label === 'Right' ? h * 0.085 : 0), octx.measureText(txt).width + 6, h * 0.085);
+    octx.fillStyle = '#38f9d7';
+    octx.fillText(txt, 4, (hand.label === 'Right' ? h * 0.17 : h * 0.085));
+  }
+}
+
 function selectScene(key) {
   if (!scenes || !scenes[key]) return;
   active = { scene: scenes[key], ...SCENE_META[key] };
@@ -224,10 +275,17 @@ uiToggle.addEventListener('click', toggleUI);
 $('toggle-cam').addEventListener('click', () => video.classList.toggle('hidden'));
 $('panel-min').addEventListener('click', () => $('panel').classList.toggle('collapsed'));
 
+function toggleTrack() {
+  showTrack = document.body.classList.toggle('showtrack');
+  if (!showTrack) octx.clearRect(0, 0, overlay.width, overlay.height);
+}
+$('toggle-track').addEventListener('click', toggleTrack);
+
 addEventListener('keydown', (e) => {
   if (['1', '2', '3', '4', '5'].includes(e.key)) selectScene(e.key);
   if (e.key === 'v') video.classList.toggle('hidden');
   if (e.key === 'h') toggleUI();
+  if (e.key === 't') toggleTrack();
 });
 
 // ---- boot ----------------------------------------------------------------
@@ -274,6 +332,7 @@ function loop(now) {
     const tracked = hands.update(now);
     active.scene.update(dt, tracked);
     active.scene.render();
+    if (showTrack) drawTrack(tracked);
 
     fpsAccum += dt; fpsFrames++;
     if (fpsAccum >= 0.5) {

@@ -14,7 +14,9 @@ const clamp01 = (v) => Math.min(1, Math.max(0, v));
 
 export async function createHands(video) {
   const stream = await navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user', width: 640, height: 480 }, // front camera on mobile
+    // front camera on mobile; ask for 720p so the full-screen feed isn't grainy
+    // (the model downscales internally, so this doesn't slow tracking much)
+    video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
     audio: false,
   });
   video.srcObject = stream;
