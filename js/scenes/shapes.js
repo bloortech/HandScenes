@@ -129,7 +129,17 @@ const bgFrag = /* glsl */ `
     }
     if (f == 5) return vec3(smoothstep(0.05, 0.95, luma));
     if (f == 6) return 1.0 - raw;
-    return mix(vec3(0.10, 0.0, 0.25), uTerm, luma);   // duotone
+    if (f == 7) return mix(vec3(0.10, 0.0, 0.25), uTerm, luma);   // duotone
+    // stipple (f == 8): pointillist ink dots, darker -> bigger jittered dot
+    float g = uGrid * 0.7;
+    vec2 cells = vec2(floor(g * uAspect), g);
+    vec2 id = floor(uv * cells);
+    float sg = dot(texture(uMap, uOffset + ((id + 0.5) / cells) * uRepeat).rgb, vec3(0.3, 0.59, 0.11));
+    vec2 fp = fract(uv * cells) - 0.5;
+    vec2 jit = (vec2(hash(id), hash(id + 7.1)) - 0.5) * 0.5;
+    float rad = (1.0 - sg) * 0.62;
+    float dot = 1.0 - smoothstep(rad - 0.12, rad, length(fp - jit));
+    return mix(vec3(0.96, 0.95, 0.90), vec3(0.07, 0.07, 0.09), dot);
   }
 
   void main() {
@@ -221,7 +231,7 @@ export class ShapesScene {
     // wireframe cuboid: the front face is the filtered quad; spreading your
     // index & middle fingers extrudes it back into a 3D box (12 edges).
     const boxGeo = new THREE.BufferGeometry();
-    this.boxPos = new Float32Array(24 * 3);
+    this.boxPos = new Float32Array(24 * 3);   // 12 edges (full cuboid)
     boxGeo.setAttribute('position', new THREE.BufferAttribute(this.boxPos, 3));
     this.box = new THREE.LineSegments(boxGeo, new THREE.LineBasicMaterial({
       color: 0x3dff72, transparent: true, opacity: 0.9,
@@ -351,6 +361,7 @@ export class ShapesScene {
       { label: 'riso', value: 2 }, { label: 'cyano', value: 3 },
       { label: 'halftone', value: 4 }, { label: 'b&w', value: 5 },
       { label: 'invert', value: 6 }, { label: 'duotone', value: 7 },
+      { label: 'stipple', value: 8 },
     ];
     const filt = (id, label, key) => ({
       type: 'select', id, label, value: u[key].value, options: filters,

@@ -92,6 +92,21 @@ const bgFrag = /* glsl */ `
     return uTerm * glyph * (0.55 + 0.6 * gray) + uTerm * 0.04;
   }
 
+  float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+
+  // pointillist ink stipple: darker areas get bigger, jittered dots
+  vec3 stipple(vec2 uv) {
+    float g = uGrid * 0.7;
+    vec2 cells = vec2(floor(g * uAspect), g);
+    vec2 id = floor(uv * cells);
+    float gray = dot(sampleVid((id + 0.5) / cells), vec3(0.3, 0.59, 0.11));
+    vec2 f = fract(uv * cells) - 0.5;
+    vec2 jit = (vec2(hash(id), hash(id + 7.1)) - 0.5) * 0.5;
+    float rad = (1.0 - gray) * 0.62;
+    float d = 1.0 - smoothstep(rad - 0.12, rad, length(f - jit));
+    return mix(vec3(0.95, 0.94, 0.90), vec3(0.06, 0.06, 0.08), d);
+  }
+
   vec3 applyFilter(int fid, vec2 uv) {
     vec3 col = sampleVid(uv);
     float luma = dot(col, vec3(0.299, 0.587, 0.114));
@@ -106,7 +121,8 @@ const bgFrag = /* glsl */ `
       vec2 g = vec2(80.0 * uAspect, 80.0);
       return sampleVid((floor(uv * g) + 0.5) / g);
     }
-    return asciiAt(uv);
+    if (fid == 6) return asciiAt(uv);
+    return stipple(uv);
   }
 
   void main() {
@@ -436,7 +452,7 @@ export class CradleScene {
       { label: 'thermal', value: 0 }, { label: 'b&w', value: 1 },
       { label: 'duotone', value: 2 }, { label: 'sepia', value: 3 },
       { label: 'negative', value: 4 }, { label: 'pixel', value: 5 },
-      { label: 'ascii', value: 6 },
+      { label: 'ascii', value: 6 }, { label: 'stipple', value: 7 },
     ];
     const rf = this.bgMat.uniforms.uRegionFilter.value;
     const region = (i, label) => ({
