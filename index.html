@@ -207,9 +207,10 @@
   }
   </script>
   <script type="module" src="js/main.js"></script>
-  <!-- Vercel Web Analytics: first-party (served from this domain), cookieless,
-       aggregate page views only. Needs "Web Analytics" enabled in the Vercel
-       project dashboard to start recording. -->
+  <!-- Vercel Web Analytics: first-party (served from this domain), cookieless.
+       Page views + custom events (which scene/filter is used). Needs "Web
+       Analytics" enabled in the Vercel dashboard + a deploy made after enabling. -->
+  <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
   <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

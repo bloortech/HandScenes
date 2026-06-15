@@ -35,6 +35,12 @@ const HAND_CONNECTIONS = [
   [13, 17], [17, 18], [18, 19], [19, 20], [0, 17],
 ];
 
+// Vercel Web Analytics custom events (aggregate, anonymous; no-op if blocked).
+const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'fractal', 5: 'cosmos' };
+function track(name, data) {
+  try { if (window.va) window.va('event', { name, data }); } catch (e) { /* ignore */ }
+}
+
 const SCENE_META = {
   1: {
     make: (r) => new CradleScene(r, video),
@@ -183,6 +189,7 @@ function buildControls() {
           c.set(o.value);
           opts.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
           b.classList.add('active');
+          track('control', { name: c.label, value: o.label });
         });
         opts.appendChild(b);
       }
@@ -196,6 +203,7 @@ function buildControls() {
         c.set(on);
         b.classList.toggle('on', on);
         b.textContent = `${c.label}: ${on ? 'ON' : 'OFF'}`;
+        track('toggle', { name: c.label, value: on ? 'on' : 'off' });
       });
       wrap.appendChild(b);
     }
@@ -252,6 +260,7 @@ function selectScene(key) {
   document.querySelectorAll('.tab').forEach((t) =>
     t.classList.toggle('active', t.dataset.scene === String(key)));
   buildControls();
+  track('scene', { scene: SCENE_NAMES[key] || String(key) });
 }
 
 // ---- UI wiring -----------------------------------------------------------
