@@ -302,6 +302,7 @@ async function init() {
   startBtn.disabled = true;
   gate.classList.add('loading');
   gateNote.textContent = 'Setting up… this may take a few seconds.';
+  track('start');                 // pressed START — funnel: did they try at all?
   try {
     if (!renderer) {
       renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -319,10 +320,12 @@ async function init() {
     layout();
     selectScene('1');
     gate.remove();
+    track('ready');               // camera granted + app running (got past the gate)
     requestAnimationFrame(loop);
   } catch (err) {
     gate.classList.remove('loading');
     startBtn.disabled = false;
+    track('camera_error', { reason: err && err.name ? err.name : 'unknown' });
     gateNote.innerHTML =
       `<span class="err">camera failed: ${err.message}</span><br>` +
       `check the camera permission (address-bar icon) and press start again.`;
