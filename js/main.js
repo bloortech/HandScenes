@@ -265,7 +265,8 @@ function selectScene(key) {
   if (!renderer || !SCENE_META[key]) return;
   active = { scene: getScene(key), ...SCENE_META[key] };
   sceneName.textContent = active.title;
-  showHint(active.body);
+  currentInstructions = active.body;
+  showInstructions();
   document.querySelectorAll('.card').forEach((c) =>
     c.classList.toggle('active', c.dataset.scene === String(key)));
   buildControls();
@@ -280,14 +281,21 @@ function openHome() { home.classList.remove('hidden'); closeSheet(); }
 function closeHome() { home.classList.add('hidden'); }
 
 let hintTimer = 0;
-function showHint(html, ms = 7000) {
-  howtoBody.innerHTML = html;
+let currentInstructions = '';
+// the per-scene "what to do" — persistent (top-center), hides with HIDE UI
+function showInstructions() {
+  howtoBody.innerHTML = currentInstructions;
   howto.classList.add('show');
   clearTimeout(hintTimer);
-  hintTimer = setTimeout(() => howto.classList.remove('show'), ms);
 }
-// scenes can flash a short on-screen toast (e.g. the filter name on a gesture)
-addEventListener('hs-toast', (e) => showHint(e.detail, 1600));
+// scenes can flash a short toast (e.g. filter name on a gesture); after it
+// fades we restore the standing instructions rather than leaving it blank
+addEventListener('hs-toast', (e) => {
+  howtoBody.innerHTML = e.detail;
+  howto.classList.add('show');
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(showInstructions, 1600);
+});
 
 // Build the scene gallery grouped by category. Visual scenes pull title/tag
 // from SCENE_META; not-yet-built flows render as dimmed "soon" cards.
