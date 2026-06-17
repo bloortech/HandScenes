@@ -13,6 +13,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { disposeObject, disposeTarget } from './dispose.js';
 
 const PARAMS = {
   smooth: 5,          // how fast the camera follows your hand
@@ -427,6 +428,11 @@ export class CosmosScene {
     this.composer.setSize(w, h);
     this.starMat.uniforms.uSizeScale.value = Math.max(0.5, h / 900);
     this.updateBgCover();
+  }
+
+  dispose() {
+    disposeObject(this.scene);
+    disposeTarget(this.composer);
   }
 
   getControls() {

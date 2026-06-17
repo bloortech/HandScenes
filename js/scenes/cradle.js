@@ -9,6 +9,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { disposeObject, disposeTarget } from './dispose.js';
 
 const PARAMS = {
   segments: 28,        // points per string
@@ -445,6 +446,12 @@ export class CradleScene {
     this.bloomComposer.setSize(w, h);
     this.finalComposer.setSize(w, h);
     this.updateLayout();
+  }
+
+  dispose() {
+    disposeObject(this.scene);
+    disposeTarget(this.bloomComposer);
+    disposeTarget(this.finalComposer);
   }
 
   getControls() {

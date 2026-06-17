@@ -9,6 +9,7 @@
 
 import * as THREE from 'three';
 import { VideoBackground } from '../videobg.js';
+import { disposeObject } from './dispose.js';
 
 const PARAMS = {
   videoDim: 0.26,        // how visible the b&w camera feed is behind the garden
@@ -220,6 +221,10 @@ export class GardenScene {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.videoBg.updateLayout();
+  }
+
+  dispose() {
+    disposeObject(this.scene);
   }
 
   getControls() {

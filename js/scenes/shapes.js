@@ -8,6 +8,7 @@
 // Needs both hands in view.
 
 import * as THREE from 'three';
+import { disposeObject } from './dispose.js';
 
 const PARAMS = {
   videoDim: 0.6,    // unfiltered video brightness outside the shape
@@ -112,11 +113,11 @@ const bgFrag = /* glsl */ `
     vec3 paper = vec3(0.96, 0.95, 0.90);
     if (f == 0) return asciiAt(uv);
     if (f == 1) return jet(luma);
-    if (f == 2) {                       // risograph (grainy 2-ink)
+    if (f == 2) {                       // risograph (grainy 2-ink green + white)
       float l = luma + (hash(uv * 431.7) - 0.5) * 0.12;
       vec3 col = paper;
-      if (l < 0.74) col = mix(col, vec3(0.07, 0.19, 0.62), 0.88);
-      if (l < 0.34) col = mix(col, vec3(0.92, 0.18, 0.22), 0.85);
+      if (l < 0.74) col = mix(col, vec3(0.20, 0.62, 0.36), 0.88);
+      if (l < 0.34) col = mix(col, vec3(0.04, 0.30, 0.16), 0.85);
       return col;
     }
     if (f == 3) return mix(vec3(0.04, 0.12, 0.34), vec3(0.93, 0.96, 0.98),
@@ -354,6 +355,10 @@ export class ShapesScene {
     this.updateLayout();
   }
 
+  dispose() {
+    disposeObject(this.scene);
+  }
+
   getControls() {
     const u = this.bgMat.uniforms;
     const filters = [
@@ -363,29 +368,49 @@ export class ShapesScene {
       { label: 'invert', value: 6 }, { label: 'duotone', value: 7 },
       { label: 'stipple', value: 8 },
     ];
+    // rebuild:true — changing a face's filter changes which knobs are relevant
     const filt = (id, label, key) => ({
-      type: 'select', id, label, value: u[key].value, options: filters,
+      type: 'select', id, label, value: u[key].value, options: filters, rebuild: true,
       set: (v) => { u[key].value = v; },
     });
-    return [
-      { type: 'select', id: 'mode', label: 'MODE', value: this.mode,
+    const is3D = this.mode === 1;
+    // filters actually visible right now (2D shows only the front face)
+    const active = is3D
+      ? [u.uFilterFront.value, u.uFilterTop.value, u.uFilterSide.value]
+      : [u.uFilterFront.value];
+    const uses = (...fs) => fs.some((f) => active.includes(f));
+
+    const list = [
+      { type: 'select', id: 'mode', label: 'MODE', value: this.mode, rebuild: true,
         options: [{ label: '2D', value: 0 }, { label: '3D', value: 1 }],
         set: (v) => { this.mode = v; u.uMode.value = v; } },
-      filt('front', 'FRONT', 'uFilterFront'),
-      filt('top', 'TOP (3D)', 'uFilterTop'),
-      filt('side', 'SIDE (3D)', 'uFilterSide'),
-      { type: 'slider', id: 'depth', label: 'DEPTH (3D)', min: 0.2, max: 3, step: 0.1,
-        value: this.depthMax, set: (v) => { this.depthMax = v; } },
-      { type: 'slider', id: 'grid', label: 'TEXT SIZE', min: 30, max: 150, step: 5,
-        value: u.uGrid.value, set: (v) => { u.uGrid.value = v; } },
-      { type: 'select', id: 'color', label: 'ASCII / DUOTONE COLOR',
+      filt('front', is3D ? 'FRONT / BACK' : 'FILTER', 'uFilterFront'),
+    ];
+    if (is3D) {
+      list.push(filt('top', 'TOP / BOTTOM', 'uFilterTop'));
+      list.push(filt('side', 'LEFT / RIGHT', 'uFilterSide'));
+      list.push({ type: 'slider', id: 'depth', label: 'DEPTH', min: 0.2, max: 3, step: 0.1,
+        value: this.depthMax, set: (v) => { this.depthMax = v; } });
+    }
+    // grid size drives ascii text, halftone + stipple dots; ink colour is for
+    // ascii + duotone; scanlines only affect ascii. Show each only when used.
+    if (uses(0, 4, 8)) {
+      list.push({ type: 'slider', id: 'grid', label: uses(0) ? 'TEXT SIZE' : 'DOT SIZE',
+        min: 30, max: 150, step: 5,
+        value: u.uGrid.value, set: (v) => { u.uGrid.value = v; } });
+    }
+    if (uses(0, 7)) {
+      list.push({ type: 'select', id: 'color', label: uses(0) ? 'ASCII COLOR' : 'DUOTONE COLOR',
         value: PHOSPHORS[0].value,
         options: PHOSPHORS.map((p) => ({ label: p.label, value: p.value })),
-        set: (v) => u.uTerm.value.set(v[0], v[1], v[2]) },
-      { type: 'slider', id: 'dim', label: 'OUTSIDE', min: 0, max: 1, step: 0.05,
-        value: u.uDim.value, set: (v) => { u.uDim.value = v; } },
-      { type: 'toggle', id: 'scan', label: 'SCANLINES',
-        value: u.uScan.value === 1, set: (v) => { u.uScan.value = v ? 1 : 0; } },
-    ];
+        set: (v) => u.uTerm.value.set(v[0], v[1], v[2]) });
+    }
+    list.push({ type: 'slider', id: 'dim', label: 'OUTSIDE', min: 0, max: 1, step: 0.05,
+      value: u.uDim.value, set: (v) => { u.uDim.value = v; } });
+    if (uses(0)) {
+      list.push({ type: 'toggle', id: 'scan', label: 'SCANLINES',
+        value: u.uScan.value === 1, set: (v) => { u.uScan.value = v ? 1 : 0; } });
+    }
+    return list;
   }
 }

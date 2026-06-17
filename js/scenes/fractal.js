@@ -9,6 +9,7 @@
 // drives the tracking. Fullscreen raymarch.
 
 import * as THREE from 'three';
+import { disposeObject, disposeTarget } from './dispose.js';
 
 const PARAMS = {
   smooth: 6,        // how fast the fractal follows your hand
@@ -158,6 +159,11 @@ export class FractalScene {
   resize(w, h) {
     this.mat.uniforms.u_aspect.value = w / h;
     this.rt.setSize(Math.max(2, Math.round(w * this.scale)), Math.max(2, Math.round(h * this.scale)));
+  }
+
+  dispose() {
+    disposeObject(this.scene);
+    disposeTarget(this.rt);
   }
 
   getControls() {

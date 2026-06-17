@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watercolour — paint with sound</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap">
+<style>
+  :root { --ink: #2a2520; --seal: #b4341f; --paper: #f7f3ea; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--paper);
+    font-family: 'VT323', monospace; color: var(--ink); }
+  body { display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; }
+
+  /* start gate */
+  #gate {
+    position: fixed; inset: 0; z-index: 20;
+    background: radial-gradient(circle at 50% 40%, #fbf8f0, #efe9db 75%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; text-align: center; padding: 24px;
+  }
+  #gate h1 { font-family: 'Press Start 2P', monospace; font-size: 22px; color: var(--ink);
+    margin: 0; line-height: 1.7; }
+  #gate .seal { color: var(--seal); }
+  #gate p { font-size: 20px; opacity: 0.75; max-width: 440px; margin: 0; }
+  #start { font-family: 'Press Start 2P', monospace; font-size: 15px; cursor: pointer;
+    color: var(--paper); background: var(--ink); border: 0; border-radius: 6px; padding: 15px 24px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
+  #start:hover { background: #000; }
+  #note { font-size: 17px; opacity: 0.55; max-width: 440px; }
+  #note.err { color: var(--seal); opacity: 0.95; }
+  #gate-loader { display: none; width: 250px; max-width: 80vw; height: 12px; overflow: hidden;
+    border: 2px solid rgba(42,37,32,0.4); border-radius: 4px; }
+  #gate-loader::before { content: ''; display: block; height: 100%; width: 38%;
+    background: var(--ink); animation: scan 1.1s ease-in-out infinite; }
+  @keyframes scan { 0% { transform: translateX(-110%); } 100% { transform: translateX(285%); } }
+  #gate.loading #start { display: none; }
+  #gate.loading #gate-loader { display: block; }
+
+  /* control panel (revealed after start) */
+  #panel { position: fixed; top: 12px; right: 12px; z-index: 8; display: none;
+    flex-direction: column; gap: 9px; width: 190px; padding: 10px 12px;
+    background: rgba(247,243,234,0.86); border: 2px solid rgba(42,37,32,0.5);
+    border-radius: 8px; backdrop-filter: blur(3px); }
+  body.go #panel { display: flex; }
+  #panel h3 { margin: 0 0 2px; font-size: 17px; letter-spacing: 1px; }
+
+  /* scene tabs */
+  #tabs { position: fixed; top: 12px; left: 12px; z-index: 8; display: none; gap: 6px; }
+  body.go #tabs { display: flex; }
+  .tab { font-family: 'VT323', monospace; font-size: 17px; cursor: pointer;
+    background: rgba(247,243,234,0.86); color: var(--ink);
+    border: 2px solid rgba(42,37,32,0.5); border-radius: 6px; padding: 3px 12px; }
+  .tab:hover { border-color: var(--ink); }
+  .tab.active { background: var(--ink); color: var(--paper); }
+  .ctrl .row { display: flex; justify-content: space-between; font-size: 16px; }
+  .ctrl .row .val { opacity: 0.6; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 12px;
+    background: transparent; margin: 2px 0 0; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; background: rgba(42,37,32,0.35); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 14px;
+    margin-top: -6px; background: var(--ink); cursor: pointer; }
+  .opts { display: flex; gap: 5px; }
+  .opts button, .act button { font-family: 'VT323', monospace; font-size: 15px; cursor: pointer;
+    flex: 1; background: transparent; color: var(--ink); border: 1px solid rgba(42,37,32,0.4);
+    border-radius: 4px; padding: 2px 6px; }
+  .opts button.active { background: var(--ink); color: var(--paper); }
+  .act { display: flex; gap: 6px; margin-top: 2px; }
+</style>
+</head>
+<body>
+  <div id="gate">
+    <h1>WATER<br>COLOUR</h1>
+    <p>Play music near your laptop — it paints itself in watercolour. Audio is processed in your browser; nothing is uploaded.</p>
+    <button id="start">▶ PRESS START</button>
+    <div id="gate-loader" aria-hidden="true"></div>
+    <small id="note">you'll be asked for microphone access — click allow</small>
+  </div>
+
+  <div id="panel">
+    <h3>WATERCOLOUR</h3>
+    <div class="ctrl"><div class="row"><span>INPUT</span><span class="val" id="v-input"></span></div>
+      <input type="range" id="input" min="1" max="20" step="0.5"></div>
+    <div class="ctrl"><div class="row"><span>SENS</span><span class="val" id="v-sens"></span></div>
+      <input type="range" id="sens" min="0.5" max="3" step="0.1"></div>
+    <div id="scene-controls"></div>
+    <div class="act"><button id="save">SAVE</button><button id="clear">CLEAR</button></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
+  <script type="module" src="sketch.js"></script>
+</body>
+</html>

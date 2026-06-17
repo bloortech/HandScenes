@@ -17,8 +17,9 @@ const $ = (id) => document.getElementById(id);
 const stage = $('stage');
 const video = $('cam');
 const statusEl = $('status');
-const howtoTitle = $('howto-title');
+const sceneName = $('scene-name');
 const howtoBody = $('howto-body');
+const howto = $('howto');
 const controlsEl = $('controls');
 const gate = $('gate');
 const startBtn = $('start');
@@ -26,6 +27,9 @@ const gateNote = $('gate-note');
 const uiToggle = $('ui-toggle');
 const overlay = $('overlay');
 const octx = overlay.getContext('2d');
+const home = $('home');
+const homeCats = $('home-cats');
+const sheet = $('sheet');
 let showTrack = false;
 const TRACK_DPR = Math.min(devicePixelRatio || 1, 2);
 // MediaPipe hand skeleton edges (21 landmarks)
@@ -45,6 +49,7 @@ const SCENE_META = {
   1: {
     make: (r) => new CradleScene(r, video),
     title: "✋ Cat's cradle",
+    tag: 'Glowing elastic strings stretch between your fingertips — spread your hands to weave a web of light.',
     body: 'Hold up <span class="g">both hands</span> — glowing strings stretch ' +
       'between your fingers. <span class="g">Spread your fingers</span> to weave ' +
       'the web; each finger fills its panel with a filter you choose in ' +
@@ -53,6 +58,7 @@ const SCENE_META = {
   2: {
     make: (r) => new GardenScene(r, video),
     title: '🌼 Digital garden',
+    tag: 'Open your fist and a wireframe dandelion blooms over your feed; pinch to grow a whole field.',
     body: '<span class="g">Open your fist</span> to bloom the big dandelion. ' +
       '<span class="g">Pinch your fingers apart</span> to grow the field, ' +
       '<span class="g">pinch them together</span> to shrink it back.',
@@ -60,6 +66,7 @@ const SCENE_META = {
   3: {
     make: (r) => new ShapesScene(r, video),
     title: '⌨ Filter box',
+    tag: 'Frame a rectangle with both hands; everything inside turns to ASCII, halftone, riso… In 3D mode, pull it into a cube with a filter per face.',
     body: 'Use <span class="g">both hands</span> to frame a rectangle — ' +
       '<span class="g">index fingers</span> top, <span class="g">thumbs</span> ' +
       'bottom. Switch <span class="g">MODE</span> to 3D and ' +
@@ -69,6 +76,7 @@ const SCENE_META = {
   4: {
     make: (r) => new FractalScene(r),
     title: '◈ Mandelbox fractal',
+    tag: 'Sculpt an endless 3D fractal in real time — open your hand to dive in, pinch to morph the shape.',
     body: '<span class="g">Open your fist</span> to zoom in, ' +
       '<span class="g">move your hand left/right</span> to orbit, ' +
       '<span class="g">up/down</span> to fold the box, and ' +
@@ -77,81 +85,78 @@ const SCENE_META = {
   5: {
     make: (r) => new CosmosScene(r, video),
     title: '🪐 Cosmos',
+    tag: 'Fly from a single planet out to a whole galaxy with one hand; tilt and pan the view with the other.',
     body: '<span class="g">Right hand</span>: open your fist to zoom out, close ' +
       'to zoom in, move left/right to orbit. ' +
       '<span class="g">Left hand</span>: up/down to tilt, left/right to pan.',
   },
 };
 
-let renderer, hands, scenes, active;
+// Home gallery grouping. Visual scenes reference SCENE_META by key; flows not
+// built yet show as dimmed "soon" cards so the categories read as a roadmap.
+const CATEGORIES = [
+  { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }, { key: '5' }] },
+  { name: 'Music', items: [
+    { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
+  ] },
+  { name: 'Paint', items: [
+    { href: '/toys/ink/', title: '🎨 Watercolour', tag: 'Sing or play and watch audio-reactive watercolour blooms spread across the canvas.' },
+    { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
+  ] },
+];
+
+let renderer, hands, active;
 let aspectMode = 'full';
 
-// ---- stage sizing + UI placement ----------------------------------------
+// Scenes are built lazily on first selection — compiling 4 unused scenes'
+// shaders at PRESS START was pure load-time waste. A small LRU keeps the most
+// recent few warm so switching back is instant; older ones are disposed to cap
+// GPU memory (KEEP_WARM=3 is still less than the old "all 5 alive at once").
+const KEEP_WARM = 3;
+const sceneCache = new Map();   // key -> scene; Map insertion order = recency
+
+function getScene(key) {
+  let scene = sceneCache.get(key);
+  if (scene) {                  // already warm: bump to most-recent and reuse
+    sceneCache.delete(key);
+    sceneCache.set(key, scene);
+    return scene;
+  }
+  scene = SCENE_META[key].make(renderer);
+  const sz = renderer.getSize(new THREE.Vector2());
+  scene.resize(sz.x || innerWidth, sz.y || innerHeight);
+  sceneCache.set(key, scene);
+  // evict least-recently-used past the warm window. Never the active one: it
+  // was just inserted/bumped, so it's the newest entry, not the oldest.
+  while (sceneCache.size > KEEP_WARM) {
+    const oldestKey = sceneCache.keys().next().value;
+    const old = sceneCache.get(oldestKey);
+    sceneCache.delete(oldestKey);
+    try { old.dispose?.(); } catch (e) { console.warn('scene dispose failed', e); }
+  }
+  return scene;
+}
+
+// ---- stage sizing --------------------------------------------------------
 function fitAspect(aw, ah, ratio) {
   let w, h;
   if (aw / ah > ratio) { h = ah; w = h * ratio; } else { w = aw; h = w / ratio; }
   return [Math.round(w), Math.round(h)];
 }
 
-function positionUI(mode, sideM, topM) {
-  const tb = $('topbar'), pn = $('panel'), ht = $('howto');
-  for (const el of [tb, pn, ht]) {
-    el.style.left = el.style.right = el.style.top = el.style.bottom = '';
-    el.style.width = el.style.transform = el.style.maxHeight = '';
-  }
-  if (mode === 'sides') {
-    const rail = Math.max(150, Math.min(sideM - 16, 260));
-    pn.style.left = '8px'; pn.style.top = '70px'; pn.style.width = rail + 'px';
-    pn.style.maxHeight = (innerHeight - 90) + 'px';
-    tb.style.right = '8px'; tb.style.top = '8px'; tb.style.width = rail + 'px';
-    ht.style.right = '8px'; ht.style.bottom = '12px'; ht.style.width = rail + 'px';
-  } else if (mode === 'stacked') {
-    tb.style.top = '8px'; tb.style.left = '50%'; tb.style.transform = 'translateX(-50%)';
-    pn.style.left = '12px'; pn.style.bottom = '10px'; pn.style.width = '224px';
-    pn.style.maxHeight = Math.max(140, topM - 16) + 'px';
-    ht.style.right = '12px'; ht.style.bottom = '10px'; ht.style.width = 'min(340px, 40vw)';
-  } else { // overlay (full screen, or UI hidden)
-    tb.style.top = '10px'; tb.style.left = '10px'; tb.style.right = '10px';
-    pn.style.left = '12px'; pn.style.bottom = '14px'; pn.style.width = '224px';
-    pn.style.maxHeight = '60vh';
-    ht.style.left = '50%'; ht.style.bottom = '14px'; ht.style.transform = 'translateX(-50%)';
-  }
-}
-
+// Chrome is fixed-overlay now (top bar, FAB, bottom sheet, home gallery), so
+// layout only sizes the recording stage. FULL fills the viewport; 16:9 / 9:16
+// letterbox-fit inside it.
 function layout() {
   const vw = innerWidth, vh = innerHeight;
-  const uiVisible = !document.body.classList.contains('hideui');
-  let w, h, mode = 'overlay';
-
-  if (aspectMode === 'full') {
-    w = vw; h = vh;
-  } else {
-    const ratio = aspectMode === '16:9' ? 16 / 9 : 9 / 16;
-    [w, h] = fitAspect(vw, vh, ratio);
-    const sideM = (vw - w) / 2, topM = (vh - h) / 2;
-    if (!uiVisible) {
-      mode = 'overlay';                 // stage at full size; UI hidden anyway
-    } else if (sideM >= 200) {
-      mode = 'sides';                   // wide letterbox -> rails on the sides
-    } else if (topM >= 150) {
-      mode = 'stacked';                 // tall letterbox -> bars top/bottom
-    } else if (vw >= vh) {
-      [w, h] = fitAspect(vw - 2 * 210, vh - 16, ratio); // shrink, make side room
-      mode = 'sides';
-    } else {
-      [w, h] = fitAspect(vw - 12, vh - 96 - 160, ratio); // shrink, make top/bottom room
-      mode = 'stacked';
-    }
-  }
-
+  let w, h;
+  if (aspectMode === 'full') { w = vw; h = vh; }
+  else { [w, h] = fitAspect(vw, vh, aspectMode === '16:9' ? 16 / 9 : 9 / 16); }
   stage.style.width = w + 'px';
   stage.style.height = h + 'px';
-  document.body.dataset.ui = mode;
-  positionUI(mode, (vw - w) / 2, (vh - h) / 2);
-
   if (renderer) {
     renderer.setSize(w, h);
-    if (scenes) for (const s of Object.values(scenes)) s.resize(w, h);
+    for (const s of sceneCache.values()) s.resize(w, h);
   }
 }
 addEventListener('resize', layout);
@@ -187,9 +192,12 @@ function buildControls() {
         if (o.value === c.value) b.classList.add('active');
         b.addEventListener('click', () => {
           c.set(o.value);
+          track('control', { name: c.label, value: o.label });
+          // some selects (MODE, per-face filter) change which other controls
+          // are even relevant — rebuild so stale knobs don't crowd the panel
+          if (c.rebuild) { buildControls(); return; }
           opts.querySelectorAll('button').forEach((x) => x.classList.remove('active'));
           b.classList.add('active');
-          track('control', { name: c.label, value: o.label });
         });
         opts.appendChild(b);
       }
@@ -201,9 +209,10 @@ function buildControls() {
       b.addEventListener('click', () => {
         const on = !b.classList.contains('on');
         c.set(on);
+        track('toggle', { name: c.label, value: on ? 'on' : 'off' });
+        if (c.rebuild) { buildControls(); return; }
         b.classList.toggle('on', on);
         b.textContent = `${c.label}: ${on ? 'ON' : 'OFF'}`;
-        track('toggle', { name: c.label, value: on ? 'on' : 'off' });
       });
       wrap.appendChild(b);
     }
@@ -253,19 +262,74 @@ function drawTrack(tracked) {
 }
 
 function selectScene(key) {
-  if (!scenes || !scenes[key]) return;
-  active = { scene: scenes[key], ...SCENE_META[key] };
-  howtoTitle.textContent = active.title;
-  howtoBody.innerHTML = active.body;
-  document.querySelectorAll('.tab').forEach((t) =>
-    t.classList.toggle('active', t.dataset.scene === String(key)));
+  if (!renderer || !SCENE_META[key]) return;
+  active = { scene: getScene(key), ...SCENE_META[key] };
+  sceneName.textContent = active.title;
+  showHint(active.body);
+  document.querySelectorAll('.card').forEach((c) =>
+    c.classList.toggle('active', c.dataset.scene === String(key)));
   buildControls();
+  closeHome();
   track('scene', { scene: SCENE_NAMES[key] || String(key) });
 }
 
+// ---- home gallery + sheet helpers ----------------------------------------
+function openSheet() { document.body.classList.add('sheet-open'); }
+function closeSheet() { document.body.classList.remove('sheet-open'); }
+function openHome() { home.classList.remove('hidden'); closeSheet(); }
+function closeHome() { home.classList.add('hidden'); }
+
+let hintTimer = 0;
+function showHint(html) {
+  howtoBody.innerHTML = html;
+  howto.classList.add('show');
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => howto.classList.remove('show'), 7000);
+}
+
+// Build the scene gallery grouped by category. Visual scenes pull title/tag
+// from SCENE_META; not-yet-built flows render as dimmed "soon" cards.
+function buildHome() {
+  homeCats.innerHTML = '';
+  for (const cat of CATEGORIES) {
+    const h = document.createElement('div');
+    h.className = 'cat-h';
+    h.textContent = cat.name;
+    homeCats.appendChild(h);
+    const grid = document.createElement('div');
+    grid.className = 'cat-grid';
+    for (const item of cat.items) {
+      const card = document.createElement('button');
+      if (item.href) {                       // a separate flow (p5 / Tone toy)
+        card.className = 'card';
+        card.innerHTML = `<div class="t">${item.title}</div><div class="d">${item.tag}</div><div class="badge">open ↗</div>`;
+        card.addEventListener('click', () => { window.location.href = item.href; });
+      } else if (item.soon) {
+        card.className = 'card soon';
+        card.innerHTML = `<div class="t">${item.title}</div><div class="d">${item.tag}</div><div class="badge">soon</div>`;
+      } else {
+        const m = SCENE_META[item.key];
+        card.className = 'card';
+        card.dataset.scene = item.key;
+        card.innerHTML = `<div class="t">${m.title}</div><div class="d">${m.tag}</div>`;
+        card.addEventListener('click', () => selectScene(item.key));
+      }
+      grid.appendChild(card);
+    }
+    homeCats.appendChild(grid);
+  }
+}
+
 // ---- UI wiring -----------------------------------------------------------
-document.querySelectorAll('.tab').forEach((t) =>
-  t.addEventListener('click', () => selectScene(t.dataset.scene)));
+$('home-btn').addEventListener('click', openHome);
+$('fab').addEventListener('click', openSheet);
+$('sheet-head').addEventListener('click', closeSheet);
+
+// collapsible groups inside the sheet (click a group header to fold it)
+sheet.addEventListener('click', (e) => {
+  const head = e.target.closest('.grp-h');
+  if (head) head.parentElement.classList.toggle('collapsed');
+});
 
 document.querySelectorAll('#format button').forEach((b) =>
   b.addEventListener('click', () => {
@@ -277,24 +341,39 @@ document.querySelectorAll('#format button').forEach((b) =>
 
 function toggleUI() {
   const hidden = document.body.classList.toggle('hideui');
-  uiToggle.textContent = hidden ? 'SHOW UI' : 'HIDE UI';
+  uiToggle.textContent = hidden ? 'SHOW' : 'HIDE';
   layout();
 }
 uiToggle.addEventListener('click', toggleUI);
-$('toggle-cam').addEventListener('click', () => video.classList.toggle('hidden'));
-$('panel-min').addEventListener('click', () => $('panel').classList.toggle('collapsed'));
 
+const camBtn = $('toggle-cam');
+function toggleCam() {
+  const hidden = video.classList.toggle('hidden');
+  camBtn.classList.toggle('on', !hidden);
+  camBtn.textContent = `CAMERA PREVIEW: ${hidden ? 'OFF' : 'ON'}`;
+}
+camBtn.addEventListener('click', toggleCam);
+camBtn.classList.add('on');   // preview is on by default
+
+const trackBtn = $('toggle-track');
 function toggleTrack() {
   showTrack = document.body.classList.toggle('showtrack');
+  trackBtn.classList.toggle('on', showTrack);
+  trackBtn.textContent = `TRACKING OVERLAY: ${showTrack ? 'ON' : 'OFF'}`;
   if (!showTrack) octx.clearRect(0, 0, overlay.width, overlay.height);
 }
-$('toggle-track').addEventListener('click', toggleTrack);
+trackBtn.addEventListener('click', toggleTrack);
 
 addEventListener('keydown', (e) => {
   if (['1', '2', '3', '4', '5'].includes(e.key)) selectScene(e.key);
-  if (e.key === 'v') video.classList.toggle('hidden');
+  if (e.key === 'v') toggleCam();
   if (e.key === 'h') toggleUI();
   if (e.key === 't') toggleTrack();
+  if (e.key === 'c') openSheet();
+  if (e.key === 'Escape') {
+    if (document.body.classList.contains('sheet-open')) closeSheet();
+    else openHome();
+  }
 });
 
 // ---- boot ----------------------------------------------------------------
@@ -310,15 +389,10 @@ async function init() {
       stage.insertBefore(renderer.domElement, stage.firstChild);
     }
     hands = await createHands(video);
-    scenes = {
-      1: SCENE_META[1].make(renderer),
-      2: SCENE_META[2].make(renderer),
-      3: SCENE_META[3].make(renderer),
-      4: SCENE_META[4].make(renderer),
-      5: SCENE_META[5].make(renderer),
-    };
     layout();
-    selectScene('1');
+    buildHome();
+    selectScene('1');   // builds scene 1 lazily so the stage renders behind home
+    openHome();         // ...then let the user pick a scene/category first
     gate.remove();
     track('ready');               // camera granted + app running (got past the gate)
     requestAnimationFrame(loop);
