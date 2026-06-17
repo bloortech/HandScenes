@@ -169,6 +169,11 @@ const bgFrag = /* glsl */ `
 const TOP_ID = 8;
 const BOT_ID = 4;
 
+// filter ids — must match applyFilter() above and the select options below
+const FILTER_NAMES = ['ascii', 'thermal', 'riso', 'cyano', 'halftone', 'b&w', 'invert', 'duotone', 'stipple'];
+// pinch-to-cycle thresholds (pinch: 0 = fingers together, 1 = spread apart)
+const PINCH_ON = 0.18, PINCH_OFF = 0.45;
+
 export class ShapesScene {
   constructor(renderer, video) {
     this.renderer = renderer;
@@ -241,6 +246,11 @@ export class ShapesScene {
     this.box.visible = false;
     this.scene.add(this.box);
     this.depthMax = 1.6;   // how far the index<->middle spread extrudes the box
+    // pinch-to-cycle filter gesture: both hands pinch closed, then release ->
+    // advance to the next filter (a deliberate "snap"), with a short cooldown
+    this.gestureSwitch = true;
+    this.pinchArmed = false;
+    this.gestureCooldown = 0;
   }
 
   updateLayout() {
@@ -275,6 +285,20 @@ export class ShapesScene {
   }
 
   update(dt, hands) {
+    // pinch-to-cycle: both hands closed -> released = one "snap" = next filter
+    this.gestureCooldown = Math.max(0, this.gestureCooldown - dt);
+    if (this.gestureSwitch && hands.length >= 2) {
+      if (hands.every((h) => h.pinch < PINCH_ON)) {
+        this.pinchArmed = true;
+      } else if (this.pinchArmed && hands.every((h) => h.pinch > PINCH_OFF) && this.gestureCooldown === 0) {
+        this.pinchArmed = false;
+        this.gestureCooldown = 0.5;
+        this.cycleFilter();
+      }
+    } else {
+      this.pinchArmed = false;
+    }
+
     if (hands.length >= 2) {
       const sorted = [...hands].sort(
         (a, b) => a.landmarks[0].x - b.landmarks[0].x);
@@ -345,6 +369,14 @@ export class ShapesScene {
     }
   }
 
+  cycleFilter() {
+    const u = this.bgMat.uniforms;
+    const next = (u.uFilterFront.value + 1) % FILTER_NAMES.length;
+    u.uFilterFront.value = next;
+    // tell the shell to flash the new filter's name (decoupled from the scene)
+    dispatchEvent(new CustomEvent('hs-toast', { detail: `▶ ${FILTER_NAMES[next]}` }));
+  }
+
   render() {
     this.renderer.render(this.scene, this.camera);
   }
@@ -411,6 +443,9 @@ export class ShapesScene {
       list.push({ type: 'toggle', id: 'scan', label: 'SCANLINES',
         value: u.uScan.value === 1, set: (v) => { u.uScan.value = v ? 1 : 0; } });
     }
+    // pinch both hands closed then open to snap to the next filter, hands-free
+    list.push({ type: 'toggle', id: 'gesture', label: 'PINCH TO SWITCH FILTER',
+      value: this.gestureSwitch, set: (v) => { this.gestureSwitch = v; } });
     return list;
   }
 }

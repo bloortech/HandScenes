@@ -280,12 +280,14 @@ function openHome() { home.classList.remove('hidden'); closeSheet(); }
 function closeHome() { home.classList.add('hidden'); }
 
 let hintTimer = 0;
-function showHint(html) {
+function showHint(html, ms = 7000) {
   howtoBody.innerHTML = html;
   howto.classList.add('show');
   clearTimeout(hintTimer);
-  hintTimer = setTimeout(() => howto.classList.remove('show'), 7000);
+  hintTimer = setTimeout(() => howto.classList.remove('show'), ms);
 }
+// scenes can flash a short on-screen toast (e.g. the filter name on a gesture)
+addEventListener('hs-toast', (e) => showHint(e.detail, 1600));
 
 // Build the scene gallery grouped by category. Visual scenes pull title/tag
 // from SCENE_META; not-yet-built flows render as dimmed "soon" cards.
