@@ -12,6 +12,7 @@ import { GardenScene } from './scenes/garden.js';
 import { ShapesScene } from './scenes/shapes.js';
 import { FractalScene } from './scenes/fractal.js';
 import { CosmosScene } from './scenes/cosmos.js';
+import { CanariesScene } from './scenes/canaries.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -40,7 +41,7 @@ const HAND_CONNECTIONS = [
 ];
 
 // Vercel Web Analytics custom events (aggregate, anonymous; no-op if blocked).
-const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'fractal', 5: 'cosmos' };
+const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'fractal', 5: 'cosmos', 6: 'canaries' };
 function track(name, data) {
   try { if (window.va) window.va('event', { name, data }); } catch (e) { /* ignore */ }
 }
@@ -90,12 +91,21 @@ const SCENE_META = {
       'to zoom in, move left/right to orbit. ' +
       '<span class="g">Left hand</span>: up/down to tilt, left/right to pan.',
   },
+  6: {
+    make: (r) => new CanariesScene(r, video),
+    title: '🐦 Canary flock',
+    tag: 'Stand against a synthetic sky, then snap your fingers to dissolve into a flock of canaries — snap again to reform.',
+    body: 'You appear cut out against a sky. <span class="g">Snap your fingers</span> ' +
+      '(thumb to middle finger) to scatter into a flock of birds; ' +
+      '<span class="g">snap again</span> to fly back together. Give the cutout a ' +
+      'second to load.',
+  },
 };
 
 // Home gallery grouping. Visual scenes reference SCENE_META by key; flows not
 // built yet show as dimmed "soon" cards so the categories read as a roadmap.
 const CATEGORIES = [
-  { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }, { key: '5' }] },
+  { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }, { key: '5' }, { key: '6' }] },
   { name: 'Music', items: [
     { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
   ] },
@@ -375,7 +385,7 @@ function toggleTrack() {
 trackBtn.addEventListener('click', toggleTrack);
 
 addEventListener('keydown', (e) => {
-  if (['1', '2', '3', '4', '5'].includes(e.key)) selectScene(e.key);
+  if (['1', '2', '3', '4', '5', '6'].includes(e.key)) selectScene(e.key);
   if (e.key === 'v') toggleCam();
   if (e.key === 'h') toggleUI();
   if (e.key === 't') toggleTrack();
