@@ -12,7 +12,7 @@ import { GardenScene } from './scenes/garden.js';
 import { ShapesScene } from './scenes/shapes.js';
 import { FractalScene } from './scenes/fractal.js';
 import { CosmosScene } from './scenes/cosmos.js';
-import { CanariesScene } from './scenes/canaries.js';
+import { NinjaScene } from './scenes/ninja.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -41,7 +41,7 @@ const HAND_CONNECTIONS = [
 ];
 
 // Vercel Web Analytics custom events (aggregate, anonymous; no-op if blocked).
-const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'fractal', 5: 'cosmos', 6: 'birds' };
+const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'fractal', 5: 'cosmos', 6: 'ninja' };
 function track(name, data) {
   try { if (window.va) window.va('event', { name, data }); } catch (e) { /* ignore */ }
 }
@@ -92,13 +92,12 @@ const SCENE_META = {
       '<span class="g">Left hand</span>: up/down to tilt, left/right to pan.',
   },
   6: {
-    make: (r) => new CanariesScene(r, video),
-    title: '🐦 Bird flock',
-    tag: 'Stand against a synthetic sky, then snap your fingers to scatter into a flock of birds — snap again to reform.',
-    body: 'You appear cut out against a sky. <span class="g">Snap your fingers</span> ' +
-      '(thumb to middle finger) to scatter into a flock of birds; ' +
-      '<span class="g">snap again</span> to fly back together. Give the cutout a ' +
-      'second to load.',
+    make: (r) => new NinjaScene(r, video),
+    title: '🥷 Ninja: Chidori',
+    tag: 'Channel a Naruto-style jutsu with hand seals — bring your hands together to charge Chidori lightning.',
+    body: '⚡ <span class="g">Bring both hands together</span> and hold to channel — ' +
+      'a charge ball builds, then <span class="g">Chidori lightning</span> crackles ' +
+      'around your hand. Move your hand to aim it. (More jutsu coming soon.)',
   },
 };
 
