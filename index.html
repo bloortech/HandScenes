@@ -217,6 +217,18 @@
   @keyframes scan { 0% { transform: translateX(-110%); } 100% { transform: translateX(285%); } }
   #gate.loading #start { display: none; }
   #gate.loading #gate-loader { display: block; }
+
+  /* friendly fallback when something fails to load */
+  #error {
+    position: fixed; inset: 0; z-index: 40; padding: 24px; text-align: center;
+    background: radial-gradient(circle at 50% 40%, #1a0e12, #04050b 72%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #error.hidden { display: none; }
+  #error .box { max-width: 440px; padding: 24px 26px; border-radius: 12px; }
+  #error h2 { font-family: 'Press Start 2P', monospace; font-size: 15px; color: var(--amber); margin: 0 0 12px; line-height: 1.6; }
+  #error p { font-size: 18px; opacity: 0.85; margin: 0 0 18px; line-height: 1.35; }
+  #error button { font-family: var(--font); font-size: 17px; cursor: pointer; color: #04120e; background: var(--neon); border: 0; border-radius: 8px; padding: 12px 22px; box-shadow: 0 0 16px rgba(56,249,215,0.5); }
 </style>
 </head>
 <body>
@@ -238,6 +250,14 @@
       <a class="gate-link" href="privacy.html">privacy &amp; how it works</a>
       <span>·</span>
       <span>made by <a class="gate-link" href="https://ishan.website" target="_blank" rel="noopener">Ishan</a></span>
+    </div>
+  </div>
+
+  <div id="error" class="hidden">
+    <div class="box panel">
+      <h2>⚠ Something went wrong</h2>
+      <p id="error-msg">We're having trouble loading this. Please refresh, or come back in a bit.</p>
+      <button id="error-reload">↻ Reload</button>
     </div>
   </div>
 
@@ -305,6 +325,27 @@
       "three/addons/": "./vendor/three/addons/"
     }
   }
+  </script>
+  <script>
+    // friendly fallback, defined before the app module so it works even if the
+    // module itself fails to load.
+    window.hsShowError = function (msg) {
+      var e = document.getElementById('error'); if (!e) return;
+      if (msg) { var m = document.getElementById('error-msg'); if (m) m.textContent = msg; }
+      e.classList.remove('hidden');
+    };
+    (function () {
+      var rb = document.getElementById('error-reload');
+      if (rb) rb.onclick = function () { location.reload(); };
+    })();
+    // a failed app script/module (not the harmless analytics beacon) -> fallback
+    window.addEventListener('error', function (ev) {
+      var t = ev.target;
+      if (t && (t.tagName === 'SCRIPT' || t.tagName === 'LINK')) {
+        if (t.src && t.src.indexOf('_vercel') !== -1) return;
+        window.hsShowError();
+      }
+    }, true);
   </script>
   <script type="module" src="js/main.js"></script>
   <!-- Vercel Web Analytics: first-party (served from this domain), cookieless.

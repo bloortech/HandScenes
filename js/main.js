@@ -116,6 +116,7 @@ const CATEGORIES = [
 ];
 
 let renderer, hands, active;
+let booted = false;   // true once the app is running (past the start gate)
 let aspectMode = 'full';
 
 // Scenes are built lazily on first selection — compiling 4 unused scenes'
@@ -132,7 +133,13 @@ function getScene(key) {
     sceneCache.set(key, scene);
     return scene;
   }
-  scene = SCENE_META[key].make(renderer);
+  try {
+    scene = SCENE_META[key].make(renderer);
+  } catch (e) {
+    console.error('scene build failed:', key, e);
+    dispatchEvent(new CustomEvent('hs-toast', { detail: '⚠ that scene failed to load' }));
+    return null;
+  }
   const sz = renderer.getSize(new THREE.Vector2());
   scene.resize(sz.x || innerWidth, sz.y || innerHeight);
   sceneCache.set(key, scene);
@@ -273,7 +280,9 @@ function drawTrack(tracked) {
 
 function selectScene(key) {
   if (!renderer || !SCENE_META[key]) return;
-  active = { scene: getScene(key), ...SCENE_META[key] };
+  const scene = getScene(key);
+  if (!scene) return;                 // build failed; keep the current scene
+  active = { scene, ...SCENE_META[key] };
   sceneName.textContent = active.title;
   currentInstructions = active.body;
   showInstructions();
@@ -396,6 +405,13 @@ addEventListener('keydown', (e) => {
   }
 });
 
+// before the app is up, surface async load failures (model/module) as the
+// friendly fallback rather than a silently broken screen
+addEventListener('unhandledrejection', (e) => {
+  console.error('unhandled rejection:', e && e.reason);
+  if (!booted && window.hsShowError) window.hsShowError();
+});
+
 // ---- boot ----------------------------------------------------------------
 async function init() {
   startBtn.disabled = true;
@@ -414,15 +430,22 @@ async function init() {
     selectScene('1');   // builds scene 1 lazily so the stage renders behind home
     openHome();         // ...then let the user pick a scene/category first
     gate.remove();
+    booted = true;
     track('ready');               // camera granted + app running (got past the gate)
     requestAnimationFrame(loop);
   } catch (err) {
     gate.classList.remove('loading');
     startBtn.disabled = false;
     track('camera_error', { reason: err && err.name ? err.name : 'unknown' });
-    gateNote.innerHTML =
-      `<span class="err">camera failed: ${err.message}</span><br>` +
-      `check the camera permission (address-bar icon) and press start again.`;
+    const camErrs = ['NotAllowedError', 'NotFoundError', 'NotReadableError',
+      'OverconstrainedError', 'SecurityError', 'PermissionDeniedError'];
+    if (err && camErrs.includes(err.name)) {
+      gateNote.innerHTML =
+        `<span class="err">camera failed: ${err.message}</span><br>` +
+        `check the camera permission (address-bar icon) and press start again.`;
+    } else if (window.hsShowError) {
+      window.hsShowError("We're having trouble starting up. Please refresh, or come back in a bit.");
+    }
   }
 }
 startBtn.addEventListener('click', init);

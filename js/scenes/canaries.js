@@ -11,7 +11,7 @@
 // used, so the effect is testable now and the real photo sprite just drops in.
 
 import * as THREE from 'three';
-import { ImageSegmenter, FilesetResolver } from '../vendor/mediapipe/tasks-vision.mjs';
+import { ImageSegmenter, FilesetResolver } from '../../vendor/mediapipe/tasks-vision.mjs';
 import { disposeObject } from './dispose.js';
 
 const SEG_MODEL =
