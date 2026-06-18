@@ -180,8 +180,9 @@ const sketch = (p) => {
     if (video.videoWidth) {
       const c = cover();
       ctx.save(); ctx.translate(p.width, 0); ctx.scale(-1, 1);
+      ctx.filter = 'grayscale(1) contrast(1.08) brightness(0.95)';   // B&W / DnB feel
       ctx.drawImage(video, c.ox, c.oy, c.dw, c.dh); ctx.restore();
-      p.noStroke(); p.fill(7, 6, 15, 155); p.rect(0, 0, p.width, p.height);
+      p.noStroke(); p.fill(8, 8, 10, 165); p.rect(0, 0, p.width, p.height);
     }
 
     const g = grid();
@@ -211,45 +212,64 @@ const sketch = (p) => {
     drawGrid(p, g, over, dwell / DWELL);
 
     for (const f of fingers) {
-      p.noFill(); p.stroke(255, 95, 162, 230); p.strokeWeight(3); p.circle(f.x, f.y, 24);
-      p.noStroke(); p.fill(255, 95, 162, 220); p.circle(f.x, f.y, 6);
+      p.noFill(); p.stroke(255, 255, 255, 235); p.strokeWeight(2.5); p.circle(f.x, f.y, 22);
+      p.noStroke(); p.fill(255, 255, 255, 215); p.circle(f.x, f.y, 5);
     }
 
-    p.noStroke(); p.fill(255, 233, 242, 180);
+    p.noStroke(); p.fill(235, 235, 235, 175);
     p.textFont('VT323'); p.textSize(22); p.textAlign(p.LEFT, p.BOTTOM);
     p.text('aim at a cell and hold to toggle it', 18, p.height - 16);
   };
 
   const drawGrid = (p, g, over, prog) => {
-    // playhead column
-    p.noStroke(); p.fill(255, 255, 255, 26);
-    p.rect(g.cellX(playStep) - g.cw * 0.62, g.top, g.cw * 1.24, g.gh, 6);
+    const ctx = p.drawingContext;
+    const tw = g.cw * 0.9, th = g.ch * 0.82;        // tile size within each cell
+    const round = Math.min(tw, th) * 0.16;
+    p.rectMode(p.CENTER);
 
-    p.textFont('VT323'); p.textAlign(p.LEFT, p.TOP); p.textSize(Math.min(20, g.ch * 0.34));
+    // playhead column wash (monochrome)
+    p.noStroke(); p.fill(255, 255, 255, 24);
+    p.rect(g.cellX(playStep), g.top + g.gh / 2, g.cw, g.gh);
+
+    p.textFont('VT323'); p.textAlign(p.LEFT, p.TOP); p.textSize(Math.min(20, g.ch * 0.32));
     for (let r = 0; r < ROWS; r++) {
-      const col = ROW_META[r].col;
-      p.noStroke(); p.fill(col[0], col[1], col[2], 190);
-      p.text(ROW_META[r].name, g.pad + 2, g.top + g.ch * r + 4);
+      p.rectMode(p.CORNER);
+      p.noStroke(); p.fill(235, 235, 235, 150);
+      p.text(ROW_META[r].name, g.pad + 2, g.top + g.ch * r + 3);
+      p.rectMode(p.CENTER);
       for (let s = 0; s < STEPS; s++) {
         const cx = g.cellX(s), cy = g.cellY(r);
-        const rad = Math.min(g.cw, g.ch) * 0.34;
         const onBeat = s % GROUP === 0;
         const isHead = s === playStep;
         if (pattern[r][s]) {
-          const k = isHead ? 1.0 : 0.8;
-          p.noStroke(); p.fill(col[0] * k, col[1] * k, col[2] * k, isHead ? 255 : 215);
-          p.circle(cx, cy, rad * (isHead ? 2.3 : 2.0));
-          p.fill(255, 255, 255, isHead ? 160 : 60); p.circle(cx, cy, rad * 0.7);
+          // lit glass tile — brighter, with a glow, on the playhead
+          if (isHead) { ctx.save(); ctx.shadowColor = 'rgba(255,255,255,0.85)'; ctx.shadowBlur = 24; }
+          p.noStroke(); p.fill(255, 255, 255, isHead ? 240 : 168);
+          p.rect(cx, cy, tw, th, round);
+          if (isHead) ctx.restore();
+          // thin inner edge so a lit tile still reads as a tile, not a blob
+          p.noFill(); p.stroke(0, 0, 0, 70); p.strokeWeight(1);
+          p.rect(cx, cy, tw - 3, th - 3, round);
         } else {
-          p.noFill(); p.stroke(col[0], col[1], col[2], onBeat ? 140 : 65);
-          p.strokeWeight(2); p.circle(cx, cy, rad * 1.4);
+          // empty glass tile: faint fill + outline (stronger on the beat)
+          p.noStroke(); p.fill(255, 255, 255, isHead ? 16 : 7);
+          p.rect(cx, cy, tw, th, round);
+          p.noFill(); p.stroke(255, 255, 255, onBeat ? 95 : 40);
+          p.strokeWeight(onBeat ? 1.6 : 1);
+          p.rect(cx, cy, tw, th, round);
         }
       }
     }
+
+    // dwell-to-toggle: outline the targeted tile + fill it bottom-up
     if (over && prog > 0.02) {
-      const cx = g.cellX(over.c), cy = g.cellY(over.r), rad = Math.min(g.cw, g.ch) * 0.44;
-      p.noFill(); p.stroke(255, 255, 255, 235); p.strokeWeight(4);
-      p.arc(cx, cy, rad * 2, rad * 2, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, prog));
+      const cx = g.cellX(over.c), cy = g.cellY(over.r);
+      const fh = th * Math.min(1, prog);
+      p.noStroke(); p.fill(255, 255, 255, 70);
+      p.rect(cx, cy + th / 2 - fh / 2, tw, fh, round);
+      p.noFill(); p.stroke(255, 255, 255, 235); p.strokeWeight(2.5);
+      p.rect(cx, cy, tw, th, round);
     }
+    p.rectMode(p.CORNER);
   };
 };
