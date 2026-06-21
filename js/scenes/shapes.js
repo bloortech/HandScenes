@@ -9,6 +9,7 @@
 
 import * as THREE from 'three';
 import { disposeObject } from './dispose.js';
+import { Stylizer } from '../style.js';
 
 const PARAMS = {
   videoDim: 0.6,    // unfiltered video brightness outside the shape
@@ -54,6 +55,8 @@ const bgFrag = /* glsl */ `
   uniform int uFilterTop;     // top + bottom filter
   uniform int uFilterSide;    // left + right filter
   uniform int uActive;
+  uniform sampler2D uStyleTex; // neural-style output (filter 9)
+  uniform float uStyleReady;   // 1 once a stylized frame exists
   in vec2 vUv;
   out vec4 fragColor;
 
@@ -131,6 +134,7 @@ const bgFrag = /* glsl */ `
     if (f == 5) return vec3(smoothstep(0.05, 0.95, luma));
     if (f == 6) return 1.0 - raw;
     if (f == 7) return mix(vec3(0.10, 0.0, 0.25), uTerm, luma);   // duotone
+    if (f == 9) return uStyleReady > 0.5 ? texture(uStyleTex, uOffset + uv * uRepeat).rgb : raw;  // neural style
     // stipple (f == 8): pointillist ink dots, darker -> bigger jittered dot
     float g = uGrid * 0.7;
     vec2 cells = vec2(floor(g * uAspect), g);
@@ -170,7 +174,7 @@ const TOP_ID = 8;
 const BOT_ID = 4;
 
 // filter ids — must match applyFilter() above and the select options below
-const FILTER_NAMES = ['ascii', 'thermal', 'riso', 'cyano', 'halftone', 'b&w', 'invert', 'duotone', 'stipple'];
+const FILTER_NAMES = ['ascii', 'thermal', 'riso', 'cyano', 'halftone', 'b&w', 'invert', 'duotone', 'stipple', 'style'];
 // pinch-to-cycle thresholds (pinch: 0 = fingers together, 1 = spread apart)
 const PINCH_ON = 0.18, PINCH_OFF = 0.45;
 
@@ -215,6 +219,8 @@ export class ShapesScene {
         uFilterTop: { value: 1 },
         uFilterSide: { value: 5 },
         uActive: { value: 0 },
+        uStyleTex: { value: this.videoTex },   // placeholder until first stylized frame
+        uStyleReady: { value: 0 },
       },
     });
     this.bg = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.bgMat);
@@ -251,6 +257,11 @@ export class ShapesScene {
     this.gestureSwitch = true;
     this.pinchArmed = false;
     this.gestureCooldown = 0;
+
+    // neural style ("style" filter) — lazy; only spins up when that filter is used
+    this.styleName = 'mosaic';
+    this.stylizer = null;
+    this.styleTex = null;
   }
 
   updateLayout() {
@@ -285,6 +296,8 @@ export class ShapesScene {
   }
 
   update(dt, hands) {
+    this.maybeStyle();
+
     // pinch-to-cycle: both hands closed -> released = one "snap" = next filter
     this.gestureCooldown = Math.max(0, this.gestureCooldown - dt);
     if (this.gestureSwitch && hands.length >= 2) {
@@ -377,6 +390,33 @@ export class ShapesScene {
     dispatchEvent(new CustomEvent('hs-toast', { detail: `▶ ${FILTER_NAMES[next]}` }));
   }
 
+  // neural style: when a visible face uses the "style" filter (9) and a box is
+  // framed, run the stylizer on the live feed and feed it to the shader.
+  maybeStyle() {
+    const u = this.bgMat.uniforms;
+    const on = u.uActive.value === 1 && (
+      u.uFilterFront.value === 9 ||
+      (this.mode === 1 && (u.uFilterTop.value === 9 || u.uFilterSide.value === 9)));
+    if (!on) return;
+    if (!this.stylizer) {
+      this.stylizer = new Stylizer(224);
+      this.styleTex = new THREE.CanvasTexture(this.stylizer.outCanvas);
+      this.styleTex.colorSpace = THREE.SRGBColorSpace;
+      u.uStyleTex.value = this.styleTex;
+      this.stylizer.load(`models/style/${this.styleName}-9.onnx`);
+    }
+    if (!this.stylizer.ready || this.stylizer.busy || this.video.readyState < 2) return;
+    this.stylizer.run(this.video).then((c) => {
+      if (c) { this.styleTex.needsUpdate = true; u.uStyleReady.value = 1; }
+    });
+  }
+
+  setStyle(name) {
+    this.styleName = name;
+    this.bgMat.uniforms.uStyleReady.value = 0;
+    if (this.stylizer) this.stylizer.load(`models/style/${name}-9.onnx`);
+  }
+
   render() {
     this.renderer.render(this.scene, this.camera);
   }
@@ -389,6 +429,7 @@ export class ShapesScene {
 
   dispose() {
     disposeObject(this.scene);
+    if (this.styleTex) this.styleTex.dispose();
   }
 
   getControls() {
@@ -398,7 +439,7 @@ export class ShapesScene {
       { label: 'riso', value: 2 }, { label: 'cyano', value: 3 },
       { label: 'halftone', value: 4 }, { label: 'b&w', value: 5 },
       { label: 'invert', value: 6 }, { label: 'duotone', value: 7 },
-      { label: 'stipple', value: 8 },
+      { label: 'stipple', value: 8 }, { label: 'style', value: 9 },
     ];
     // rebuild:true — changing a face's filter changes which knobs are relevant
     const filt = (id, label, key) => ({
@@ -436,6 +477,12 @@ export class ShapesScene {
         value: PHOSPHORS[0].value,
         options: PHOSPHORS.map((p) => ({ label: p.label, value: p.value })),
         set: (v) => u.uTerm.value.set(v[0], v[1], v[2]) });
+    }
+    if (uses(9)) {
+      list.push({ type: 'select', id: 'style', label: 'STYLE',
+        value: this.styleName,
+        options: [{ label: 'mosaic', value: 'mosaic' }, { label: 'candy', value: 'candy' }, { label: 'udnie', value: 'udnie' }],
+        set: (v) => this.setStyle(v) });
     }
     list.push({ type: 'slider', id: 'dim', label: 'OUTSIDE', min: 0, max: 1, step: 0.05,
       value: u.uDim.value, set: (v) => { u.uDim.value = v; } });
