@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bubble Machine · HandScenes build log</title>
+<meta name="description" content="Bubbles drift up, poke one with your fingertip and it pops. The hand pipeline running on p5.js.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 07 · Bubble Machine</p>
+    <h1>Bubble Machine</h1>
+    <p class="lede">Bubbles drift up, poke one with your fingertip and it pops. The first of the smaller toys.</p>
+
+    <h2>The stack</h2>
+    <p>p5.js for the canvas, MediaPipe for the hands, and the Web Audio API for the pop.</p>
+
+    <h2>How it works</h2>
+    <p>This one steps off three.js and onto p5.js and its 2D canvas. Bubbles spawn along the bottom and rise with a gentle sideways wobble, drawn as soft rings over a mirrored camera image. Your index fingertip becomes a cursor, and the moment it lands inside a bubble the bubble bursts and a short Web Audio blip plays, its pitch keyed to the bubble's size. None of it is heavy, which is exactly the point.</p>
+
+    <h2>Why a different toolkit</h2>
+    <p>The smaller toys exist to prove the hand pipeline is not welded to one renderer. Bubble Machine, Watercolour, and Hand Beats each pair the same MediaPipe input with a different stack, and p5 is the fastest way to get shapes moving on a canvas. The interesting work was never the bubbles; it was showing the tracking layer travels.</p>
+
+    <p class="foot">Next: <a href="watercolour.html">Watercolour →</a></p>
+  </article>
+</body>
+</html>

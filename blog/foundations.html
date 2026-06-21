@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Foundations · HandScenes build log</title>
+<meta name="description" content="The shared machinery behind every HandScenes flow: on-device hand tracking, one renderer, and scenes loaded on demand.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 01 · Foundations</p>
+    <h1>How HandScenes is built</h1>
+    <p class="lede">The shared machinery every scene sits on: hand tracking, the render loop, and the rules that keep it fast.</p>
+
+    <h2>Runs on your device</h2>
+    <p>Everything happens in the browser. The webcam feed, the hand tracking, and the graphics all run client side, and no frame ever leaves your machine. That single choice shaped the rest of the build. With no server to call, the model and the renderer both have to be light enough to live in a tab, and privacy stops being a policy and becomes a property of how the thing works.</p>
+
+    <h2>The hand signal</h2>
+    <p>Tracking comes from MediaPipe Tasks HandLandmarker, compiled to WebAssembly. It reads up to two hands in video mode and returns 21 landmarks for each. The GPU path is tried first, with a CPU fallback for the devices (older iOS Safari, mostly) that reject it.</p>
+    <p>Raw landmarks jitter frame to frame, so every point is smoothed with a small step toward its new reading, and fingertip velocity is tracked for the scenes that react to speed. Two gestures get computed once and reused everywhere: openness, where a fist reads 0 and an open hand reads 1, and pinch, the gap between thumb and index. Both are divided by the hand's own size, so they behave the same whether your hand is near the lens or across the room.</p>
+
+    <h2>One renderer, scenes on demand</h2>
+    <p>A single three.js WebGL renderer drives all of it. Each scene is a small module exposing the same handful of methods (mount, update, render, resize, dispose), which lets the shell stay ignorant of whether it is drawing a galaxy or a drum grid.</p>
+    <p>Scenes are not built until you open them. An earlier version compiled all five at startup and paid the shader-compile cost for scenes nobody had picked. Now a scene is constructed on first selection and held in a small cache of the three most recent. Anything older gets its geometry, materials, and render targets released, so GPU memory stays bounded no matter how long you browse.</p>
+
+    <h2>Shipping it</h2>
+    <p>Dependencies are vendored (three.js, the MediaPipe runtime and model, the fonts) and served from the same origin behind a strict content security policy. A few cookieless events measure the funnel, landed then started then picked a scene then changed a control, without identifying anyone. When a resource fails to load, a small fallback panel offers a reload rather than leaving a dead screen.</p>
+
+    <p class="foot">Next: <a href="cradle.html">Cat's Cradle →</a></p>
+  </article>
+</body>
+</html>

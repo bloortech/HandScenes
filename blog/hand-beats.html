@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hand Beats · HandScenes build log</title>
+<meta name="description" content="Build a drum loop in the air on a grid of glass tiles, synthesized with Tone.js and tracked with MediaPipe.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 09 · Hand Beats</p>
+    <h1>Hand Beats</h1>
+    <p class="lede">Build a drum loop in the air on a grid of glass tiles. Tone.js handles the sound, MediaPipe the hands.</p>
+
+    <h2>The stack</h2>
+    <p>Tone.js for the audio engine, p5.js for the grid, MediaPipe for the fingertip.</p>
+
+    <h2>How it works</h2>
+    <p>A transport in Tone.js sweeps a playhead across sixteen steps, and a draw callback locks the on-screen step to the audio clock rather than the frame rate, so the light and the hit never drift apart. Four rows cover clap, snare, hi-hat, and kick. You arm a cell by aiming your fingertip at it and holding for a beat; a nearest-cell test with a dead zone keeps the cursor from flickering between neighbours while you settle on one. Choosing a kit (808, 909, or acoustic) only swaps the synth settings underneath.</p>
+
+    <h2>No samples</h2>
+    <p>The drums are synthesized, not loaded. A membrane synth produces the kick, and short filtered bursts of noise produce the snare, hat, and clap. With nothing to fetch, there is no load delay and no sample library to ship, at the cost of a more electronic character that happens to suit a grid like this one.</p>
+
+    <h2>The look</h2>
+    <p>The grid began as colored circles and moved to monochrome glass tiles for a drum-and-bass feel. Empty steps read as a faint outline that brightens on the beat, active steps are lit white, and the tile under the playhead glows as it passes. Behind it the webcam is desaturated and the cursor is plain white, so the whole frame holds to black and white. Holding over a tile fills it from the bottom as the dwell timer completes, which doubles as the feedback that your hold registered.</p>
+
+    <p class="foot">Back to the <a href="../blog.html">build log</a>, or <a href="../index.html">open the app</a>.</p>
+  </article>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Digital Garden · HandScenes build log</title>
+<meta name="description" content="Wireframe dandelions that bloom out of your fist over a black and white feed.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 03 · Digital Garden</p>
+    <h1>Digital Garden</h1>
+    <p class="lede">Wireframe dandelions that bloom out of your fist over a black and white feed.</p>
+
+    <h2>The stack</h2>
+    <p>three.js wireframe geometry over a shaded camera backdrop. No post-processing, by choice.</p>
+
+    <h2>How it works</h2>
+    <p>Open your fist and the big dandelion grows from a spike into a full bulb, its arcs spreading as the openness reading climbs toward 1. Spread a pinch and a field of small spark-flowers rises behind it, staggered so they do not all pop up on the same frame; close the pinch and the field sinks back down. Either hand can drive either gesture, and the stronger reading wins, which keeps it responsive when one hand is doing something else.</p>
+
+    <h2>The look</h2>
+    <p>White wireframe sits over a darkened, desaturated camera image. That backdrop runs through a small shader that mixes each pixel toward its luma and dims it, so you stay visible as a faint presence without competing with the line work. The reference was the "growing my own digital garden" aesthetic, mostly line and negative space.</p>
+
+    <h2>Making it fast</h2>
+    <p>Wireframe geometry is cheap. With nothing on screen but lines and a single textured quad, there is headroom to spare even on a phone. Bloom got skipped on purpose here, since flat white lines suit the quieter mood better than a glow would.</p>
+
+    <p class="foot">Next: <a href="filter-box.html">Filter Box →</a></p>
+  </article>
+</body>
+</html>

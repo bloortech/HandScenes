@@ -1,0 +1,61 @@
+:root {
+  --bg: #07080f;
+  --ink: #cfe9e2;
+  --neon: #38f9d7;
+  --amber: #ffcf5a;
+  --line: rgba(56, 249, 215, 0.22);
+  --panel: rgba(12, 16, 26, 0.7);
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: ui-monospace, "Cascadia Code", "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 16px; line-height: 1.65; -webkit-font-smoothing: antialiased;
+}
+a { color: var(--neon); text-decoration: none; border-bottom: 1px solid rgba(56, 249, 215, 0.3); }
+a:hover { color: #fff; border-color: var(--neon); }
+
+.topnav {
+  display: flex; gap: 18px; padding: 14px 22px; font-size: 15px;
+  border-bottom: 1px solid var(--line); position: sticky; top: 0;
+  background: rgba(7, 8, 15, 0.85); backdrop-filter: blur(6px); z-index: 5;
+}
+.topnav a { border: 0; }
+
+.wrap { max-width: 740px; margin: 0 auto; padding: 34px 22px 90px; }
+.kicker {
+  font-family: 'VT323', monospace; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--amber); font-size: 18px; margin: 0 0 8px;
+}
+h1 {
+  font-family: 'Press Start 2P', monospace; font-size: 21px; line-height: 1.55;
+  color: var(--neon); text-shadow: 0 0 14px rgba(56, 249, 215, 0.4); margin: 0 0 18px;
+}
+h2 {
+  font-family: 'VT323', monospace; font-size: 27px; letter-spacing: 0.5px;
+  color: var(--neon); margin: 34px 0 6px;
+}
+.lede { font-size: 18px; color: #eafff9; opacity: 0.92; margin: 0 0 10px; }
+p { margin: 0 0 14px; }
+strong { color: #eafff9; }
+code {
+  font-family: inherit; background: rgba(56, 249, 215, 0.10);
+  border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px;
+  color: #bdf6ea; font-size: 14px;
+}
+.foot { margin-top: 42px; padding-top: 16px; border-top: 1px solid var(--line); opacity: 0.7; font-size: 14px; }
+
+/* index */
+.hero { max-width: 740px; margin: 0 auto; padding: 56px 22px 6px; }
+.hero h1 { font-size: 24px; }
+.hero p { font-size: 18px; opacity: 0.9; max-width: 630px; }
+.posts { max-width: 740px; margin: 0 auto; padding: 12px 22px 90px; list-style: none; display: grid; gap: 14px; }
+.posts li { margin: 0; }
+.card {
+  display: block; padding: 16px 18px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--panel); transition: 0.12s;
+}
+.card:hover { border-color: var(--neon); transform: translateY(-2px); background: rgba(56, 249, 215, 0.06); }
+.card .num { font-family: 'VT323', monospace; color: var(--amber); font-size: 16px; letter-spacing: 2px; }
+.card h3 { font-family: 'VT323', monospace; font-size: 25px; color: var(--neon); margin: 2px 0 0; }
+.card p { margin: 6px 0 0; opacity: 0.82; font-size: 15px; border: 0; }

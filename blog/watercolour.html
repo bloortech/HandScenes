@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watercolour · HandScenes build log</title>
+<meta name="description" content="Play or sing near your laptop and the canvas blooms in watercolour, driven by Web Audio and midpoint displacement.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 08 · Watercolour</p>
+    <h1>Watercolour</h1>
+    <p class="lede">Play or sing near your laptop and the canvas blooms in watercolour. Sound goes in, paint comes out.</p>
+
+    <h2>The stack</h2>
+    <p>p5.js for the drawing, and the native Web Audio API for the listening.</p>
+
+    <h2>How it works</h2>
+    <p>Audio is read straight from Web Audio. An analyser node hands over a frequency spectrum and a time-domain signal on every frame, and the low, mid, and high bands plus the overall loudness decide where pigment blooms and how far it creeps. Quiet microphones get a hand from a gain node behind an input slider, so a soft voice still moves the paint.</p>
+
+    <h2>The paint</h2>
+    <p>Each bloom is a rough polygon grown by midpoint displacement, the technique Tyler Hobbs wrote up for digital watercolour: take an edge, nudge its midpoint outward a little, repeat, and the shape picks up an organic wobble. Layers stack at low opacity in HSB color with a multiply blend, so wherever blooms overlap the pigment deepens the way wet paint pools on a real page.</p>
+
+    <h2>A fix worth recording</h2>
+    <p>The first build leaned on p5.sound, which threw an AudioWorklet error the moment it loaded. Swapping it for the raw analyser node removed the dependency and the bug in one move, and it handed back finer control over the input gain as a bonus. Reaching for the platform API instead of the wrapper turned out simpler and sturdier.</p>
+
+    <p class="foot">Next: <a href="hand-beats.html">Hand Beats →</a></p>
+  </article>
+</body>
+</html>

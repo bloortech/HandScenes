@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cat's Cradle · HandScenes build log</title>
+<meta name="description" content="Elastic strings that stretch between your fingers, built on a verlet simulation and lit with selective bloom.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 02 · Cat's Cradle</p>
+    <h1>Cat's Cradle</h1>
+    <p class="lede">Glowing strings that stretch between your fingers, running on a cloth simulation and selective bloom.</p>
+
+    <h2>The stack</h2>
+    <p>three.js with custom GLSL, a verlet integrator for the strings, and an <code>EffectComposer</code> chain with <code>UnrealBloomPass</code> for the glow.</p>
+
+    <h2>How the strings work</h2>
+    <p>The strings are not splines. Each one is a chain of points run through verlet integration: every frame the points drift by their own momentum, then a few relaxation passes pull neighbours back toward a rest length, which makes the line behave like something elastic instead of something rigid.</p>
+    <p>Both ends pin to anchor points on your hands, ten per hand, the five fingertips plus the five mid knuckles. Raise two hands and the strings connect matching anchors across the gap. Drop to one hand and they loop through the tips and through the joints instead, so a single hand still weaves a shape worth looking at.</p>
+
+    <h2>The glow</h2>
+    <p>Bloom here is selective, not a blur smeared over the whole picture. Two composers run in sequence. One renders only the bright string geometry and blooms that, the other blends the result over a dimmed camera backdrop. Behind the web, the feed is split into per-finger panels, each able to carry a different filter, which turns the background into a small control surface rather than a plain mirror.</p>
+
+    <h2>Making it fast</h2>
+    <p>Bloom is the expensive step, so its composer renders at 0.66 of the device pixel ratio. Softer glow is hard to notice; a smaller buffer is easy for the GPU to feel. A toggle drops the strings entirely when you want only the filtered panels showing.</p>
+
+    <p class="foot">Next: <a href="garden.html">Digital Garden →</a></p>
+  </article>
+</body>
+</html>

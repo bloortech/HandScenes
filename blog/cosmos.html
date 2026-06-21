@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cosmos · HandScenes build log</title>
+<meta name="description" content="Fly from a single planet out to a whole galaxy with one hand, tilt and pan with the other.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 06 · Cosmos</p>
+    <h1>Cosmos</h1>
+    <p class="lede">Fly from a single planet out to a whole galaxy with one hand, tilt and pan with the other.</p>
+
+    <h2>The stack</h2>
+    <p>three.js, with the star field as a single <code>Points</code> buffer, selective bloom through an <code>EffectComposer</code>, and a handful of real meshes for the foreground bodies.</p>
+
+    <h2>How it works</h2>
+    <p>The zoom is the journey. Opening your right hand pulls the camera back from the solar system until the spiral galaxy fills the frame, and closing it dives back in; the same hand sliding sideways orbits the view. Your left hand handles the rest, tilting the disk from top-down to edge-on as it moves up and down, and panning across it left and right.</p>
+    <p>Roughly sixteen thousand stars sit in one points buffer driven by a small shader that sizes each star by distance and tints it by theme. Drawing them as one buffer rather than sixteen thousand objects is the whole reason the galaxy is affordable. Real geometry fills the near field: a lit sun, a few orbiting planets, Earth wrapped in an atmosphere shell with a moon beside it, an Oort cloud built as a thin shell of points, and a couple of meteors drawn as stretched bright streaks.</p>
+
+    <h2>The look</h2>
+    <p>A dim, desaturated, mirrored webcam image hangs far behind everything as a billboard that turns to face the camera, so you stay present in the background the way the garden keeps you in frame. Selective bloom lights the sun and the brightest stars and leaves the rest of the picture alone.</p>
+
+    <h2>Making it fast</h2>
+    <p>Points instead of meshes for the galaxy is the big saving. Bloom runs through a composer with a dedicated output pass, and the backdrop draws first with depth testing switched off, so it never argues with the 3D content in front of it.</p>
+
+    <p class="foot">Next: <a href="bubble-machine.html">Bubble Machine →</a></p>
+  </article>
+</body>
+</html>

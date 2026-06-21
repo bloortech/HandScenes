@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mandelbox Fractal · HandScenes build log</title>
+<meta name="description" content="An infinite folded solid you sculpt with one hand, raymarched in a fragment shader and downscaled for speed.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 05 · Mandelbox Fractal</p>
+    <h1>Mandelbox Fractal</h1>
+    <p class="lede">An infinite folded solid you sculpt with one hand, raymarched live in a fragment shader.</p>
+
+    <h2>The stack</h2>
+    <p>A GLSL raymarcher, a downscaled render target, and three.js to host the fullscreen quad it draws onto.</p>
+
+    <h2>How it works</h2>
+    <p>There is no mesh anywhere. The shape is discovered by raymarching: from each pixel a ray steps forward, and a distance-estimator function reports how far the nearest surface sits, which lets the ray leap safely until it lands on the Mandelbox. That estimator repeatedly folds space, a box fold followed by a sphere fold, and the repetition is what produces the endless self-similar detail. Your hand sets the parameters in real time. Opening your fist zooms in and brightens, sliding left and right orbits, raising and lowering the hand changes the fold, and a pinch morphs the shape. The whole mapping came across from a TouchDesigner build of the same fractal.</p>
+
+    <h2>Making it fast</h2>
+    <p>Raymarching cost scales with the number of pixels you march, and a ninety-step march per pixel adds up quickly. The fix: render the fractal into an offscreen target at 0.75 of full resolution, then stretch that onto the screen with a copy shader. Three-quarter resolution cuts the per-frame work close to half, and the slight softening actually flatters the glow. The step count was pushed down to the lowest value that still resolves the fine folds, and no further.</p>
+
+    <p class="foot">Next: <a href="cosmos.html">Cosmos →</a></p>
+  </article>
+</body>
+</html>

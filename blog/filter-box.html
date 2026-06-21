@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Filter Box · HandScenes build log</title>
+<meta name="description" content="Frame a rectangle with both hands and everything inside it gets re-rendered, from ASCII to a live neural style.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 04 · Filter Box</p>
+    <h1>Filter Box</h1>
+    <p class="lede">Frame a rectangle with both hands and everything inside it gets re-rendered, from ASCII to a live neural style.</p>
+
+    <h2>The stack</h2>
+    <p>A single GLSL3 fragment shader does the framing and all the classic filters. MediaPipe supplies the hand corners. ONNX Runtime Web powers the one filter that is an actual neural network.</p>
+
+    <h2>How the box works</h2>
+    <p>Index fingertips set the top two corners, thumbs set the bottom two, so two hands describe a quad. One fullscreen shader samples the camera and, for any pixel that falls inside that quad, runs the chosen filter; outside the quad it shows a dimmed feed. Flip the mode to 3D and the rectangle becomes a cuboid. Depth comes from the offset between your index and middle fingers, scaled by a depth control, and the six faces get tested front to back so the nearest one wins the pixel. Opposite faces share a filter, front with back, top with bottom, left with right, which keeps the control panel sane and the cube readable. A twelve-edge wireframe draws the box itself.</p>
+
+    <h2>The filters</h2>
+    <p>Nine of them live inside one <code>applyFilter</code> function. ASCII is the fun one: each glyph is packed as bits inside an integer and unpacked per pixel, with the brightness of the local region choosing which character to draw, then tinted to a phosphor color with optional scanlines. The rest are colormaps and halftones: a thermal palette, a two-ink risograph with film grain in green and white, a cyanotype blue, a rotated-grid halftone, plain black and white, an invert, a duotone, and a pointillist stipple that sizes its ink dots by cell brightness.</p>
+
+    <h2>Generative fill</h2>
+    <p>The ninth filter is a real neural net. It runs the fast-neural-style models (mosaic, candy, udnie) through ONNX Runtime Web, on WebGPU where the browser allows it and single-thread WebAssembly where it does not. Nothing loads until you actually pick the style filter on a framed box, so no one downloads a model they never touch. Each pass repaints a low-resolution copy of the feed, and the shader samples that texture for the in-box pixels using the same cover-mapping as the live video, so the painted result lands on top of where you really are.</p>
+    <p>One honest limit: real-time, prompt-driven diffusion (the Deforum kind) cannot run frame by frame in a browser. This feed-forward approach is the version that fits the constraint, so it ships fixed styles rather than text prompts.</p>
+
+    <h2>Two extra touches</h2>
+    <p>Pinch both hands shut and release to snap to the next filter, no reaching for the panel. The control list is also conditional: text size, ink color, and scanlines appear only when a filter that uses them is active, which stops the panel from filling with dead knobs.</p>
+
+    <h2>Making it fast</h2>
+    <p>One shader pass covers all the geometry and every classic filter, so the cost barely moves as you add complexity. The neural pass is the slow one, kept at 224 pixels and run only while a box is framed.</p>
+
+    <p class="foot">Next: <a href="fractal.html">Mandelbox Fractal →</a></p>
+  </article>
+</body>
+</html>
