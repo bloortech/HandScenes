@@ -193,6 +193,9 @@
   #gate p { font-size: 19px; opacity: 0.85; max-width: 480px; margin: 0; }
   #gate .gate-sub { font-size: 16px; opacity: 0.6; max-width: 460px; }
   .gate-foot { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: center; font-size: 16px; opacity: 0.75; }
+  .gate-visits { font-family: var(--font); font-size: 17px; color: var(--amber); opacity: 0.9; letter-spacing: 0.5px; }
+  .gate-visits b { color: var(--neon); text-shadow: 0 0 8px rgba(56,249,215,0.5); }
+  .gate-visits[hidden] { display: none; }
   #gate-demo {
     width: min(520px, 92vw); aspect-ratio: 16 / 9; flex: none;
     border: 2px solid var(--line); border-radius: 10px; overflow: hidden; background: #000;
@@ -243,6 +246,7 @@
         referrerpolicy="strict-origin-when-cross-origin"
         allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>
     </div>
+    <div id="visits" class="gate-visits" hidden>◍ <b id="visits-n"></b> hands raised so far</div>
     <button id="start">▶ PRESS START</button>
     <div id="gate-loader" aria-hidden="true"></div>
     <small id="gate-note">Uses your webcam for hand tracking, all on your device — click allow when prompted.</small>
@@ -348,6 +352,42 @@
         window.hsShowError();
       }
     }, true);
+  </script>
+  <script>
+    // all-time visitor counter. New browsers increment once (deduped by a local
+    // flag); everyone else just reads. Degrades silently if the API/KV is absent.
+    (function () {
+      var el = document.getElementById('visits'), n = document.getElementById('visits-n');
+      if (!el || !n) return;
+      var fmt = function (v) { return Number(v).toLocaleString(); };
+      var shown = false;
+      function reveal(count) {
+        if (count == null || isNaN(count)) return;
+        if (shown) { n.textContent = fmt(count); return; }
+        shown = true; el.hidden = false;
+        var t0 = performance.now(), dur = 900;
+        (function step(t) {
+          var k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+          n.textContent = fmt(Math.round(count * e));
+          if (k < 1) requestAnimationFrame(step);
+        })(t0);
+      }
+      var first = false;
+      try { first = localStorage.getItem('hs_visited') !== '1'; } catch (e) {}
+      fetch('/api/visits' + (first ? '?inc=1' : ''), { cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (first) { try { localStorage.setItem('hs_visited', '1'); } catch (e) {} }
+          reveal(d && d.count);
+        }).catch(function () {});
+      // light "live" updates while the landing gate is still open
+      var poll = setInterval(function () {
+        if (!document.getElementById('gate')) { clearInterval(poll); return; }
+        fetch('/api/visits', { cache: 'no-store' })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { reveal(d && d.count); }).catch(function () {});
+      }, 20000);
+    })();
   </script>
   <script type="module" src="js/main.js"></script>
   <!-- Vercel Web Analytics: first-party (served from this domain), cookieless.
