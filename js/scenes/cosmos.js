@@ -1,6 +1,5 @@
-// Scene 5: Cosmos — a solar system that lives at the heart of a galaxy.
-// Same "control a 3D world with your hand" idea as the Mandelbox, but here the
-// zoom IS the journey:
+// Scene 4: Cosmos — a solar system that lives at the heart of a galaxy.
+// You steer a 3D world with your hand, and here the zoom IS the journey:
 //   open fist        -> fly out from the solar system into the whole galaxy
 //   hand left/right  -> orbit around it
 //   hand up/down     -> tilt from top-down spiral to edge-on disk

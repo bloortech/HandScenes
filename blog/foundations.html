@@ -25,7 +25,7 @@
 
     <h2>One renderer, scenes on demand</h2>
     <p>A single three.js WebGL renderer drives all of it. Each scene is a small module exposing the same handful of methods (mount, update, render, resize, dispose), which lets the shell stay ignorant of whether it is drawing a galaxy or a drum grid.</p>
-    <p>Scenes are not built until you open them. An earlier version compiled all five at startup and paid the shader-compile cost for scenes nobody had picked. Now a scene is constructed on first selection and held in a small cache of the three most recent. Anything older gets its geometry, materials, and render targets released, so GPU memory stays bounded no matter how long you browse.</p>
+    <p>Scenes are not built until you open them. An earlier version compiled every scene at startup and paid the shader-compile cost for ones nobody had picked. Now a scene is constructed on first selection and held in a small cache of the three most recent. Anything older gets its geometry, materials, and render targets released, so GPU memory stays bounded no matter how long you browse.</p>
 
     <h2>Shipping it</h2>
     <p>Dependencies are vendored (three.js, the MediaPipe runtime and model, the fonts) and served from the same origin behind a strict content security policy. A few cookieless events measure the funnel, landed then started then picked a scene then changed a control, without identifying anyone. When a resource fails to load, a small fallback panel offers a reload rather than leaving a dead screen.</p>

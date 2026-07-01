@@ -10,7 +10,6 @@ import { createHands } from './hands.js';
 import { CradleScene } from './scenes/cradle.js';
 import { GardenScene } from './scenes/garden.js';
 import { ShapesScene } from './scenes/shapes.js';
-import { FractalScene } from './scenes/fractal.js';
 import { CosmosScene } from './scenes/cosmos.js';
 
 const $ = (id) => document.getElementById(id);
@@ -40,7 +39,7 @@ const HAND_CONNECTIONS = [
 ];
 
 // Vercel Web Analytics custom events (aggregate, anonymous; no-op if blocked).
-const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'fractal', 5: 'cosmos' };
+const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'cosmos' };
 function track(name, data) {
   try { if (window.va) window.va('event', { name, data }); } catch (e) { /* ignore */ }
 }
@@ -74,15 +73,6 @@ const SCENE_META = {
       'with a filter on each face.',
   },
   4: {
-    make: (r) => new FractalScene(r),
-    title: '◈ Mandelbox fractal',
-    tag: 'Sculpt an endless 3D fractal in real time — open your hand to dive in, pinch to morph the shape.',
-    body: '<span class="g">Open your fist</span> to zoom in, ' +
-      '<span class="g">move your hand left/right</span> to orbit, ' +
-      '<span class="g">up/down</span> to fold the box, and ' +
-      '<span class="g">pinch</span> to morph the shape.',
-  },
-  5: {
     make: (r) => new CosmosScene(r, video),
     title: '🪐 Cosmos',
     tag: 'Fly from a single planet out to a whole galaxy with one hand; tilt and pan the view with the other.',
@@ -95,7 +85,7 @@ const SCENE_META = {
 // Home gallery grouping. Visual scenes reference SCENE_META by key; flows not
 // built yet show as dimmed "soon" cards so the categories read as a roadmap.
 const CATEGORIES = [
-  { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }, { key: '5' }] },
+  { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }] },
   { name: 'Music', items: [
     { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
   ] },
@@ -384,7 +374,7 @@ function toggleTrack() {
 trackBtn.addEventListener('click', toggleTrack);
 
 addEventListener('keydown', (e) => {
-  if (['1', '2', '3', '4', '5'].includes(e.key)) selectScene(e.key);
+  if (['1', '2', '3', '4'].includes(e.key)) selectScene(e.key);
   if (e.key === 'v') toggleCam();
   if (e.key === 'h') toggleUI();
   if (e.key === 't') toggleTrack();
