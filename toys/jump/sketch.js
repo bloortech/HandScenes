@@ -4,12 +4,15 @@
 // jump in front of the camera to clear obstacles, physically crouch to duck
 // under the fliers. Everything runs client-side; fully vendored (no CDN).
 //
-// Pose→game mapping: at calibration we memorise where your ankles/hips sit and
-// how tall you are (normalized video units). Each frame the skeleton is drawn
-// anchored so calibrated-ankle-height = the game's ground line. When you jump
-// for real, every joint rises above that anchor and the figure simply leaves
-// the ground — no simulated physics, your legs are the physics. JUMP BOOST
-// amplifies the lift so a polite indoor hop still clears a tall cactus.
+// Pose→game mapping: HIP-anchored, so only your head-to-hips needs to be in
+// frame — you can stand close to a laptop with your legs cropped out. At
+// calibration we memorise your standing hip height and torso length
+// (normalized video units). The skeleton is drawn with its hips pinned at
+// standing height above the ground line; when you jump for real your hips rise
+// above that baseline and the whole figure lifts (scaled by JUMP BOOST so a
+// polite indoor hop clears a tall cactus). Crouching drops your head below the
+// fliers. If your legs ARE visible they're drawn live; if cropped, simple
+// swinging cartoon legs are synthesized so the runner never looks amputated.
 
 import { FilesetResolver, PoseLandmarker }
   from '/vendor/mediapipe/tasks-vision.mjs';
@@ -18,20 +21,25 @@ const MODEL = '/models/pose_landmarker_lite.task';
 const WASM = '/vendor/mediapipe/wasm';
 
 // landmark ids (BlazePose 33-point topology)
-const NOSE = 0, L_EAR = 7, R_EAR = 8,
+const NOSE = 0,
   L_SHO = 11, R_SHO = 12, L_ELB = 13, R_ELB = 14, L_WRI = 15, R_WRI = 16,
   L_HIP = 23, R_HIP = 24, L_KNE = 25, R_KNE = 26, L_ANK = 27, R_ANK = 28,
   L_TOE = 31, R_TOE = 32;
-const CONNS = [
+const CONNS_UP = [
   [L_SHO, R_SHO], [L_SHO, L_ELB], [L_ELB, L_WRI], [R_SHO, R_ELB], [R_ELB, R_WRI],
   [L_SHO, L_HIP], [R_SHO, R_HIP], [L_HIP, R_HIP],
+];
+const CONNS_LEG = [
   [L_HIP, L_KNE], [L_KNE, L_ANK], [R_HIP, R_KNE], [R_KNE, R_ANK],
   [L_ANK, L_TOE], [R_ANK, R_TOE],
 ];
-const CORE = [NOSE, L_SHO, R_SHO, L_HIP, R_HIP, L_KNE, R_KNE, L_ANK, R_ANK];
+const CONNS = [...CONNS_UP, ...CONNS_LEG];       // cam preview draws everything
+const CORE = [NOSE, L_SHO, R_SHO, L_HIP, R_HIP]; // all we NEED in frame
 
 const SMOOTH = 0.55;          // lerp toward raw per detection (jumps are fast; keep latency low)
 const LOST_MS = 1000;         // pause the run if unseen this long
+const STATURE = 3.4;          // full body height ≈ 3.4 × shoulder-to-hip torso length
+const HIP_FRAC = 0.53;        // standing hip height as a fraction of stature
 const NEON = '#b6ff3e', PINK = '#ff5fa2', CYAN = '#38f9d7';
 
 // ---- dom / boot -----------------------------------------------------------
@@ -105,7 +113,7 @@ function beep(f0, f1, dur, type = 'square', vol = 0.12) {
 // ---- pose state ------------------------------------------------------------
 let lm = null;              // smoothed landmarks [{x,y,vis}*33], x mirrored (selfie)
 let poseSeenAt = 0;         // performance.now() of last detection
-let calib = null;           // { ankleY, hipY, torso, bodyH, headTop } normalized units
+let calib = null;           // { hipY, torso } normalized units, standing baseline
 let airborne = false, wasAirborne = false, jumpEdge = false;
 
 function detect(now) {
@@ -127,56 +135,55 @@ function detect(now) {
 const mid = (a, b) => ({ x: (lm[a].x + lm[b].x) / 2, y: (lm[a].y + lm[b].y) / 2 });
 const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
 
+// some builds leave visibility at 0 for every landmark — only trust the
+// scores if at least one landmark reports a real value
+const visScored = () => lm.some((p) => (p.vis ?? 0) > 0);
+
 function bodyMetrics() {
   const hip = mid(L_HIP, R_HIP), sho = mid(L_SHO, R_SHO);
-  const ankleY = Math.max(lm[L_ANK].y, lm[R_ANK].y);        // lower foot = ground contact
   const headR = 0.45 * dist(lm[NOSE], sho);                 // cartoon head radius
   return {
-    hip, sho, ankleY,
+    hip, sho, headR,
     torso: dist(hip, sho),
     headTop: lm[NOSE].y - headR,
-    headR,
-    bodyH: ankleY - (lm[NOSE].y - headR),
   };
 }
 
-function fullBodyVisible() {
+function upperBodyVisible() {
   if (!lm) return false;
-  // some builds leave visibility at 0 for every landmark — only trust the
-  // scores if at least one landmark reports a real value
-  const scored = lm.some((p) => (p.vis ?? 0) > 0);
-  if (scored) for (const i of CORE) if ((lm[i].vis ?? 1) < 0.4) return false;
+  if (visScored()) for (const i of CORE) if ((lm[i].vis ?? 1) < 0.4) return false;
   const m = bodyMetrics();
-  return m.headTop > 0.02 && m.ankleY < 0.99 && m.bodyH > 0.3;
+  return m.headTop > 0.01 && m.hip.y < 0.99 && m.torso > 0.08;
 }
 
+// hip rise above the standing baseline, in torso units (body-size invariant)
+function hipRise(m) { return (calib.hipY - m.hip.y) / calib.torso; }
+
 // slow-adapt the calibration while you're standing still, so drifting toward /
-// away from the camera doesn't turn into phantom jumps or a growing hitbox
+// away from the camera doesn't turn into phantom jumps or a growing figure
 function updateCalib(m) {
-  const rise = calib.ankleY - m.ankleY;
-  const hipOff = Math.abs(m.hip.y - calib.hipY);
-  airborne = rise > 0.06 * calib.bodyH + 0.02;
+  const rise = hipRise(m);
+  airborne = rise > (airborne ? 0.12 : 0.25);   // hysteresis so it doesn't flicker
   jumpEdge = airborne && !wasAirborne;
   wasAirborne = airborne;
-  if (Math.abs(rise) < 0.03 && hipOff < 0.05) {
+  if (Math.abs(rise) < 0.1) {
     const k = 0.02;
-    calib.ankleY += (m.ankleY - calib.ankleY) * k;
     calib.hipY += (m.hip.y - calib.hipY) * k;
     calib.torso += (m.torso - calib.torso) * k;
-    calib.bodyH += (m.bodyH - calib.bodyH) * k;
   }
 }
 
 // ---- game state -------------------------------------------------------------
-let state = 'calibrate';    // calibrate | countdown | run | lost | dead
+// calibrate → armed (jump to start) → run; crash = flash + score reset, keep
+// running; lost (pose gone) pauses, then re-arms.
+let state = 'calibrate';
 let keyboardMode = false;   // fallback: classic stick-runner on space/arrow-down
 let stableFrames = 0;
-let countT = 0;             // countdown timer (s)
 let score = 0, hi = +(localStorage.getItem('hs-jump-hi') || 0);
 let runTime = 0;            // seconds since run started (drives speed ramp)
 let obstacles = [];         // { x, type, seed }  (y/size derived at draw time → resize-safe)
 let distGap = 0, nextGap = 400;
-let deadAt = 0, lastMilestone = 0;
+let crashAt = -1e9, lastMilestone = 0;
 let flash = 0;
 
 // keyboard fallback physics
@@ -191,9 +198,8 @@ const playerX = () => W() * 0.24;
 const speed = () => Math.min(W() * (0.35 + 0.010 * runTime), W() * 0.95);
 
 // obstacle catalogue: heights/positions in units of figure height so the game
-// stays fair on any window size or body size
-// heights tuned so a modest ~30cm real-world hop (at default boost) clears
-// low/wide, and a proper jump clears tall — see mapJoint: total rise ≈ rise·s·boost
+// stays fair on any window size or body size. Tuned so a modest ~30cm hop (at
+// default boost) clears low/wide and a proper jump clears tall.
 const TYPES = {
   low:  { w: 0.16, h: 0.22, minScore: 0 },
   tall: { w: 0.16, h: 0.38, minScore: 250 },
@@ -221,12 +227,18 @@ function resetRun() {
 }
 
 // ---- player geometry ---------------------------------------------------------
-// maps a normalized landmark into game space, feet anchored to the ground line
-function mapJoint(j, m, lift, s, aspect) {
-  return {
+// figure scale (game px per normalized unit) and current lift above the ground
+function poseFrame(m) {
+  const s = figH() / (STATURE * calib.torso);
+  const aspect = (video.videoWidth || 16) / (video.videoHeight || 9);
+  // full boost on the way up; crouching lowers the figure a little (clamped)
+  const lift = Math.max(-0.25 * figH(), hipRise(m) * calib.torso * s * boost) + kbY;
+  const hipScreenY = groundY() - HIP_FRAC * figH() - lift;
+  const P = (j) => ({
     x: playerX() + (j.x - m.hip.x) * s * aspect,
-    y: groundY() - (calib.ankleY - j.y) * s - lift,
-  };
+    y: hipScreenY + (j.y - m.hip.y) * s,
+  });
+  return { s, aspect, lift, P };
 }
 
 function playerBox() {
@@ -236,16 +248,13 @@ function playerBox() {
     return { x: playerX() - w / 2, y: groundY() - h - kbY, w, h };
   }
   const m = bodyMetrics();
-  const s = figH() / calib.bodyH;
-  const aspect = (video.videoWidth || 16) / (video.videoHeight || 9);
-  const lift = Math.max(0, calib.ankleY - m.ankleY) * s * (boost - 1) + kbY;
-  const head = mapJoint({ x: m.hip.x, y: m.headTop }, m, lift, s, aspect);
-  const feet = mapJoint({ x: m.hip.x, y: m.ankleY }, m, lift, s, aspect);
-  const width = Math.max(
-    18, dist(lm[L_HIP], lm[R_HIP]) * s * aspect * 1.6);
+  const { s, aspect, lift, P } = poseFrame(m);
+  const head = P({ x: m.hip.x, y: m.headTop });
+  const bottom = groundY() - Math.max(0, lift);      // feet = ground unless airborne
+  const width = Math.max(18, dist(lm[L_HIP], lm[R_HIP]) * s * aspect * 1.6);
   // core column only — flailing arms shouldn't get you killed
-  const inset = (feet.y - head.y) * 0.06;
-  return { x: playerX() - width / 2, y: head.y + inset, w: width, h: feet.y - head.y - inset * 2 };
+  const inset = (bottom - head.y) * 0.06;
+  return { x: playerX() - width / 2, y: head.y + inset, w: width, h: bottom - head.y - inset * 2 };
 }
 
 // ---- main loop ----------------------------------------------------------------
@@ -256,10 +265,9 @@ function loop(now) {
   lastT = now;
 
   detect(now);
-  const m = (lm && calib) ? bodyMetrics() : null;
-  if (m && !keyboardMode) updateCalib(m);
+  if (lm && calib && !keyboardMode) updateCalib(bodyMetrics());
 
-  // keyboard fallback physics (also active as an extra input in pose mode)
+  // keyboard fallback physics (also usable as an extra input in pose mode)
   const g = figH() * 14;
   if (kbY > 0 || kbVy > 0) { kbVy -= g * dt; kbY = Math.max(0, kbY + kbVy * dt); if (kbY === 0) kbVy = 0; }
 
@@ -271,24 +279,23 @@ function update(now, dt) {
   const poseLive = now - poseSeenAt < LOST_MS;
 
   if (state === 'calibrate') {
-    if (keyboardMode) { state = 'countdown'; countT = 3; resetRun(); return; }
-    if (now - poseSeenAt < 400 && fullBodyVisible()) {
+    if (keyboardMode) { resetRun(); state = 'armed'; return; }
+    if (now - poseSeenAt < 400 && upperBodyVisible()) {
       stableFrames++;
-      if (stableFrames > 45) {
+      if (stableFrames > 30) {
         const m = bodyMetrics();
-        calib = { ankleY: m.ankleY, hipY: m.hip.y, torso: m.torso, bodyH: m.bodyH };
-        state = 'countdown'; countT = 3; resetRun();
-        beep(440, 440, 0.08, 'sine');
+        calib = { hipY: m.hip.y, torso: m.torso };
+        resetRun();
+        state = 'armed';
+        beep(440, 880, 0.12, 'sine');
       }
     } else stableFrames = Math.max(0, stableFrames - 3);
     return;
   }
 
-  if (state === 'countdown') {
-    const before = Math.ceil(countT);
-    countT -= dt;
-    if (Math.ceil(countT) !== before && countT > 0) beep(440, 440, 0.08, 'sine');
-    if (countT <= 0) { state = 'run'; beep(880, 880, 0.12, 'sine'); }
+  if (state === 'armed') {
+    if (!keyboardMode && !poseLive) { state = 'lost'; return; }
+    if (jumpEdge || kbY > 5) { state = 'run'; beep(880, 880, 0.12, 'sine'); }
     return;
   }
 
@@ -314,10 +321,12 @@ function update(now, dt) {
     for (const o of obstacles) {
       const r = obstacleRect(o);
       if (p.x < r.x + r.w && p.x + p.w > r.x && p.y < r.y + r.h && p.y + p.h > r.y) {
-        state = 'dead'; deadAt = now; flash = 1;
+        // crash = instant retry: score back to zero, keep running
         hi = Math.max(hi, Math.floor(score));
         localStorage.setItem('hs-jump-hi', hi);
+        crashAt = now; flash = 1;
         beep(300, 55, 0.4, 'sawtooth', 0.16);
+        resetRun();
         break;
       }
     }
@@ -325,15 +334,10 @@ function update(now, dt) {
   }
 
   if (state === 'lost') {
-    if (poseLive && fullBodyVisible()) { state = 'countdown'; countT = 1; }
-    return;
-  }
-
-  if (state === 'dead') {
-    // jump (or space, which sets kbVy) to go again — small delay so a death-flail
-    // doesn't instantly restart
-    if (now - deadAt > 800 && (jumpEdge || (keyboardMode && kbY > 5))) {
-      state = 'countdown'; countT = 1.5; resetRun();
+    if (poseLive && upperBodyVisible()) {
+      // drop anything about to hit you, then ask for a jump to resume
+      obstacles = obstacles.filter((o) => o.x > W() * 0.6);
+      state = 'armed';
     }
   }
 }
@@ -458,19 +462,33 @@ function drawPlayer(now) {
   }
 
   const m = bodyMetrics();
-  const s = figH() / calib.bodyH;
-  const aspect = (video.videoWidth || 16) / (video.videoHeight || 9);
-  const lift = Math.max(0, calib.ankleY - m.ankleY) * s * (boost - 1) + kbY;
-  const P = (i) => mapJoint(lm[i], m, lift, s, aspect);
+  const { s, lift, P } = poseFrame(m);
+  const J = (i) => P(lm[i]);
 
   ctx.beginPath();
-  for (const [a, b] of CONNS) {
-    const pa = P(a), pb = P(b);
+  for (const [a, b] of CONNS_UP) {
+    const pa = J(a), pb = J(b);
     ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
+  }
+  // legs: live if the camera can actually see them, synthesized cartoon
+  // strides if they're cropped out of frame
+  const legsTracked = !visScored() ||
+    Math.min(lm[L_KNE].vis, lm[R_KNE].vis, lm[L_ANK].vis, lm[R_ANK].vis) >= 0.35;
+  if (legsTracked) {
+    for (const [a, b] of CONNS_LEG) {
+      const pa = J(a), pb = J(b);
+      ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
+    }
+  } else {
+    const hipL = J(L_HIP), hipR = J(R_HIP);
+    const feetY = Math.min(groundY(), groundY() - lift);
+    const step = Math.sin(now * 0.014) * figH() * 0.1 * (state === 'run' ? 1 : 0.15);
+    ctx.moveTo(hipL.x, hipL.y); ctx.lineTo(hipL.x - figH() * 0.05 + step, feetY);
+    ctx.moveTo(hipR.x, hipR.y); ctx.lineTo(hipR.x + figH() * 0.05 - step, feetY);
   }
   ctx.stroke();
   // head
-  const nose = P(NOSE);
+  const nose = J(NOSE);
   ctx.beginPath();
   ctx.arc(nose.x, nose.y, m.headR * s, 0, Math.PI * 2);
   ctx.stroke();
@@ -507,7 +525,7 @@ function drawCam() {
   // skeleton overlay (landmarks are pre-mirrored, so plot straight into the rect)
   if (lm) {
     ctx.save();
-    ctx.strokeStyle = fullBodyVisible() ? NEON : PINK;
+    ctx.strokeStyle = upperBodyVisible() ? NEON : PINK;
     ctx.lineWidth = 2;
     ctx.beginPath();
     for (const [a, b] of CONNS) {
@@ -538,34 +556,36 @@ function centerText(lines, y0) {
 
 function drawOverlays(now) {
   if (state === 'calibrate') {
-    const ok = fullBodyVisible();
+    const ok = upperBodyVisible();
     centerText([
-      ['STEP BACK', 22, NEON],
-      [ok ? 'HOLD STILL…' : 'FIT YOUR WHOLE BODY IN FRAME', 12, ok ? CYAN : PINK],
+      ['GET IN FRAME', 22, NEON],
+      [ok ? 'HOLD STILL…' : 'HEAD + HIPS IN VIEW IS ENOUGH', 12, ok ? CYAN : PINK],
     ], H() * 0.09);
     // progress bar
     const bw = Math.min(W() * 0.4, 380), bx = (W() - bw) / 2, by = H() * 0.88;
     ctx.strokeStyle = NEON; ctx.lineWidth = 2;
     ctx.strokeRect(bx, by, bw, 14);
     ctx.fillStyle = NEON;
-    ctx.fillRect(bx + 2, by + 2, (bw - 4) * Math.min(stableFrames / 45, 1), 10);
+    ctx.fillRect(bx + 2, by + 2, (bw - 4) * Math.min(stableFrames / 30, 1), 10);
     ctx.font = '15px "VT323", monospace';
     ctx.fillStyle = 'rgba(234,255,217,0.55)';
     ctx.textAlign = 'center';
     ctx.fillText('no room? press K for keyboard mode (space = jump, ↓ = duck)', W() / 2, by + 38);
-  } else if (state === 'countdown') {
-    centerText([[countT > 0.3 ? String(Math.ceil(countT)) : 'GO!', 42, NEON]], H() * 0.4);
+  } else if (state === 'armed') {
+    centerText([
+      ['JUMP TO START', 24, NEON],
+      [keyboardMode ? '(space works too)' : 'physically jump — that jump starts the run', 11, 'rgba(234,255,217,0.8)'],
+    ], H() * 0.35);
   } else if (state === 'lost') {
     centerText([
       ["CAN'T SEE YOU", 22, PINK],
-      ['step back into frame', 12, 'rgba(234,255,217,0.8)'],
+      ['get your head + hips back in frame', 12, 'rgba(234,255,217,0.8)'],
     ], H() * 0.35);
-  } else if (state === 'dead') {
+  } else if (state === 'run' && now - crashAt < 1200) {
     centerText([
-      ['GAME OVER', 30, PINK],
-      ['SCORE ' + Math.floor(score) + '   HI ' + hi, 14, NEON],
-      [keyboardMode ? 'PRESS SPACE TO RUN AGAIN' : 'JUMP TO RUN AGAIN', 12, 'rgba(234,255,217,0.8)'],
-    ], H() * 0.32);
+      ['OUCH!', 26, PINK],
+      ['from the top — best ' + hi, 12, 'rgba(234,255,217,0.8)'],
+    ], H() * 0.3);
   }
 }
 

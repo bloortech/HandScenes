@@ -94,7 +94,7 @@ const CATEGORIES = [
     { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
   ] },
   { name: 'Move', items: [
-    { href: '/toys/jump/', title: '🏃 Jump Runner', tag: 'Full-body tracked endless runner — you ARE the runner. Physically jump over the blocks, crouch under the fliers.' },
+    { href: '/toys/jump/', title: '🏃 Jump Runner', tag: 'Body-tracked endless runner — you ARE the runner. Physically jump over the blocks, crouch under the fliers. Head + hips in frame is enough.' },
   ] },
 ];
 
