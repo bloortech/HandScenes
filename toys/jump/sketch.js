@@ -231,11 +231,14 @@ const gapFactor = () => Math.max(0.85, 1.5 - 0.04 * level());
 // be jumped or ducked at normal effort — you PUNCH it.
 const TYPES = {
   low:   { w: 0.16, h: 0.22, minScore: 0 },
-  tall:  { w: 0.16, h: 0.38, minScore: 45 },
-  wide:  { w: 0.50, h: 0.20, minScore: 90 },
-  flier: { w: 0.26, h: 0.18, minScore: 130, fly: 0.72 }, // bottom 0.72·figH up → crouch under it
-  qblock:{ w: 0.24, h: 0.66, minScore: 170, fly: 0.38 }, // chest-height ? blocks → punch through
+  tall:  { w: 0.16, h: 0.38, minScore: 40 },
+  flier: { w: 0.26, h: 0.18, minScore: 70, fly: 0.72 },  // bottom 0.72·figH up → crouch under it
+  qblock:{ w: 0.30, h: 0.60, minScore: 105, fly: 0.42 }, // chest-height ? blocks → punch through
+  wide:  { w: 0.50, h: 0.20, minScore: 140 },
 };
+// the action each obstacle wants, shown as a pop-in prompt while it approaches
+const ACTION = { low: 'JUMP!', tall: 'JUMP!', wide: 'JUMP!', flier: 'DUCK!', qblock: 'PUNCH!' };
+const ACTION_COLOR = { 'JUMP!': WHITE, 'DUCK!': COIN, 'PUNCH!': RED };
 const HINTS = { flier: 'CROUCH TO DUCK THE BULLETS!', qblock: 'PUNCH THE ? BLOCKS!' };
 const hintShown = {};
 let hintText = '', hintAt = -1e9;
@@ -276,7 +279,7 @@ function poseFrame(m) {
 
 function playerBox() {
   if (keyboardMode || !calib || !lm) {
-    const f = figH() * 0.9, w = f * 0.30;
+    const f = figH() * 0.9, w = f * 0.26;
     const h = kbDuck ? f * 0.55 : f;
     return { x: playerX() - w / 2, y: groundY() - h - kbY, w, h };
   }
@@ -284,9 +287,9 @@ function playerBox() {
   const { s, aspect, lift, P } = poseFrame(m);
   const head = P({ x: m.hip.x, y: m.headTop });
   const bottom = groundY() - Math.max(0, lift);      // feet = ground unless airborne
-  const width = Math.max(18, dist(lm[L_HIP], lm[R_HIP]) * s * aspect * 1.6);
-  // core column only — flailing arms shouldn't get you killed
-  const inset = (bottom - head.y) * 0.06;
+  const width = Math.max(18, dist(lm[L_HIP], lm[R_HIP]) * s * aspect * 1.3);
+  // core column only, generously inset — a grazing limb shouldn't kill you
+  const inset = (bottom - head.y) * 0.09;
   return { x: playerX() - width / 2, y: head.y + inset, w: width, h: bottom - head.y - inset * 2 };
 }
 
@@ -378,6 +381,9 @@ function update(now, dt) {
     const p = playerBox();
     for (const o of obstacles) {
       const r = obstacleRect(o);
+      // forgiving collision: shrink the obstacle box so a graze doesn't kill
+      const fx = Math.min(r.w, r.h) * 0.18 + 2;
+      r.x += fx; r.y += fx; r.w -= fx * 2; r.h -= fx * 2;
       if (p.x < r.x + r.w && p.x + p.w > r.x && p.y < r.y + r.h && p.y + p.h > r.y) {
         // crash = instant retry: score back to zero, keep running
         hi = Math.max(hi, Math.floor(score));
@@ -508,6 +514,28 @@ function drawObstacle(o, now) {
   else if (TYPES[o.type].fly) drawBullet(r, now, o.seed);
   else if (o.type === 'wide') drawBricks(r);
   else drawPipe(r);
+
+  // action prompt: pops in ~1.15s before the obstacle reaches you, rides with
+  // it, and is gone the moment it's on you (dealt with or not)
+  if (state === 'run') {
+    const distAhead = r.x - playerX();
+    const warn = speed() * 1.15;
+    if (distAhead > 0 && distAhead < warn) {
+      const a = ACTION[o.type];
+      const pop = Math.min(1, (warn - distAhead) / (warn * 0.25));
+      const bob = Math.sin(now * 0.012) * 3;
+      const tx = r.x + r.w / 2, ty = r.y - 16 + bob;
+      ctx.save();
+      ctx.font = `${Math.round(11 + 5 * pop)}px "Press Start 2P", monospace`;
+      ctx.textAlign = 'center';
+      ctx.globalAlpha = pop;
+      ctx.fillStyle = '#000';
+      ctx.fillText(a, tx + 2, ty + 2);
+      ctx.fillStyle = ACTION_COLOR[a];
+      ctx.fillText(a, tx, ty);
+      ctx.restore();
+    }
+  }
 }
 
 function drawQBlock(r) {
