@@ -163,27 +163,6 @@ function upperBodyVisible() {
 // hip rise above the standing baseline, in torso units (body-size invariant)
 function hipRise(m) { return (calib.hipY - m.hip.y) / calib.torso; }
 
-// punch = a fast wrist move while the arm is extended away from the shoulder.
-// Cooldown so one swing doesn't machine-gun through a whole row of blocks.
-let punchAt = -1e9, punchSide = 'R';
-const prevWrist = { L: null, R: null };
-function updatePunch(now) {
-  if (poseSeenAt !== now) return;   // only measure across real camera frames
-  for (const [side, wi, si] of [['L', L_WRI, L_SHO], ['R', R_WRI, R_SHO]]) {
-    const cur = lm[wi], p = prevWrist[side];
-    if (p) {
-      const dtp = Math.max((now - p.t) / 1000, 1e-3);
-      const sp = Math.hypot(cur.x - p.x, cur.y - p.y) / dtp / calib.torso;
-      const ext = Math.hypot(cur.x - lm[si].x, cur.y - lm[si].y) / calib.torso;
-      if (sp > 2.8 && ext > 1.05 && now - punchAt > 450) {
-        punchAt = now; punchSide = side;
-        if (state === 'run') beep(180, 90, 0.08, 'square', 0.06);
-      }
-    }
-    prevWrist[side] = { x: cur.x, y: cur.y, t: now };
-  }
-}
-
 // slow-adapt the calibration while you're standing still, so drifting toward /
 // away from the camera doesn't turn into phantom jumps or a growing figure
 function updateCalib(m) {
@@ -227,19 +206,17 @@ const gapFactor = () => Math.max(0.85, 1.5 - 0.04 * level());
 
 // obstacle catalogue: heights/positions in units of figure height so the game
 // stays fair on any window size or body size. Tuned so a modest ~30cm hop (at
-// default boost) clears low/wide and a proper jump clears tall. qblock can't
-// be jumped or ducked at normal effort — you PUNCH it.
+// default boost) clears low/wide and a proper jump clears tall.
 const TYPES = {
   low:   { w: 0.16, h: 0.22, minScore: 0 },
   tall:  { w: 0.16, h: 0.38, minScore: 40 },
   flier: { w: 0.26, h: 0.18, minScore: 70, fly: 0.72 },  // bottom 0.72·figH up → crouch under it
-  qblock:{ w: 0.30, h: 0.60, minScore: 105, fly: 0.42 }, // chest-height ? blocks → punch through
-  wide:  { w: 0.50, h: 0.20, minScore: 140 },
+  wide:  { w: 0.50, h: 0.20, minScore: 110 },
 };
 // the action each obstacle wants, shown as a pop-in prompt while it approaches
-const ACTION = { low: 'JUMP!', tall: 'JUMP!', wide: 'JUMP!', flier: 'DUCK!', qblock: 'PUNCH!' };
-const ACTION_COLOR = { 'JUMP!': WHITE, 'DUCK!': COIN, 'PUNCH!': RED };
-const HINTS = { flier: 'CROUCH TO DUCK THE BULLETS!', qblock: 'PUNCH THE ? BLOCKS!' };
+const ACTION = { low: 'JUMP!', tall: 'JUMP!', wide: 'JUMP!', flier: 'DUCK!' };
+const ACTION_COLOR = { 'JUMP!': WHITE, 'DUCK!': COIN };
+const HINTS = { flier: 'CROUCH TO DUCK THE BULLETS!' };
 const hintShown = {};
 let hintText = '', hintAt = -1e9;
 
@@ -301,17 +278,13 @@ function loop(now) {
   lastT = now;
 
   detect(now);
-  if (lm && calib && !keyboardMode) {
-    updateCalib(bodyMetrics());
-    updatePunch(now);
-  }
+  if (lm && calib && !keyboardMode) updateCalib(bodyMetrics());
 
   // keyboard fallback physics (also usable as an extra input in pose mode)
   const g = figH() * 14;
   if (kbY > 0 || kbVy > 0) { kbVy -= g * dt; kbY = Math.max(0, kbY + kbVy * dt); if (kbY === 0) kbVy = 0; }
 
   update(now, dt);
-  updateShards(dt, state === 'run' ? speed() : 0);
   draw(now);
 }
 
@@ -358,24 +331,6 @@ function update(now, dt) {
       const t = pickType();
       obstacles.push({ x: W() + 80, type: t, seed: Math.random() });
       if (HINTS[t] && !hintShown[t]) { hintShown[t] = true; hintText = HINTS[t]; hintAt = now; }
-    }
-
-    // an active punch shatters ? blocks in front of you
-    if (now - punchAt < 220) {
-      let smashed = false;
-      for (const o of obstacles) {
-        if (o.type !== 'qblock') continue;
-        const r = obstacleRect(o);
-        if (r.x < playerX() + figH() * 0.95 && r.x + r.w > playerX() - figH() * 0.2) {
-          o.dead = true; smashed = true;
-          spawnShards(r);
-          score += 15;
-        }
-      }
-      if (smashed) {
-        obstacles = obstacles.filter((o) => !o.dead);
-        beep(660, 1760, 0.14, 'square', 0.15);
-      }
     }
 
     const p = playerBox();
@@ -432,7 +387,6 @@ function draw(now) {
   drawGround(w, h, gy);
 
   for (const o of obstacles) drawObstacle(o, now);
-  drawShards();
   drawPlayer(now);
   drawHud();
   // calibrating / re-finding you needs the feed visible no matter the toggle
@@ -510,8 +464,7 @@ function drawGround(w, h, gy) {
 
 function drawObstacle(o, now) {
   const r = obstacleRect(o);
-  if (o.type === 'qblock') drawQBlock(r);
-  else if (TYPES[o.type].fly) drawBullet(r, now, o.seed);
+  if (TYPES[o.type].fly) drawBullet(r, now, o.seed);
   else if (o.type === 'wide') drawBricks(r);
   else drawPipe(r);
 
@@ -536,62 +489,6 @@ function drawObstacle(o, now) {
       ctx.restore();
     }
   }
-}
-
-function drawQBlock(r) {
-  const n = Math.max(1, Math.round(r.h / r.w));
-  const bh = r.h / n;
-  ctx.save();
-  ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
-  ctx.font = `${Math.floor(bh * 0.45)}px "Press Start 2P", monospace`;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  for (let i = 0; i < n; i++) {
-    const y = r.y + i * bh;
-    ctx.fillStyle = COIN;
-    ctx.fillRect(r.x, y, r.w, bh);
-    ctx.strokeRect(r.x, y, r.w, bh);
-    ctx.fillStyle = BRICK_DK;
-    for (const [dx, dy] of [[4, 4], [r.w - 7, 4], [4, bh - 7], [r.w - 7, bh - 7]])
-      ctx.fillRect(r.x + dx, y + dy, 3, 3);
-    ctx.fillStyle = BRICK_DK;
-    ctx.fillText('?', r.x + r.w / 2 + 2, y + bh / 2 + 2);
-    ctx.fillStyle = WHITE;
-    ctx.fillText('?', r.x + r.w / 2, y + bh / 2);
-  }
-  ctx.restore();
-}
-
-// brick/coin shards from a punched block
-let shards = [];
-function spawnShards(r) {
-  for (let i = 0; i < 12; i++) {
-    shards.push({
-      x: r.x + Math.random() * r.w, y: r.y + Math.random() * r.h,
-      vx: (Math.random() * 2 - 0.5) * figH() * 1.2,
-      vy: -Math.random() * figH() * 2.2,
-      life: 0.7,
-      color: Math.random() < 0.7 ? COIN : BRICK,
-    });
-  }
-}
-function updateShards(dt, scroll) {
-  for (const s of shards) {
-    s.vy += figH() * 8 * dt;
-    s.x += (s.vx - scroll) * dt;
-    s.y += s.vy * dt;
-    s.life -= dt;
-  }
-  shards = shards.filter((s) => s.life > 0);
-}
-function drawShards() {
-  for (const s of shards) {
-    ctx.globalAlpha = Math.max(0, s.life / 0.7);
-    ctx.fillStyle = s.color;
-    ctx.fillRect(s.x - 3, s.y - 3, 7, 7);
-    ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
-    ctx.strokeRect(s.x - 3, s.y - 3, 7, 7);
-  }
-  ctx.globalAlpha = 1;
 }
 
 function drawPipe(r) {
@@ -747,18 +644,6 @@ function drawPlayer(now) {
   dot(J(R_WRI), lw * 0.8, WHITE);
   for (const sgm of legSegs.slice(-2)) dot(sgm[1], lw * 0.9, BRICK_DK);
   drawHead(J(NOSE), m.headR * s);
-  // punch spark on the striking fist
-  if (now - punchAt < 160) {
-    const fist = J(punchSide === 'L' ? L_WRI : R_WRI);
-    ctx.strokeStyle = COIN; ctx.lineWidth = 3;
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-      const a = i * Math.PI / 3 + 0.4;
-      ctx.moveTo(fist.x + Math.cos(a) * lw * 1.3, fist.y + Math.sin(a) * lw * 1.3);
-      ctx.lineTo(fist.x + Math.cos(a) * lw * 2.8, fist.y + Math.sin(a) * lw * 2.8);
-    }
-    ctx.stroke();
-  }
   ctx.restore();
 }
 
@@ -844,7 +729,7 @@ function drawOverlays(now) {
     ctx.font = '15px "VT323", monospace';
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.textAlign = 'center';
-    ctx.fillText('no room? press K for keyboard mode (space = jump, ↓ = duck, x = punch)', W() / 2, by + 38);
+    ctx.fillText('no room? press K for keyboard mode (space = jump, ↓ = duck)', W() / 2, by + 38);
   } else if (state === 'armed') {
     centerText([
       ['JUMP TO START', 24, WHITE],
@@ -886,9 +771,6 @@ addEventListener('keydown', (e) => {
     }
   }
   if (e.code === 'ArrowDown') { e.preventDefault(); kbDuck = true; }
-  if (e.key === 'x' || e.key === 'X') {
-    if (performance.now() - punchAt > 450) { punchAt = performance.now(); punchSide = 'R'; }
-  }
   if (e.key === 'k' || e.key === 'K') {
     if (state === 'calibrate') keyboardMode = true;
   }
