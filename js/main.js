@@ -93,6 +93,9 @@ const CATEGORIES = [
     { href: '/toys/ink/', title: '🎨 Watercolour', tag: 'Sing or play and watch audio-reactive watercolour blooms spread across the canvas.' },
     { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
   ] },
+  { name: 'Move', items: [
+    { href: '/toys/jump/', title: '🏃 Jump Runner', tag: 'Full-body tracked endless runner — you ARE the runner. Physically jump over the blocks, crouch under the fliers.' },
+  ] },
 ];
 
 let renderer, hands, active;

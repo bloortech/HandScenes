@@ -28,19 +28,20 @@
 <main>
   <a class="back" href="index.html">‹ back to HandScenes</a>
   <h1>Privacy &amp;<br>How It Works</h1>
-  <p class="updated">Last updated: 23 June 2026</p>
+  <p class="updated">Last updated: 2 July 2026</p>
 
   <div class="tldr">
     <p><b>The short version:</b> HandScenes uses your webcam to track your hand
-    movements <b>entirely inside your browser, on your own device.</b> Your
-    camera video and the hand positions detected from it are <b>never recorded,
+    and body movements <b>entirely inside your browser, on your own device.</b> Your
+    camera video and the hand or body positions detected from it are <b>never recorded,
     saved, or sent to us or anyone else.</b> The only thing we measure is
     anonymous, cookieless visitor counts.</p>
   </div>
 
   <h2>The camera</h2>
   <p>When you press start, your browser asks permission to use your camera. We
-  use that feed only to detect where your hands are, in real time, so the
+  use that feed only to detect where your hands (or, in the body-tracked games,
+  your whole body pose) are, in real time, so the
   visual effects can react to them. The processing runs locally using
   Google's MediaPipe library and your device's graphics hardware. The video
   stream stays in your browser tab and is discarded as it plays — there is no
@@ -54,7 +55,7 @@
   was picked — so we can see which features are popular. It uses <b>no cookies</b>,
   stores <b>no personal data</b>, builds no profile of you, and does not track
   you across other websites. We have no accounts and no advertising. This
-  analytics <b>never sees your camera or your hand movements</b> — those stay on
+  analytics <b>never sees your camera or your hand or body movements</b> — those stay on
   your device, as described above.</p>
 
   <p>The landing page shows an <b>all-time visitor count</b>. That is a single
@@ -64,7 +65,7 @@
   local flag so a repeat visit from the same browser is not counted twice.</p>
 
   <h2>Third parties</h2>
-  <p>The app and everything it needs (3D library, hand-tracking model, fonts,
+  <p>The app and everything it needs (3D library, hand/body-tracking models, fonts,
   and the analytics script) is served from our own host, <b>Vercel</b>, on this
   domain — not from any outside service. Like any website, Vercel's servers
   automatically receive standard request information — your IP address, browser
