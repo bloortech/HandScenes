@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Water Ink · HandScenes build log</title>
+<meta name="description" content="Drum-reactive suminagashi: each drum hit drops coloured ink that swirls, bleeds and dries on paper — a fluid simulation ported from a TouchDesigner drum rig.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 10 · Water Ink</p>
+    <h1>Water Ink</h1>
+    <p class="lede">Play drums near the laptop and every hit drops ink that swirls and bleeds on paper — a different colour per drum. Sumi-e by way of a kick drum.</p>
+
+    <h2>Born on a drum kit</h2>
+    <p>This one didn't start in the browser. It began as a TouchDesigner network on a real kit: two drum mics into an audio interface, a fluid simulation on the GPU, ink dropping with every hit. The browser version is a port of that network — the two shaders translate almost line for line once TouchDesigner's names are swapped out, and its Feedback operator becomes a pair of float textures that take turns being read and written. Same ink, new pond.</p>
+
+    <h2>The simulation</h2>
+    <p>The ink lives in an off-screen float texture: colour in three channels, coverage in the fourth. Each frame it does three things. It <em>advects</em> — every pixel looks slightly upstream along a slowly evolving curl-noise flow field and takes its value from there, which is what makes the ink swirl like it's sitting on moving water. It <em>diffuses</em> — blending toward the average of its neighbours, so edges soften and bleed. And it <em>dries</em> — multiplied by a number just under one, so old ink fades over a minute rather than a second. A hit injects a soft Gaussian blob of pigment somewhere on the sheet, and the water does the rest.</p>
+
+    <h2>Rendering the paper</h2>
+    <p>A second pass draws the field onto warm paper with faint grain. The trick that makes it read as watercolour rather than fog is edge darkening: the render measures how steeply ink coverage changes at each pixel and darkens the steep parts, which is where real pigment collects as a wash dries. Flat pools stay translucent; the creeping front carries a dark rim.</p>
+
+    <h2>Telling drums apart with one microphone</h2>
+    <p>The TouchDesigner rig had a mic per drum; a laptop has one, so drums are separated by frequency instead. Five bands — kick down low, toms above it, snare in the mids plus its crack up around three kilohertz, hats and cymbals at the top — each tracked against their own running average, so a hit is "suddenly louder than this band's recent normal" rather than an absolute volume. The kick bleeds into everything, so a slice of its energy is subtracted from the higher bands before deciding. Whichever drum fired hardest that frame drops one blob in its own ink: indigo for the kick, teal for the snare, slate for the hats, rust for toms, sage for cymbals. Little dots in the panel flash as each drum is recognised, which doubles as a tuning meter.</p>
+
+    <h2>No drums handy</h2>
+    <p>Any sound works — the bands don't care whether the kick is a kick or a hand slapping the desk — and tapping the paper drops ink directly, so the toy is playable in a quiet office. The sheet can be saved as an image, which is the closest this site gets to a souvenir shop.</p>
+
+    <p class="foot">Back to the <a href="../blog.html">build log</a>, or <a href="../index.html">open the app</a>. This flow replaced the earlier <a href="watercolour.html">Watercolour</a> experiment.</p>
+  </article>
+</body>
+</html>

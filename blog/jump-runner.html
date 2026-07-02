@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jump Runner · HandScenes build log</title>
+<meta name="description" content="A chrome-dino runner where you are the runner: MediaPipe pose tracking turns a real jump in your room into a jump in the game.">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../vendor/fonts/fonts.css">
+<link rel="stylesheet" href="blog.css">
+</head>
+<body>
+  <nav class="topnav"><a href="../blog.html">← build log</a><a href="../index.html">open the app ▶</a></nav>
+  <article class="wrap">
+    <p class="kicker">Note 09 · Jump Runner</p>
+    <h1>Jump Runner</h1>
+    <p class="lede">An endless runner in the chrome-dino spirit, except the runner is your live skeleton. Physically jump in your room and your figure clears the pipe; crouch and it ducks the bullet.</p>
+
+    <h2>The stack</h2>
+    <p>MediaPipe's Pose Landmarker — the first flow here to track a whole body instead of hands — and a plain 2D canvas. No p5, no three.js: the game is rectangles, lines, and text.</p>
+
+    <h2>You are the sprite</h2>
+    <p>There is no jump button and no simulated jump physics. At calibration the game memorises where your hips sit when you stand still and how long your torso is. Every frame the pose skeleton is drawn with its hips pinned at standing height above the ground line; when you jump for real, your hips rise above that baseline and the whole figure lifts by the same proportion. Your legs are the physics engine. A boost slider amplifies the lift so a polite indoor hop clears a tall pipe without anyone putting a foot through their floor.</p>
+
+    <h2>What failed first</h2>
+    <p>The first version anchored the figure to the ankles, which reads as the obvious choice — feet touch the ground. It broke immediately in real use: standing close to a laptop crops your feet out of frame, the model pins the missing ankles to the bottom edge, and a real jump barely moves them. The fix was to require less of the body, not more of the room: hip-anchored tracking needs only your head and hips in view, and legs are drawn live when visible or synthesized as little swinging strides when cropped. A punch gesture met the same fate later — a fist is fast and small, and at webcam frame rates the wrist velocity was more noise than signal. Jumps and crouches survive because they are big, slow displacements. That turned out to be the design rule for camera games: track centimetres of body, not milliseconds of hand.</p>
+
+    <h2>Making it a game</h2>
+    <p>Difficulty steps every fifteen points: the track speeds up and the gaps between obstacles tighten, so the first seconds are roomy and the late game is frantic. Every obstacle announces itself — a JUMP! or DUCK! label pops in about a second before it arrives and rides along until it is dealt with. Collisions are forgiving on purpose: the obstacle hitbox is shrunk and the player is a narrow core column, so a grazing limb doesn't end the run. Crashing doesn't either — the score resets and you keep running, because making someone physically jump to restart a game they just lost felt like punishment.</p>
+
+    <h2>The look</h2>
+    <p>NES-era plumber, out of respect for the genre: flat sky blue, parallax clouds and hills, a scrolling brick floor, green pipes, a Bullet Bill to duck under. The skeleton wears the outfit — red shirt and cap, blue overall legs, white gloves, chunky black outlines — so a live pose estimate reads as a game sprite.</p>
+
+    <p class="foot">Back to the <a href="../blog.html">build log</a>, or <a href="../index.html">open the app</a>.</p>
+  </article>
+</body>
+</html>

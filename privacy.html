@@ -32,8 +32,9 @@
 
   <div class="tldr">
     <p><b>The short version:</b> HandScenes uses your webcam to track your hand
-    and body movements <b>entirely inside your browser, on your own device.</b> Your
-    camera video and the hand or body positions detected from it are <b>never recorded,
+    and body movements, and — in the sound toys — your microphone to react to
+    music or drumming, <b>entirely inside your browser, on your own device.</b> Your
+    camera video, your audio, and anything detected from them are <b>never recorded,
     saved, or sent to us or anyone else.</b> The only thing we measure is
     anonymous, cookieless visitor counts.</p>
   </div>
@@ -46,6 +47,15 @@
   Google's MediaPipe library and your device's graphics hardware. The video
   stream stays in your browser tab and is discarded as it plays — there is no
   recording feature, no upload, and no server that ever sees your camera.</p>
+
+  <h2>The microphone</h2>
+  <p>Some toys (for example Water Ink and Hand Beats) ask for microphone access
+  instead of — or as well as — the camera. The audio is analysed live in your
+  browser for loudness and frequency (so a kick drum can be told apart from a
+  cymbal) and the visuals react to that. The sound itself is <b>never recorded,
+  stored, or uploaded</b>, and it is not played back through your speakers. The
+  analysis result is a handful of numbers that exist for a fraction of a second
+  and are then gone.</p>
 
   <h2>What we collect</h2>
   <p>We use <b>Vercel Web Analytics</b> to count visits — aggregate,
@@ -86,8 +96,8 @@
 
   <h2>Your rights</h2>
   <p>Because we don't collect or store personal data, there is nothing for us to
-  access, correct, or delete on your behalf. You can revoke camera access at
-  any time from your browser's site settings.</p>
+  access, correct, or delete on your behalf. You can revoke camera and
+  microphone access at any time from your browser's site settings.</p>
 
   <h2>Changes</h2>
   <p>If we ever add features that change how data is handled (for example
