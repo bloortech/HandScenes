@@ -3,15 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Watercolour — paint with sound</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap">
+<title>Water Ink — drum-reactive suminagashi</title>
+<link rel="stylesheet" href="/vendor/fonts/fonts.css">
 <style>
   :root { --ink: #2a2520; --seal: #b4341f; --paper: #f7f3ea; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: var(--paper);
     font-family: 'VT323', monospace; color: var(--ink); }
-  body { display: flex; align-items: center; justify-content: center; }
-  canvas { display: block; }
+  canvas { display: block; position: fixed; inset: 0; }
 
   /* start gate */
   #gate {
@@ -23,12 +22,12 @@
   #gate h1 { font-family: 'Press Start 2P', monospace; font-size: 22px; color: var(--ink);
     margin: 0; line-height: 1.7; }
   #gate .seal { color: var(--seal); }
-  #gate p { font-size: 20px; opacity: 0.75; max-width: 440px; margin: 0; }
+  #gate p { font-size: 20px; opacity: 0.75; max-width: 460px; margin: 0; }
   #start { font-family: 'Press Start 2P', monospace; font-size: 15px; cursor: pointer;
     color: var(--paper); background: var(--ink); border: 0; border-radius: 6px; padding: 15px 24px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.25); }
   #start:hover { background: #000; }
-  #note { font-size: 17px; opacity: 0.55; max-width: 440px; }
+  #note { font-size: 17px; opacity: 0.55; max-width: 460px; }
   #note.err { color: var(--seal); opacity: 0.95; }
   #gate-loader { display: none; width: 250px; max-width: 80vw; height: 12px; overflow: hidden;
     border: 2px solid rgba(42,37,32,0.4); border-radius: 4px; }
@@ -40,20 +39,11 @@
 
   /* control panel (revealed after start) */
   #panel { position: fixed; top: 12px; right: 12px; z-index: 8; display: none;
-    flex-direction: column; gap: 9px; width: 190px; padding: 10px 12px;
+    flex-direction: column; gap: 9px; width: 200px; padding: 10px 12px;
     background: rgba(247,243,234,0.86); border: 2px solid rgba(42,37,32,0.5);
     border-radius: 8px; backdrop-filter: blur(3px); }
   body.go #panel { display: flex; }
   #panel h3 { margin: 0 0 2px; font-size: 17px; letter-spacing: 1px; }
-
-  /* scene tabs */
-  #tabs { position: fixed; top: 12px; left: 12px; z-index: 8; display: none; gap: 6px; }
-  body.go #tabs { display: flex; }
-  .tab { font-family: 'VT323', monospace; font-size: 17px; cursor: pointer;
-    background: rgba(247,243,234,0.86); color: var(--ink);
-    border: 2px solid rgba(42,37,32,0.5); border-radius: 6px; padding: 3px 12px; }
-  .tab:hover { border-color: var(--ink); }
-  .tab.active { background: var(--ink); color: var(--paper); }
   .ctrl .row { display: flex; justify-content: space-between; font-size: 16px; }
   .ctrl .row .val { opacity: 0.6; }
   input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 12px;
@@ -61,35 +51,53 @@
   input[type=range]::-webkit-slider-runnable-track { height: 3px; background: rgba(42,37,32,0.35); }
   input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 14px;
     margin-top: -6px; background: var(--ink); cursor: pointer; }
-  .opts { display: flex; gap: 5px; }
-  .opts button, .act button { font-family: 'VT323', monospace; font-size: 15px; cursor: pointer;
+  .act { display: flex; gap: 6px; margin-top: 2px; }
+  .act button { font-family: 'VT323', monospace; font-size: 15px; cursor: pointer;
     flex: 1; background: transparent; color: var(--ink); border: 1px solid rgba(42,37,32,0.4);
     border-radius: 4px; padding: 2px 6px; }
-  .opts button.active { background: var(--ink); color: var(--paper); }
-  .act { display: flex; gap: 6px; margin-top: 2px; }
+  .act button:hover { border-color: var(--ink); }
+
+  /* drum legend: which drum drops which ink; the dot flashes on a hit */
+  #legend { display: flex; flex-direction: column; gap: 3px; font-size: 15px;
+    border-top: 1px solid rgba(42,37,32,0.25); padding-top: 7px; }
+  #legend .drum { display: flex; align-items: center; gap: 7px; opacity: 0.8; }
+  #legend .dot { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.3);
+    transition: transform 0.12s ease, box-shadow 0.12s ease; }
+  #legend .dot.hit { transform: scale(1.7); box-shadow: 0 0 8px rgba(0,0,0,0.35); }
 </style>
 </head>
 <body>
   <a href="/" title="back to HandScenes" style="position:fixed;top:10px;left:10px;z-index:9999;font-family:'VT323',monospace;font-size:16px;color:#04120e;background:#38f9d7;border-radius:6px;padding:6px 11px;text-decoration:none;box-shadow:0 0 12px rgba(56,249,215,0.5);opacity:0.9">← SCENES</a>
   <div id="gate">
-    <h1>WATER<br>COLOUR</h1>
-    <p>Play music near your laptop — it paints itself in watercolour. Audio is processed in your browser; nothing is uploaded.</p>
+    <h1>WATER<span class="seal"> INK</span></h1>
+    <p>Play drums near your laptop — every hit drops ink that swirls and bleeds on paper, a different colour per drum. Works with any sound, or tap the paper to drop ink yourself. Audio is processed in your browser; nothing is uploaded.</p>
     <button id="start">▶ PRESS START</button>
     <div id="gate-loader" aria-hidden="true"></div>
     <small id="note">you'll be asked for microphone access — click allow</small>
   </div>
 
   <div id="panel">
-    <h3>WATERCOLOUR</h3>
+    <h3>WATER INK</h3>
     <div class="ctrl"><div class="row"><span>INPUT</span><span class="val" id="v-input"></span></div>
       <input type="range" id="input" min="1" max="20" step="0.5"></div>
     <div class="ctrl"><div class="row"><span>SENS</span><span class="val" id="v-sens"></span></div>
       <input type="range" id="sens" min="0.5" max="3" step="0.1"></div>
-    <div id="scene-controls"></div>
-    <div class="act"><button id="save">SAVE</button><button id="clear">CLEAR</button></div>
+    <div class="ctrl"><div class="row"><span>SWIRL</span><span class="val" id="v-swirl"></span></div>
+      <input type="range" id="swirl" min="0" max="4" step="0.1"></div>
+    <div class="ctrl"><div class="row"><span>BLEED</span><span class="val" id="v-bleed"></span></div>
+      <input type="range" id="bleed" min="0" max="0.3" step="0.01"></div>
+    <div class="ctrl"><div class="row"><span>INK LIFE</span><span class="val" id="v-life"></span></div>
+      <input type="range" id="life" min="0.985" max="0.9995" step="0.0005"></div>
+    <div id="legend">
+      <div class="drum"><span class="dot" id="led-kick" style="background:#1a2161"></span>KICK</div>
+      <div class="drum"><span class="dot" id="led-snare" style="background:#146670"></span>SNARE</div>
+      <div class="drum"><span class="dot" id="led-hat" style="background:#527a9e"></span>HI-HAT</div>
+      <div class="drum"><span class="dot" id="led-tom" style="background:#8c471f"></span>TOM</div>
+      <div class="drum"><span class="dot" id="led-cym" style="background:#3d704d"></span>CYMBAL</div>
+    </div>
+    <div class="act"><button id="save">SAVE</button><button id="clear">NEW SHEET</button></div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.min.js"></script>
   <script type="module" src="sketch.js"></script>
 </body>
 </html>

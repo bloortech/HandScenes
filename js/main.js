@@ -90,7 +90,7 @@ const CATEGORIES = [
     { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
   ] },
   { name: 'Paint', items: [
-    { href: '/toys/ink/', title: '🎨 Watercolour', tag: 'Sing or play and watch audio-reactive watercolour blooms spread across the canvas.' },
+    { href: '/toys/ink/', title: '🖋 Water Ink', tag: 'Play drums (or any sound) and coloured ink drops swirl and bleed on paper — a different ink per drum.' },
     { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
   ] },
   { name: 'Move', items: [
