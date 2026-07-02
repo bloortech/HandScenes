@@ -40,7 +40,11 @@ const SMOOTH = 0.55;          // lerp toward raw per detection (jumps are fast; 
 const LOST_MS = 1000;         // pause the run if unseen this long
 const STATURE = 3.4;          // full body height ≈ 3.4 × shoulder-to-hip torso length
 const HIP_FRAC = 0.53;        // standing hip height as a fraction of stature
-const NEON = '#b6ff3e', PINK = '#ff5fa2', CYAN = '#38f9d7';
+// NES-Mario-ish palette
+const SKY = '#5c94fc', BRICK = '#c84c0c', BRICK_DK = '#7c2e00', BRICK_LT = '#e8a058';
+const PIPE = '#00a800', PIPE_LT = '#58d854', PIPE_DK = '#004000';
+const RED = '#e52521', BLUE = '#2038ec', SKIN = '#ffb877', WHITE = '#ffffff', COIN = '#ffd800';
+const NEON = '#b6ff3e', PINK = '#ff5fa2';   // cam-preview skeleton overlay only
 
 // ---- dom / boot -----------------------------------------------------------
 const gate = document.getElementById('gate');
@@ -185,6 +189,7 @@ let obstacles = [];         // { x, type, seed }  (y/size derived at draw time �
 let distGap = 0, nextGap = 400;
 let crashAt = -1e9, lastMilestone = 0;
 let flash = 0;
+let scrollX = 0;            // total distance scrolled (drives parallax + ground tiles)
 
 // keyboard fallback physics
 let kbY = 0, kbVy = 0, kbDuck = false;
@@ -309,6 +314,7 @@ function update(now, dt) {
 
     const v = speed() * dt;
     distGap += v;
+    scrollX += v;
     for (const o of obstacles) o.x -= v;
     obstacles = obstacles.filter((o) => o.x > -W() * 0.2);
     if (distGap >= nextGap) {
@@ -349,7 +355,7 @@ function scanlines() {
     const c = document.createElement('canvas');
     c.width = 4; c.height = 4;
     const x = c.getContext('2d');
-    x.fillStyle = 'rgba(0,0,0,0.16)';
+    x.fillStyle = 'rgba(0,0,0,0.07)';   // gentle CRT stripes; the sky is bright
     x.fillRect(0, 2, 4, 1);
     scanPat = ctx.createPattern(c, 'repeat');
   }
@@ -361,33 +367,11 @@ function draw(now) {
   const w = W(), h = H(), gy = groundY();
   ctx.clearRect(0, 0, w, h);
 
-  // backdrop: dark sky, faint grid horizon
-  ctx.fillStyle = '#060a06';
+  // backdrop: flat NES sky + parallax clouds / hills / bushes + brick ground
+  ctx.fillStyle = SKY;
   ctx.fillRect(0, 0, w, h);
-  ctx.strokeStyle = 'rgba(182,255,62,0.08)';
-  ctx.lineWidth = 1;
-  for (let i = 1; i < 5; i++) {
-    ctx.beginPath(); ctx.moveTo(0, gy + (h - gy) * (i / 5)); ctx.lineTo(w, gy + (h - gy) * (i / 5)); ctx.stroke();
-  }
-  // stars
-  ctx.fillStyle = 'rgba(234,255,217,0.35)';
-  for (let i = 0; i < 40; i++) {
-    const sx = ((i * 149.7 + i * i * 13.3) % w);
-    const sy = ((i * 83.1) % (gy * 0.8));
-    ctx.fillRect(sx, sy, 2, 2);
-  }
-
-  // ground line + speed dashes
-  ctx.strokeStyle = NEON;
-  ctx.shadowColor = NEON; ctx.shadowBlur = 8;
-  ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(w, gy); ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = 'rgba(182,255,62,0.4)';
-  const dashOff = (now * 0.001 * speed()) % 80;
-  ctx.beginPath();
-  for (let x = -dashOff; x < w; x += 80) { ctx.moveTo(x, gy + 12); ctx.lineTo(x + 34, gy + 12); }
-  ctx.stroke();
+  drawScenery(w, gy);
+  drawGround(w, h, gy);
 
   for (const o of obstacles) drawObstacle(o, now);
   drawPlayer(now);
@@ -397,66 +381,197 @@ function draw(now) {
   drawOverlays(now);
 
   if (flash > 0) {
-    ctx.fillStyle = `rgba(255,95,162,${flash * 0.35})`;
+    ctx.fillStyle = `rgba(229,37,33,${flash * 0.35})`;
     ctx.fillRect(0, 0, w, h);
     flash = Math.max(0, flash - 0.04);
   }
   scanlines();
 }
 
+const mod = (a, n) => ((a % n) + n) % n;
+
+function cloudShape(x, y, s, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x - s * 1.1, y, s * 0.75, 0, 7);
+  ctx.arc(x, y - s * 0.35, s, 0, 7);
+  ctx.arc(x + s * 1.1, y, s * 0.75, 0, 7);
+  ctx.fill();
+}
+
+function drawScenery(w, gy) {
+  // clouds — slowest layer
+  const cs = Math.max(24, w * 0.024);
+  for (let i = 0; i < 5; i++) {
+    const span = w + cs * 8;
+    const x = mod(i * (span / 5) + i * 37 - scrollX * 0.2, span) - cs * 4;
+    const y = gy * (0.12 + 0.08 * ((i * 53) % 3));
+    cloudShape(x, y, cs, WHITE);
+  }
+  // round green hills
+  for (let i = 0; i < 3; i++) {
+    const span = w * 1.6;
+    const x = mod(i * (span / 3) + i * 91 - scrollX * 0.45, span) - w * 0.3;
+    const r = w * (0.09 + 0.05 * (i % 2));
+    ctx.fillStyle = PIPE;
+    ctx.beginPath(); ctx.arc(x, gy, r, Math.PI, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = PIPE_DK; ctx.lineWidth = 3; ctx.stroke();
+  }
+  // bushes — cloud shapes in green, ground layer speed
+  const bs = Math.max(16, w * 0.016);
+  for (let i = 0; i < 4; i++) {
+    const span = w + bs * 8;
+    const x = mod(i * (span / 4) + i * 61 - scrollX * 0.8, span) - bs * 4;
+    cloudShape(x, gy - bs * 0.8, bs, PIPE_LT);
+  }
+}
+
+function drawGround(w, h, gy) {
+  ctx.fillStyle = BRICK;
+  ctx.fillRect(0, gy, w, h - gy);
+  const T = 26, off = mod(scrollX, T * 2);
+  ctx.strokeStyle = BRICK_DK;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let row = 0; gy + row * T < h; row++) {
+    const y = Math.min(gy + (row + 1) * T, h);
+    ctx.moveTo(0, y); ctx.lineTo(w, y);                 // horizontal seams
+    const stag = row % 2 ? T : 0;                       // half-brick stagger per row
+    for (let x = stag - off - T * 2; x < w + T; x += T * 2) {
+      ctx.moveTo(x, gy + row * T); ctx.lineTo(x, y);
+    }
+  }
+  ctx.stroke();
+  // crisp top edge with highlight, like the SMB floor blocks
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, gy - 2, w, 3);
+  ctx.fillStyle = BRICK_LT;
+  ctx.fillRect(0, gy + 1, w, 3);
+}
+
 function drawObstacle(o, now) {
   const r = obstacleRect(o);
-  const fly = TYPES[o.type].fly;
+  if (TYPES[o.type].fly) drawBullet(r, now, o.seed);
+  else if (o.type === 'wide') drawBricks(r);
+  else drawPipe(r);
+}
+
+function drawPipe(r) {
+  const lipH = Math.min(r.h * 0.32, 22);
+  const lipW = r.w * 1.24;
+  const lx = r.x - (lipW - r.w) / 2;
   ctx.save();
-  ctx.strokeStyle = fly ? CYAN : PINK;
-  ctx.shadowColor = ctx.strokeStyle; ctx.shadowBlur = 10;
-  ctx.lineWidth = 2;
-  if (fly) {
-    // drone: body diamond + flapping wings + blink
-    const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
-    const flap = Math.sin(now * 0.02 + o.seed * 9) * r.h * 0.5;
-    ctx.beginPath();
-    ctx.moveTo(r.x, cy); ctx.lineTo(cx, r.y); ctx.lineTo(r.x + r.w, cy); ctx.lineTo(cx, r.y + r.h);
-    ctx.closePath(); ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(r.x + r.w * 0.2, cy); ctx.lineTo(cx, cy - flap);
-    ctx.lineTo(r.x + r.w * 0.8, cy); ctx.stroke();
-    if (Math.sin(now * 0.008) > 0) { ctx.fillStyle = CYAN; ctx.fillRect(cx - 2, cy - 2, 4, 4); }
-  } else {
-    ctx.strokeRect(r.x, r.y, r.w, r.h);
-    // hatch fill, clipped to the box
-    ctx.save();
-    ctx.beginPath(); ctx.rect(r.x, r.y, r.w, r.h); ctx.clip();
-    ctx.beginPath();
-    for (let x = r.x - r.h; x < r.x + r.w; x += 10) {
-      ctx.moveTo(x, r.y + r.h); ctx.lineTo(x + r.h, r.y);
-    }
-    ctx.globalAlpha = 0.35; ctx.stroke();
-    ctx.restore();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+  // body with light/dark vertical shading
+  ctx.fillStyle = PIPE;
+  ctx.fillRect(r.x, r.y + lipH, r.w, r.h - lipH);
+  ctx.fillStyle = PIPE_LT;
+  ctx.fillRect(r.x + r.w * 0.12, r.y + lipH, r.w * 0.18, r.h - lipH);
+  ctx.fillStyle = PIPE_DK;
+  ctx.fillRect(r.x + r.w * 0.78, r.y + lipH, r.w * 0.12, r.h - lipH);
+  ctx.strokeRect(r.x, r.y + lipH, r.w, r.h - lipH);
+  // lip
+  ctx.fillStyle = PIPE;
+  ctx.fillRect(lx, r.y, lipW, lipH);
+  ctx.fillStyle = PIPE_LT;
+  ctx.fillRect(lx + lipW * 0.08, r.y, lipW * 0.16, lipH);
+  ctx.fillStyle = PIPE_DK;
+  ctx.fillRect(lx + lipW * 0.82, r.y, lipW * 0.1, lipH);
+  ctx.strokeRect(lx, r.y, lipW, lipH);
+  ctx.restore();
+}
+
+function drawBricks(r) {
+  const n = Math.max(2, Math.round(r.w / r.h));
+  const bw = r.w / n;
+  ctx.save();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+  for (let i = 0; i < n; i++) {
+    const x = r.x + i * bw;
+    ctx.fillStyle = BRICK;
+    ctx.fillRect(x, r.y, bw, r.h);
+    ctx.fillStyle = BRICK_LT;
+    ctx.fillRect(x + 2, r.y + 2, bw - 4, 3);
+    ctx.strokeRect(x, r.y, bw, r.h);
+    ctx.fillStyle = BRICK_DK;                  // rivet dots like SMB blocks
+    ctx.fillRect(x + 4, r.y + r.h - 7, 3, 3);
+    ctx.fillRect(x + bw - 7, r.y + r.h - 7, 3, 3);
   }
   ctx.restore();
 }
 
+function drawBullet(r, now, seed) {
+  const bob = Math.sin(now * 0.004 + seed * 9) * r.h * 0.15;
+  const y = r.y + bob, cy = y + r.h / 2;
+  ctx.save();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2;
+  // tail fins
+  ctx.fillStyle = RED;
+  ctx.beginPath();
+  ctx.moveTo(r.x + r.w * 0.75, y - r.h * 0.15);
+  ctx.lineTo(r.x + r.w, cy);
+  ctx.lineTo(r.x + r.w * 0.75, y + r.h * 1.15);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // bullet body, nose pointing left (toward you)
+  ctx.fillStyle = '#202020';
+  ctx.beginPath();
+  ctx.moveTo(r.x + r.w * 0.35, y);
+  ctx.lineTo(r.x + r.w * 0.85, y);
+  ctx.lineTo(r.x + r.w * 0.85, y + r.h);
+  ctx.lineTo(r.x + r.w * 0.35, y + r.h);
+  ctx.arc(r.x + r.w * 0.35, cy, r.h / 2, Math.PI / 2, Math.PI * 1.5);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+  // eye + arm band
+  ctx.fillStyle = WHITE;
+  ctx.fillRect(r.x + r.w * 0.32, cy - r.h * 0.22, r.h * 0.15, r.h * 0.3);
+  ctx.fillStyle = '#4a4a4a';
+  ctx.fillRect(r.x + r.w * 0.6, y + 2, r.h * 0.13, r.h - 4);
+  ctx.restore();
+}
+
+function strokeSegs(segs, color, width) {
+  ctx.strokeStyle = color; ctx.lineWidth = width;
+  ctx.beginPath();
+  for (const [a, b] of segs) { ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); }
+  ctx.stroke();
+}
+
+function dot(p, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+}
+
+function drawHead(p, r) {
+  ctx.fillStyle = SKIN;                                 // face
+  ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, 7); ctx.fill();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.fillStyle = RED;                                  // cap: top half + brim
+  ctx.beginPath(); ctx.arc(p.x, p.y, r, Math.PI, 2 * Math.PI); ctx.fill(); ctx.stroke();
+  ctx.fillRect(p.x + r * 0.4, p.y - r * 0.55, r * 0.9, r * 0.32);
+  ctx.fillStyle = '#000';                               // eye, looking ahead
+  ctx.fillRect(p.x + r * 0.35, p.y - r * 0.12, r * 0.18, r * 0.32);
+}
+
 function drawPlayer(now) {
   ctx.save();
-  ctx.strokeStyle = NEON;
-  ctx.shadowColor = NEON; ctx.shadowBlur = 12;
-  ctx.lineWidth = 3.5;
   ctx.lineCap = 'round';
 
   if (keyboardMode || !calib || !lm) {
-    // classic stick-runner fallback
+    // mario-flavoured stick-runner fallback
     const f = figH() * 0.9, x = playerX(), gy = groundY() - kbY;
     const hh = kbDuck ? f * 0.55 : f;
     const headR = f * 0.11;
+    const lw = Math.max(4, f * 0.05);
     const step = Math.sin(now * 0.02) * f * 0.12 * (state === 'run' ? 1 : 0.2);
-    ctx.beginPath();
-    ctx.arc(x, gy - hh + headR, headR, 0, Math.PI * 2);          // head
-    ctx.moveTo(x, gy - hh + headR * 2); ctx.lineTo(x, gy - f * 0.35);  // spine
-    ctx.moveTo(x, gy - hh + headR * 2.6); ctx.lineTo(x + f * 0.16, gy - hh + headR * 4); // arm
-    ctx.moveTo(x, gy - f * 0.35); ctx.lineTo(x - f * 0.1 + step, gy);  // legs
-    ctx.moveTo(x, gy - f * 0.35); ctx.lineTo(x + f * 0.1 - step, gy);
-    ctx.stroke();
+    const spine = [[{ x, y: gy - hh + headR * 2 }, { x, y: gy - f * 0.35 }],
+      [{ x, y: gy - hh + headR * 2.6 }, { x: x + f * 0.16, y: gy - hh + headR * 4 }]];
+    const legs = [[{ x, y: gy - f * 0.35 }, { x: x - f * 0.1 + step, y: gy }],
+      [{ x, y: gy - f * 0.35 }, { x: x + f * 0.1 - step, y: gy }]];
+    strokeSegs([...spine, ...legs], '#000', lw + 4);
+    strokeSegs(spine, RED, lw);
+    strokeSegs(legs, BLUE, lw);
+    drawHead({ x, y: gy - hh + headR }, headR);
     ctx.restore();
     return;
   }
@@ -464,47 +579,51 @@ function drawPlayer(now) {
   const m = bodyMetrics();
   const { s, lift, P } = poseFrame(m);
   const J = (i) => P(lm[i]);
+  const seg = (pairs) => pairs.map(([a, b]) => [J(a), J(b)]);
 
-  ctx.beginPath();
-  for (const [a, b] of CONNS_UP) {
-    const pa = J(a), pb = J(b);
-    ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
-  }
+  const lw = Math.max(4, figH() * 0.03);
+  const armSegs = seg([[L_SHO, L_ELB], [L_ELB, L_WRI], [R_SHO, R_ELB], [R_ELB, R_WRI]]);
+  const bodySegs = seg([[L_SHO, R_SHO], [L_SHO, L_HIP], [R_SHO, R_HIP], [L_HIP, R_HIP]]);
   // legs: live if the camera can actually see them, synthesized cartoon
   // strides if they're cropped out of frame
   const legsTracked = !visScored() ||
     Math.min(lm[L_KNE].vis, lm[R_KNE].vis, lm[L_ANK].vis, lm[R_ANK].vis) >= 0.35;
-  if (legsTracked) {
-    for (const [a, b] of CONNS_LEG) {
-      const pa = J(a), pb = J(b);
-      ctx.moveTo(pa.x, pa.y); ctx.lineTo(pb.x, pb.y);
-    }
-  } else {
+  let legSegs;
+  if (legsTracked) legSegs = seg(CONNS_LEG);
+  else {
     const hipL = J(L_HIP), hipR = J(R_HIP);
     const feetY = Math.min(groundY(), groundY() - lift);
     const step = Math.sin(now * 0.014) * figH() * 0.1 * (state === 'run' ? 1 : 0.15);
-    ctx.moveTo(hipL.x, hipL.y); ctx.lineTo(hipL.x - figH() * 0.05 + step, feetY);
-    ctx.moveTo(hipR.x, hipR.y); ctx.lineTo(hipR.x + figH() * 0.05 - step, feetY);
+    legSegs = [
+      [hipL, { x: hipL.x - figH() * 0.05 + step, y: feetY }],
+      [hipR, { x: hipR.x + figH() * 0.05 - step, y: feetY }],
+    ];
   }
-  ctx.stroke();
-  // head
-  const nose = J(NOSE);
-  ctx.beginPath();
-  ctx.arc(nose.x, nose.y, m.headR * s, 0, Math.PI * 2);
-  ctx.stroke();
+
+  // black outline pass, then colour passes — cheap pixel-cartoon look:
+  // red shirt + arms, blue overall legs, white gloves, brown shoes
+  strokeSegs([...bodySegs, ...armSegs, ...legSegs], '#000', lw + 4);
+  strokeSegs([...bodySegs, ...armSegs], RED, lw);
+  strokeSegs(legSegs, BLUE, lw);
+  dot(J(L_WRI), lw * 0.8, WHITE);
+  dot(J(R_WRI), lw * 0.8, WHITE);
+  for (const sgm of legSegs.slice(-2)) dot(sgm[1], lw * 0.9, BRICK_DK);
+  drawHead(J(NOSE), m.headR * s);
   ctx.restore();
 }
 
 function drawHud() {
   ctx.save();
-  ctx.fillStyle = NEON;
-  ctx.shadowColor = NEON; ctx.shadowBlur = 6;
-  ctx.font = '16px "Press Start 2P", monospace';
+  ctx.font = '14px "Press Start 2P", monospace';
   ctx.textAlign = 'right';
-  ctx.fillText(String(Math.floor(score)).padStart(5, '0'), W() - 18, 40);
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = 'rgba(234,255,217,0.5)';
-  ctx.fillText('HI ' + String(hi).padStart(5, '0'), W() - 18, 66);
+  // SMB HUD: white with a hard black drop shadow
+  ctx.fillStyle = '#000';
+  ctx.fillText(String(Math.floor(score)).padStart(6, '0'), W() - 16, 42);
+  ctx.fillText('HI ' + String(hi).padStart(6, '0'), W() - 16, 70);
+  ctx.fillStyle = WHITE;
+  ctx.fillText(String(Math.floor(score)).padStart(6, '0'), W() - 18, 40);
+  ctx.fillStyle = COIN;
+  ctx.fillText('HI ' + String(hi).padStart(6, '0'), W() - 18, 68);
   ctx.restore();
 }
 
@@ -535,7 +654,10 @@ function drawCam() {
     ctx.stroke();
     ctx.restore();
   }
-  ctx.strokeStyle = 'rgba(182,255,62,0.6)';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(x - 1, y - 1, w + 2, h + 2);
+  ctx.strokeStyle = WHITE;
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, w, h);
 }
@@ -546,8 +668,10 @@ function centerText(lines, y0) {
   let y = y0;
   for (const [txt, size, color] of lines) {
     ctx.font = `${size}px "Press Start 2P", monospace`;
+    const sh = Math.max(2, size * 0.14);        // hard pixel shadow, no glow
+    ctx.fillStyle = '#000';
+    ctx.fillText(txt, W() / 2 + sh, y + sh);
     ctx.fillStyle = color;
-    ctx.shadowColor = color; ctx.shadowBlur = 10;
     ctx.fillText(txt, W() / 2, y);
     y += size * 2.1;
   }
@@ -558,33 +682,33 @@ function drawOverlays(now) {
   if (state === 'calibrate') {
     const ok = upperBodyVisible();
     centerText([
-      ['GET IN FRAME', 22, NEON],
-      [ok ? 'HOLD STILL…' : 'HEAD + HIPS IN VIEW IS ENOUGH', 12, ok ? CYAN : PINK],
+      ['GET IN FRAME', 22, WHITE],
+      [ok ? 'HOLD STILL…' : 'HEAD + HIPS IN VIEW IS ENOUGH', 12, ok ? COIN : WHITE],
     ], H() * 0.09);
     // progress bar
     const bw = Math.min(W() * 0.4, 380), bx = (W() - bw) / 2, by = H() * 0.88;
-    ctx.strokeStyle = NEON; ctx.lineWidth = 2;
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 3;
     ctx.strokeRect(bx, by, bw, 14);
-    ctx.fillStyle = NEON;
+    ctx.fillStyle = COIN;
     ctx.fillRect(bx + 2, by + 2, (bw - 4) * Math.min(stableFrames / 30, 1), 10);
     ctx.font = '15px "VT323", monospace';
-    ctx.fillStyle = 'rgba(234,255,217,0.55)';
+    ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.textAlign = 'center';
     ctx.fillText('no room? press K for keyboard mode (space = jump, ↓ = duck)', W() / 2, by + 38);
   } else if (state === 'armed') {
     centerText([
-      ['JUMP TO START', 24, NEON],
-      [keyboardMode ? '(space works too)' : 'physically jump — that jump starts the run', 11, 'rgba(234,255,217,0.8)'],
+      ['JUMP TO START', 24, WHITE],
+      [keyboardMode ? '(space works too)' : 'physically jump — that jump starts the run', 11, 'rgba(255,255,255,0.95)'],
     ], H() * 0.35);
   } else if (state === 'lost') {
     centerText([
-      ["CAN'T SEE YOU", 22, PINK],
-      ['get your head + hips back in frame', 12, 'rgba(234,255,217,0.8)'],
+      ["CAN'T SEE YOU", 22, COIN],
+      ['get your head + hips back in frame', 12, WHITE],
     ], H() * 0.35);
   } else if (state === 'run' && now - crashAt < 1200) {
     centerText([
-      ['OUCH!', 26, PINK],
-      ['from the top — best ' + hi, 12, 'rgba(234,255,217,0.8)'],
+      ['OUCH!', 26, RED],
+      ['from the top — best ' + hi, 12, WHITE],
     ], H() * 0.3);
   }
 }
@@ -633,6 +757,6 @@ function wireToggle(id, label, get, set) {
   });
   return el;
 }
-wireToggle('fliers', 'FLIERS', () => fliersOn, (v) => { fliersOn = v; });
+wireToggle('fliers', 'BULLETS', () => fliersOn, (v) => { fliersOn = v; });
 const camTog = wireToggle('cam-tog', 'CAMERA', () => camOn, (v) => { camOn = v; });
 wireToggle('sound', 'SOUND', () => soundOn, (v) => { soundOn = v; });
