@@ -96,6 +96,9 @@ const CATEGORIES = [
   { name: 'Move', items: [
     { href: '/toys/jump/', title: '🏃 Jump Runner', tag: 'Body-tracked endless runner — you ARE the runner. Physically jump over the blocks, crouch under the fliers. Head + hips in frame is enough.' },
   ] },
+  { name: 'Learn', items: [
+    { href: '/toys/asl/', title: '🤟 Sign School', tag: 'Learn the ASL fingerspelling alphabet, Duolingo-style — the camera reads your handshape and coaches you letter by letter. Earn XP, unlock lessons, spell real words.' },
+  ] },
 ];
 
 let renderer, hands, active;
