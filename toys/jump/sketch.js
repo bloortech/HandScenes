@@ -114,6 +114,84 @@ function beep(f0, f1, dur, type = 'square', vol = 0.12) {
   o.start(t); o.stop(t + dur + 0.02);
 }
 
+// ---- chiptune background music ----------------------------------------------
+// Original 8-bit style loop (square lead + triangle bass + noise hats),
+// synthesized live — no audio file. Plays only while the run is on, and the
+// tempo creeps up with the level, hurry-up style. NOT the Nintendo theme on
+// purpose: that melody is copyrighted; this is our own tune in the same spirit.
+const mf = (m) => 440 * Math.pow(2, (m - 69) / 12);
+const LEAD = [   // 4 bars of 8ths in G major, 0 = rest (midi numbers)
+  79, 0, 74, 79, 81, 83, 81, 79,   76, 79, 0, 76, 74, 0, 71, 74,
+  72, 76, 79, 76, 81, 0, 78, 81,   79, 0, 83, 81, 78, 74, 79, 0,
+];
+const BASS = [   // bouncing root/octave, NES-style
+  43, 0, 55, 0, 43, 0, 55, 0,   40, 0, 52, 0, 40, 0, 52, 0,
+  48, 0, 60, 0, 50, 0, 62, 0,   43, 0, 55, 0, 50, 0, 43, 0,
+];
+let musicOn = true;
+const music = { playing: false, step: 0, nextTime: 0, timer: null };
+let noiseBuf = null;
+
+function scheduleNote(freq, t, dur, type, vol) {
+  const o = audioCtx.createOscillator();
+  const g = audioCtx.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  o.connect(g).connect(audioCtx.destination);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+
+function scheduleHat(t) {
+  if (!noiseBuf) {
+    noiseBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.05, audioCtx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const s = audioCtx.createBufferSource();
+  const g = audioCtx.createGain();
+  const f = audioCtx.createBiquadFilter();
+  f.type = 'highpass'; f.frequency.value = 7000;
+  s.buffer = noiseBuf;
+  g.gain.setValueAtTime(0.02, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+  s.connect(f).connect(g).connect(audioCtx.destination);
+  s.start(t); s.stop(t + 0.05);
+}
+
+function musicTick() {
+  const bpm = 150 + Math.min(45, level() * 1.5);   // hurry up!
+  const stepDur = 60 / bpm / 2;                    // 8th notes
+  while (music.nextTime < audioCtx.currentTime + 0.12) {
+    const t = music.nextTime, i = music.step;
+    if (LEAD[i]) scheduleNote(mf(LEAD[i]), t, stepDur * 0.9, 'square', 0.038);
+    if (BASS[i]) scheduleNote(mf(BASS[i]), t, stepDur * 0.95, 'triangle', 0.055);
+    if (i % 2 === 1) scheduleHat(t);
+    music.step = (music.step + 1) % LEAD.length;
+    music.nextTime += stepDur;
+  }
+}
+
+function startMusic() {
+  if (!audioCtx || !musicOn || music.playing) return;
+  music.playing = true;
+  music.step = 0;
+  music.nextTime = audioCtx.currentTime + 0.05;
+  music.timer = setInterval(musicTick, 25);
+}
+
+function stopMusic() {
+  if (!music.playing) return;
+  music.playing = false;
+  clearInterval(music.timer);
+}
+
+// the game loop freezes in a hidden tab but setInterval wouldn't — mute with it
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) stopMusic();
+});
+
 // ---- pose state ------------------------------------------------------------
 let lm = null;              // smoothed landmarks [{x,y,vis}*33], x mirrored (selfie)
 let poseSeenAt = 0;         // performance.now() of last detection
@@ -285,6 +363,7 @@ function loop(now) {
   if (kbY > 0 || kbVy > 0) { kbVy -= g * dt; kbY = Math.max(0, kbY + kbVy * dt); if (kbY === 0) kbVy = 0; }
 
   update(now, dt);
+  if (state === 'run') startMusic(); else stopMusic();
   draw(now);
 }
 
@@ -799,3 +878,7 @@ function wireToggle(id, label, get, set) {
 wireToggle('fliers', 'BULLETS', () => fliersOn, (v) => { fliersOn = v; });
 const camTog = wireToggle('cam-tog', 'CAMERA', () => camOn, (v) => { camOn = v; });
 wireToggle('sound', 'SOUND', () => soundOn, (v) => { soundOn = v; });
+wireToggle('music', 'MUSIC', () => musicOn, (v) => {
+  musicOn = v;
+  if (!v) stopMusic();
+});
