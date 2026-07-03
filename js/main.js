@@ -11,6 +11,7 @@ import { CradleScene } from './scenes/cradle.js';
 import { GardenScene } from './scenes/garden.js';
 import { ShapesScene } from './scenes/shapes.js';
 import { CosmosScene } from './scenes/cosmos.js';
+import { SolarSystemScene } from './scenes/solarsystem.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -39,7 +40,7 @@ const HAND_CONNECTIONS = [
 ];
 
 // Vercel Web Analytics custom events (aggregate, anonymous; no-op if blocked).
-const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'cosmos' };
+const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'cosmos', 5: 'solarsystem' };
 function track(name, data) {
   try { if (window.va) window.va('event', { name, data }); } catch (e) { /* ignore */ }
 }
@@ -83,19 +84,29 @@ const SCENE_META = {
       'week) to read it, or hit <span class="g">📷 TODAY IN SPACE</span> for the ' +
       'day\'s real photos.',
   },
+  5: {
+    make: (r) => new SolarSystemScene(r, video),
+    title: '🪐 Solar System',
+    tag: 'Explore the REAL solar system with your mouse — planets with true NASA textures, sizes and today\'s actual positions. Click any planet to learn about it.',
+    body: 'The planets are where they <span class="g">really are today</span>, with ' +
+      'real NASA surface maps. <span class="g">Drag</span> to orbit, ' +
+      '<span class="g">scroll</span> to zoom, <span class="g">right-drag</span> to ' +
+      'pan. <span class="g">Click</span> a planet to select it, ' +
+      '<span class="g">double-click</span> to learn more.',
+  },
 };
 
 // Home gallery grouping. Visual scenes reference SCENE_META by key; flows not
 // built yet show as dimmed "soon" cards so the categories read as a roadmap.
 const CATEGORIES = [
-  { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }] },
+  { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }, { key: '5' }] },
   { name: 'Music', items: [
     { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
     { href: '/toys/ink/', title: '🖋 Water Ink', tag: 'Play drums (or any sound) and coloured ink drops swirl and bleed on paper — a different ink per drum.' },
   ] },
   { name: 'Games', items: [
     { href: '/toys/jump/', title: '🏃 Jump Runner', tag: 'Body-tracked endless runner — you ARE the runner. Physically jump over the blocks, crouch under the fliers. Head + hips in frame is enough.' },
-    { href: '/toys/pong/', title: '🏓 Hand Pong', tag: 'Play ping pong against the computer with your bare hand — move your palm to rally, flick to smash. First to 7 wins.' },
+    { href: '/toys/pong/', title: '🖐 Hand Block', tag: 'Balls fly out of the screen at you — throw your hand up to block them where they land. An open palm covers more. Miss three and it\'s over.' },
     { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
   ] },
   { name: 'Learn', items: [
@@ -280,7 +291,11 @@ function selectScene(key) {
   if (!renderer || !SCENE_META[key]) return;
   const scene = getScene(key);
   if (!scene) return;                 // build failed; keep the current scene
+  // let scenes attach/detach their own input listeners as they gain/lose focus
+  // (cached scenes stay alive, so a scene must not leave global listeners live)
+  if (active && active.scene !== scene) active.scene.onLeave?.();
   active = { scene, ...SCENE_META[key] };
+  scene.onEnter?.();
   sceneName.textContent = active.title;
   currentInstructions = active.body;
   showInstructions();
@@ -392,7 +407,7 @@ function toggleTrack() {
 trackBtn.addEventListener('click', toggleTrack);
 
 addEventListener('keydown', (e) => {
-  if (['1', '2', '3', '4'].includes(e.key)) selectScene(e.key);
+  if (['1', '2', '3', '4', '5'].includes(e.key)) selectScene(e.key);
   if (e.key === 'v') toggleCam();
   if (e.key === 'h') toggleUI();
   if (e.key === 't') toggleTrack();

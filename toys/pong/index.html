@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hand Pong — play ping pong with your hand</title>
+<title>Hand Block — block the incoming balls with your hand</title>
 <link rel="stylesheet" href="/vendor/fonts/fonts.css">
 <style>
   :root { --you: #ff9f1c; --ai: #38f9d7; --bg: #05070d; }
@@ -58,8 +58,8 @@
 <body>
   <a href="/" title="back to HandScenes" style="position:fixed;top:10px;left:10px;z-index:9999;font-family:'VT323',monospace;font-size:16px;color:#04120e;background:#38f9d7;border-radius:6px;padding:6px 11px;text-decoration:none;box-shadow:0 0 12px rgba(56,249,215,0.5);opacity:0.9">← SCENES</a>
   <div id="gate">
-    <h1>HAND <span>PONG</span></h1>
-    <p>Your hand is the paddle. Move it up and down to rally, and flick to smash. First to 7 wins. Runs in your browser; nothing is uploaded.</p>
+    <h1>HAND <span>BLOCK</span></h1>
+    <p>Balls fly out of the screen straight at you. Throw your hand up to block them where they land — an open palm covers more. Miss three and it's over. Runs in your browser; nothing is uploaded.</p>
     <button id="start">▶ PRESS START</button>
     <div id="gate-loader" aria-hidden="true"></div>
     <small id="note">you'll be asked for camera access — click allow</small>
@@ -69,11 +69,11 @@
   <canvas id="game"></canvas>
 
   <div id="panel">
-    <h3>HAND PONG</h3>
-    <div class="ctrl"><div class="row"><span>DIFFICULTY</span><span class="val" id="v-diff"></span></div>
-      <input type="range" id="diff" min="1" max="5" step="1"></div>
-    <div class="ctrl"><div class="row"><span>PADDLE</span><span class="val" id="v-size"></span></div>
-      <input type="range" id="size" min="70" max="170" step="10"></div>
+    <h3>HAND BLOCK</h3>
+    <div class="ctrl"><div class="row"><span>SPEED</span><span class="val" id="v-speed"></span></div>
+      <input type="range" id="speed" min="1" max="5" step="1"></div>
+    <div class="ctrl"><div class="row"><span>BLOCK SIZE</span><span class="val" id="v-block"></span></div>
+      <input type="range" id="block" min="80" max="160" step="10"></div>
     <button class="tog on" id="cam-tog">CAMERA: ON</button>
     <button class="tog on" id="sound">SOUND: ON</button>
   </div>

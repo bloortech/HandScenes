@@ -1,11 +1,13 @@
-// Hand Pong — MediaPipe HandLandmarker + canvas 2D.
-// Play ping pong against the computer with your bare hand: your palm drives the
-// left paddle, the AI defends the right. Move up/down to rally, flick to add
-// spin and smash. First to 7. Fully vendored (no CDN); all client-side.
+// Hand Block — MediaPipe HandLandmarker + canvas 2D.
+// First-person: balls fly OUT of the screen toward you and you physically throw
+// your hand up to block them where they land. Your whole hand is the blocker —
+// an open palm covers more, so spreading your fingers helps. Miss three and the
+// rally is over. Fully vendored (no CDN); all client-side.
 //
-// The paddle tracks landmark 9 (middle-finger knuckle) — the steadiest point on
-// the hand — smoothed, with its frame-to-frame velocity fed into the ball on a
-// hit so a fast swing carries the ball. X is mirrored for a selfie view.
+// A ball is a point travelling in fake depth: it starts small at the horizon and
+// grows as it approaches, arriving at a target spot on the near plane. Its screen
+// position is tracked to your smoothed, mirrored hand each frame — when your hand
+// disk overlaps the ball as it gets close, you've blocked it and it rockets back.
 
 import { FilesetResolver, HandLandmarker }
   from '/vendor/mediapipe/tasks-vision.mjs';
@@ -13,10 +15,12 @@ import { FilesetResolver, HandLandmarker }
 const MODEL = '/models/hand_landmarker.task';
 const WASM = '/vendor/mediapipe/wasm';
 
-const PALM = 9;               // middle-finger MCP: stable hand centre
-const SMOOTH = 0.5;           // paddle target lerp (fast, low latency)
-const WIN_SCORE = 7;
-const YOU = '#ff9f1c', AI = '#38f9d7', WHITE = '#eaf6ff';
+// palm ring (wrist + the four finger knuckles) → a steady hand centre
+const PALM_PTS = [0, 5, 9, 13, 17];
+const MID_TIP = 12;
+const SMOOTH = 0.55;          // hand lerp (fast, low latency)
+const LIVES = 3;
+const CYAN = '#38f9d7', ORANGE = '#ff9f1c', WHITE = '#eaf6ff', RED = '#ff5470';
 
 // ---- dom / boot -----------------------------------------------------------
 const gate = document.getElementById('gate');
@@ -61,7 +65,7 @@ async function boot() {
     gate.remove();
     document.body.classList.add('go');
     resize();
-    serve(Math.random() < 0.5 ? -1 : 1);
+    reset();
     requestAnimationFrame(loop);
   } catch (err) {
     gate.classList.remove('loading');
@@ -88,9 +92,10 @@ function beep(f0, f1, dur, type = 'square', vol = 0.12) {
 }
 
 // ---- hand state ------------------------------------------------------------
-let hand = null;            // { x, y } smoothed palm, normalized (x mirrored)
+// hand = { x, y (palm centre, normalized, mirrored), dx, dy (palm→mid-tip) }
+let hand = null;
 let handSeenAt = -1e9;
-let lmRaw = null;          // latest raw landmarks for the skeleton overlay
+let lmRaw = null;
 
 function detect(now) {
   if (!landmarker || video.readyState < 2 || video.currentTime === lastVideoTime) return;
@@ -100,59 +105,79 @@ function detect(now) {
   const lm = res.landmarks && res.landmarks[0];
   if (!lm) { lmRaw = null; return; }
   lmRaw = lm;
-  const px = 1 - lm[PALM].x, py = lm[PALM].y;   // mirror x for selfie view
-  if (!hand) hand = { x: px, y: py };
-  else { hand.x += (px - hand.x) * SMOOTH; hand.y += (py - hand.y) * SMOOTH; }
+
+  let cx = 0, cy = 0;
+  for (const i of PALM_PTS) { cx += 1 - lm[i].x; cy += lm[i].y; }   // mirror x
+  cx /= PALM_PTS.length; cy /= PALM_PTS.length;
+  const tx = 1 - lm[MID_TIP].x, ty = lm[MID_TIP].y;
+  const ndx = tx - cx, ndy = ty - cy;                              // palm→fingertip
+  if (!hand) hand = { x: cx, y: cy, dx: ndx, dy: ndy };
+  else {
+    hand.x += (cx - hand.x) * SMOOTH;
+    hand.y += (cy - hand.y) * SMOOTH;
+    hand.dx += (ndx - hand.dx) * SMOOTH;
+    hand.dy += (ndy - hand.dy) * SMOOTH;
+  }
   handSeenAt = now;
+}
+
+// hand centre + block radius in canvas px (exact hand length, aspect-correct)
+function handDisk() {
+  if (!hand) return null;
+  const w = W(), h = H();
+  const hx = hand.x * w, hy = hand.y * h;
+  const len = Math.hypot(hand.dx * w, hand.dy * h);   // wrist→fingertip in px
+  return { x: hx, y: hy, r: Math.max(38, len * 1.15 * blockMult) };
 }
 
 // ---- game state ------------------------------------------------------------
 const W = () => canvas.clientWidth, H = () => canvas.clientHeight;
-let paddleH = 110;                 // your paddle height (px), from PADDLE slider
-let difficulty = 3;                // 1..5 → AI reflex, from DIFFICULTY slider
+const horizon = () => ({ x: W() / 2, y: H() * 0.42 });   // vanishing point
+
+let speed = 3;         // 1..5, from SPEED slider
+let blockMult = 1;     // 0.8..1.6, from BLOCK SIZE slider
 let camOn = true;
 
-let scoreYou = 0, scoreAI = 0;
-let state = 'play';                // play | serve | over
-let serveAt = 0, serveDir = 1;
-let winner = null;
+let balls = [];
+let bursts = [];
+let score = 0, best = +(localStorage.getItem('hs-block-hi') || 0);
+let combo = 0, lives = LIVES;
+let state = 'play';    // play | over
+let spawnT = 0, nextSpawn = 0.8;
+let shake = 0, flash = 0, overSince = 0;
 
-const PAD_W = 16;
-const AI_H = 120;
-// paddle rigs (positions/geometry recomputed against live canvas size)
-const you = { x: 0, y: 0, py: 0, vy: 0, h: 110 };
-const cpu = { x: 0, y: 0, h: 120 };
-const ball = { x: 0, y: 0, vx: 0, vy: 0, r: 11, speed: 0 };
-const trail = [];
-
-function serve(dir) {
-  state = 'serve';
-  serveAt = performance.now();
-  serveDir = dir;
-  ball.x = W() / 2; ball.y = H() / 2;
-  ball.speed = W() * 0.55;                    // px/s, grows through a rally
-  ball.vx = 0; ball.vy = 0;
-  trail.length = 0;
+function reset() {
+  balls = []; bursts = [];
+  score = 0; combo = 0; lives = LIVES; state = 'play';
+  spawnT = 0; nextSpawn = 0.8; shake = 0; flash = 0; overSince = 0;
 }
 
-function launch() {
-  const ang = (Math.random() * 0.6 - 0.3);    // ±0.3 rad off horizontal
-  ball.vx = Math.cos(ang) * ball.speed * serveDir;
-  ball.vy = Math.sin(ang) * ball.speed;
-  state = 'play';
-  beep(660, 880, 0.06, 'square', 0.08);
+// difficulty curve: travel time (telegraph) + spawn gap shrink with speed+score
+function travelTime() { return Math.max(0.85, 1.95 - speed * 0.18 - Math.min(0.5, score * 0.006)); }
+function spawnGap() { return Math.max(0.55, 1.7 - speed * 0.16 - Math.min(0.6, score * 0.008)); }
+
+function spawnBall() {
+  const hz = horizon();
+  balls.push({
+    // land somewhere in the reachable frame, biased away from the very edges
+    tx: (0.14 + Math.random() * 0.72) * W(),
+    ty: (0.16 + Math.random() * 0.66) * H(),
+    sx: hz.x + (Math.random() * 2 - 1) * W() * 0.06,   // emerges near the horizon
+    sy: hz.y + (Math.random() * 2 - 1) * H() * 0.04,
+    p: 0, life: travelTime(), done: false,
+    hue: 190 + Math.random() * 40,   // cyan-ish incoming
+  });
+  beep(300, 520, 0.08, 'sine', 0.05);   // "incoming" whoosh
 }
 
-function point(who) {
-  if (who === 'you') scoreYou++; else scoreAI++;
-  beep(who === 'you' ? 880 : 200, who === 'you' ? 1320 : 120, 0.25,
-    who === 'you' ? 'sine' : 'sawtooth', 0.14);
-  if (scoreYou >= WIN_SCORE || scoreAI >= WIN_SCORE) {
-    winner = scoreYou > scoreAI ? 'you' : 'ai';
-    state = 'over';
-  } else {
-    serve(who === 'you' ? -1 : 1);            // loser receives
-  }
+// where a ball is on screen + how big, for a given progress p (0 far → 1 near)
+function ballPos(b) {
+  const e = b.p * b.p;                 // accelerate toward you
+  return {
+    x: b.sx + (b.tx - b.sx) * e,
+    y: b.sy + (b.ty - b.sy) * e,
+    r: 5 + Math.min(W(), H()) * 0.055 * (b.p * b.p * b.p),
+  };
 }
 
 // ---- main loop -------------------------------------------------------------
@@ -167,75 +192,59 @@ function loop(now) {
 }
 
 function update(now, dt) {
-  const w = W(), h = H();
+  shake *= 0.86; flash *= 0.9;
+  for (const bu of bursts) { bu.r += bu.vr * dt; bu.life -= dt; }
+  bursts = bursts.filter((b) => b.life > 0);
 
-  // your paddle: fixed near the left wall, tracks the hand vertically
-  you.h = paddleH;
-  you.x = w * 0.07;
-  const targetY = hand ? hand.y * h : you.y || h / 2;
-  const clampedY = Math.max(you.h / 2, Math.min(h - you.h / 2, targetY));
-  you.vy = (clampedY - you.y) / Math.max(dt, 1e-3);
-  you.y = clampedY;
-
-  // AI paddle
-  cpu.h = AI_H;
-  cpu.x = w - w * 0.06;
-  const react = 0.06 + difficulty * 0.032;        // fraction of the gap closed per frame
-  const err = (6 - difficulty) * h * 0.014;        // aim wobble; lower diff = sloppier
-  const aim = ball.y + Math.sin(now * 0.004) * err;
-  const aiTarget = Math.max(cpu.h / 2, Math.min(h - cpu.h / 2, aim));
-  cpu.y += (aiTarget - cpu.y) * react;
-
-  if (state === 'serve') {
-    ball.x = w / 2; ball.y = h / 2;
-    if (now - serveAt > 800) launch();
+  if (state === 'over') {
+    // raise a steady hand (or space/click) to play again
+    if (hand && now - handSeenAt < 300 && hand.y < 0.6) {
+      if (!overSince) overSince = now;
+      if (now - overSince > 700) reset();
+    } else overSince = 0;
     return;
   }
-  if (state !== 'play') return;
 
-  // integrate (remember prev x for the swept paddle test)
-  const prevX = ball.x;
-  ball.x += ball.vx * dt;
-  ball.y += ball.vy * dt;
-  trail.push({ x: ball.x, y: ball.y });
-  if (trail.length > 14) trail.shift();
+  // spawn
+  spawnT += dt;
+  if (spawnT >= nextSpawn && balls.length < 5) {
+    spawnT = 0; nextSpawn = spawnGap();
+    spawnBall();
+  }
 
-  // top / bottom walls
-  if (ball.y < ball.r) { ball.y = ball.r; ball.vy = Math.abs(ball.vy); beep(300, 300, 0.03, 'square', 0.05); }
-  if (ball.y > h - ball.r) { ball.y = h - ball.r; ball.vy = -Math.abs(ball.vy); beep(300, 300, 0.03, 'square', 0.05); }
-
-  // paddle hits (only the one the ball is heading toward)
-  if (ball.vx < 0) hitPaddle(you, +1, prevX);
-  else hitPaddle(cpu, -1, prevX);
-
-  // scoring
-  if (ball.x < -ball.r * 3) point('ai');
-  else if (ball.x > w + ball.r * 3) point('you');
+  const disk = handDisk();
+  for (const b of balls) {
+    if (b.done) continue;
+    b.p += dt / b.life;
+    const pos = ballPos(b);
+    // blockable once it's close enough to reach; overlap with the hand disk = block
+    if (disk && b.p > 0.72) {
+      const d = Math.hypot(disk.x - pos.x, disk.y - pos.y);
+      if (d < disk.r + pos.r) { blockBall(b, pos, disk); continue; }
+    }
+    if (b.p >= 1) missBall(b, pos);
+  }
+  balls = balls.filter((b) => !b.done);
 }
 
-// reflect the ball off a paddle. dir = +1 sends it right (your paddle, on the
-// left), -1 sends it left (the AI, on the right). A swept test catches a fast
-// ball that would otherwise skip past the thin paddle in one frame.
-function hitPaddle(p, dir, prevX) {
-  const halfW = PAD_W / 2, halfH = p.h / 2;
-  const plane = p.x + dir * halfW;                 // the paddle face the ball meets
-  const lead = ball.x - dir * ball.r;              // ball's leading edge
-  const prevLead = prevX - dir * ball.r;
-  // did the leading edge reach/cross the paddle face this frame?
-  const crossed = dir > 0 ? (prevLead >= plane && lead <= plane)
-                          : (prevLead <= plane && lead >= plane);
-  const overlapping = Math.abs(ball.x - p.x) <= halfW + ball.r;
-  if (!crossed && !overlapping) return;
-  if (Math.abs(ball.y - p.y) > halfH + ball.r) return;   // missed vertically → point coming
+function blockBall(b, pos, disk) {
+  b.done = true;
+  score++; combo++;
+  if (combo > 0 && combo % 5 === 0) { score += 2; beep(1046, 1568, 0.12, 'sine', 0.08); }
+  best = Math.max(best, score); localStorage.setItem('hs-block-hi', best);
+  bursts.push({ x: pos.x, y: pos.y, r: pos.r, vr: 900, life: 0.35, color: ORANGE });
+  // little knock toward the hand centre for a "smacked away" read
+  beep(520, 900, 0.06, 'square', 0.11);
+}
 
-  ball.speed = Math.min(ball.speed * 1.06, W() * 1.3);   // rally accelerates
-  const off = Math.max(-1, Math.min(1, (ball.y - p.y) / halfH));   // -1 top … 1 bottom
-  const ang = off * 1.05;                                 // steer by contact point
-  ball.vx = dir * Math.cos(ang) * ball.speed;
-  ball.vy = Math.sin(ang) * ball.speed;
-  if (p === you) ball.vy += you.vy * 0.35;                // swing carries the ball
-  ball.x = plane + dir * (ball.r + 1);                    // unstick past the face
-  beep(dir > 0 ? 520 : 440, dir > 0 ? 720 : 600, 0.05, 'square', 0.1);
+function missBall(b, pos) {
+  b.done = true;
+  combo = 0;
+  lives--;
+  shake = 16; flash = 1;
+  bursts.push({ x: pos.x, y: pos.y, r: pos.r, vr: 500, life: 0.4, color: RED });
+  beep(240, 70, 0.3, 'sawtooth', 0.14);
+  if (lives <= 0) { state = 'over'; beep(200, 55, 0.5, 'sawtooth', 0.16); }
 }
 
 // ---- drawing ---------------------------------------------------------------
@@ -253,110 +262,157 @@ function scanlines() {
   ctx.fillRect(0, 0, W(), H());
 }
 
-function roundRect(x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
 function draw(now) {
   const w = W(), h = H();
   ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  if (shake > 0.5) ctx.translate((Math.random() * 2 - 1) * shake, (Math.random() * 2 - 1) * shake);
 
-  // dim webcam behind the court (mirrored to match the selfie view)
+  // dim mirrored webcam
   ctx.fillStyle = '#05070d';
-  ctx.fillRect(0, 0, w, h);
+  ctx.fillRect(-20, -20, w + 40, h + 40);
   if (camOn && video.videoWidth) {
     const vr = video.videoWidth / video.videoHeight, cr = w / h;
     let dw = w, dh = h;
-    if (vr > cr) dw = h * vr; else dh = w / vr;          // cover-crop
+    if (vr > cr) dw = h * vr; else dh = w / vr;
     ctx.save();
-    ctx.globalAlpha = 0.22;
-    ctx.translate(w, 0); ctx.scale(-1, 1);       // mirror; a centred image stays centred
+    ctx.globalAlpha = 0.18;
+    ctx.translate(w, 0); ctx.scale(-1, 1);
     ctx.drawImage(video, (w - dw) / 2, (h - dh) / 2, dw, dh);
     ctx.restore();
   }
 
-  // centre net
-  ctx.strokeStyle = 'rgba(234,246,255,0.25)';
-  ctx.lineWidth = 3;
-  ctx.setLineDash([12, 16]);
-  ctx.beginPath(); ctx.moveTo(w / 2, 0); ctx.lineTo(w / 2, h); ctx.stroke();
-  ctx.setLineDash([]);
+  drawDepthGrid(w, h);
 
-  // score
-  ctx.font = '30px "Press Start 2P", monospace';
-  ctx.textAlign = 'center';
-  ctx.fillStyle = YOU; ctx.fillText(scoreYou, w * 0.4, 52);
-  ctx.fillStyle = AI; ctx.fillText(scoreAI, w * 0.6, 52);
+  // reticles first (behind balls) so the target reads clearly
+  for (const b of balls) if (!b.done) drawReticle(b);
+  for (const b of balls) if (!b.done) drawBall(b);
+  for (const bu of bursts) drawBurst(bu);
 
-  // ball trail + ball
-  for (let i = 0; i < trail.length; i++) {
-    ctx.globalAlpha = (i / trail.length) * 0.4;
-    ctx.fillStyle = WHITE;
-    ctx.beginPath(); ctx.arc(trail[i].x, trail[i].y, ball.r * (i / trail.length), 0, 7); ctx.fill();
+  drawHand();
+  drawHud();
+
+  if (flash > 0.02) {
+    ctx.fillStyle = `rgba(255,84,112,${flash * 0.4})`;
+    ctx.fillRect(0, 0, w, h);
   }
-  ctx.globalAlpha = 1;
-  if (state !== 'over') {
-    ctx.fillStyle = WHITE;
-    ctx.shadowColor = WHITE; ctx.shadowBlur = 16;
-    ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.r, 0, 7); ctx.fill();
-    ctx.shadowBlur = 0;
-  }
+  ctx.restore();
 
-  // paddles
-  paddle(you, YOU);
-  paddle(cpu, AI);
-
-  // hand skeleton hint on your side (only while playing)
-  if (lmRaw && camOn) drawHand();
-
-  // overlays
-  if (!hand || now - handSeenAt > 600) banner('SHOW YOUR HAND', YOU, h * 0.5, 20);
-  else if (state === 'serve') banner('GET READY', WHITE, h * 0.42, 22);
+  // overlays (unshaken)
+  if (!hand || now - handSeenAt > 600) banner('SHOW YOUR HAND', ORANGE, h * 0.5, 20);
   if (state === 'over') {
-    banner(winner === 'you' ? 'YOU WIN!' : 'YOU LOSE', winner === 'you' ? YOU : AI, h * 0.4, 34);
-    banner('raise your hand to play again', WHITE, h * 0.5, 13);
-    if (hand && now - handSeenAt < 300 && hand.y < 0.55 && hand.y > 0.1) {
-      // hand raised & steady → rematch
-      if (!overSince) overSince = now;
-      if (now - overSince > 700) reset();
-    } else overSince = 0;
+    banner('GAME OVER', RED, h * 0.36, 32);
+    banner('SCORE ' + score + '   BEST ' + best, WHITE, h * 0.47, 14);
+    banner('raise your hand to play again', WHITE, h * 0.56, 12);
   }
-
   scanlines();
 }
 
-let overSince = 0;
-function reset() {
-  scoreYou = 0; scoreAI = 0; winner = null; overSince = 0;
-  serve(Math.random() < 0.5 ? -1 : 1);
+function drawDepthGrid(w, h) {
+  const hz = horizon();
+  ctx.strokeStyle = 'rgba(56,249,215,0.10)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (let i = -6; i <= 6; i++) {        // radial lines from the vanishing point
+    const ex = w / 2 + i * (w / 8);
+    ctx.moveTo(hz.x, hz.y); ctx.lineTo(ex, h + 40);
+  }
+  for (let i = 1; i <= 5; i++) {         // horizon-parallel rows, denser near you
+    const y = hz.y + (h - hz.y) * (i / 5) * (i / 5);
+    ctx.moveTo(0, y); ctx.lineTo(w, y);
+  }
+  ctx.stroke();
 }
 
-function paddle(p, color) {
-  ctx.fillStyle = color;
-  ctx.shadowColor = color; ctx.shadowBlur = 14;
-  roundRect(p.x - PAD_W / 2, p.y - p.h / 2, PAD_W, p.h, 7);
-  ctx.fill();
+function drawReticle(b) {
+  const pos = ballPos(b);
+  const a = 0.25 + b.p * 0.5;
+  ctx.strokeStyle = `rgba(255,159,28,${a})`;
+  ctx.lineWidth = 2;
+  const rr = pos.r + 14 + (1 - b.p) * 30;
+  ctx.beginPath(); ctx.arc(b.tx, b.ty, rr, 0, 7); ctx.stroke();
+  // crosshair ticks
+  ctx.beginPath();
+  for (const ang of [0, Math.PI / 2, Math.PI, Math.PI * 1.5]) {
+    ctx.moveTo(b.tx + Math.cos(ang) * (rr - 6), b.ty + Math.sin(ang) * (rr - 6));
+    ctx.lineTo(b.tx + Math.cos(ang) * (rr + 6), b.ty + Math.sin(ang) * (rr + 6));
+  }
+  ctx.stroke();
+}
+
+function drawBall(b) {
+  const pos = ballPos(b);
+  // trail toward the horizon so it clearly reads as flying at you
+  const hz = horizon();
+  const g = ctx.createLinearGradient(hz.x, hz.y, pos.x, pos.y);
+  g.addColorStop(0, 'rgba(56,249,215,0)');
+  g.addColorStop(1, `hsla(${b.hue},90%,65%,0.35)`);
+  ctx.strokeStyle = g; ctx.lineWidth = pos.r * 0.7;
+  ctx.beginPath(); ctx.moveTo(hz.x, hz.y); ctx.lineTo(pos.x, pos.y); ctx.stroke();
+
+  ctx.fillStyle = `hsl(${b.hue},90%,68%)`;
+  ctx.shadowColor = `hsl(${b.hue},90%,68%)`; ctx.shadowBlur = 18;
+  ctx.beginPath(); ctx.arc(pos.x, pos.y, pos.r, 0, 7); ctx.fill();
   ctx.shadowBlur = 0;
+  ctx.fillStyle = 'rgba(255,255,255,0.8)';   // highlight
+  ctx.beginPath(); ctx.arc(pos.x - pos.r * 0.3, pos.y - pos.r * 0.3, pos.r * 0.3, 0, 7); ctx.fill();
+}
+
+function drawBurst(bu) {
+  ctx.globalAlpha = Math.max(0, bu.life * 2.2);
+  ctx.strokeStyle = bu.color; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.arc(bu.x, bu.y, bu.r, 0, 7); ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
 function drawHand() {
+  const disk = handDisk();
+  if (!disk || !lmRaw) return;
   const w = W(), h = H();
+  // block disk — the area you cover
+  const near = balls.some((b) => !b.done && b.p > 0.72);
+  ctx.fillStyle = near ? 'rgba(56,249,215,0.18)' : 'rgba(56,249,215,0.09)';
+  ctx.strokeStyle = 'rgba(56,249,215,0.7)'; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(disk.x, disk.y, disk.r, 0, 7); ctx.fill(); ctx.stroke();
+  // skeleton so you see your hand
   const E = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],
     [10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
-  ctx.strokeStyle = 'rgba(255,159,28,0.5)';
-  ctx.lineWidth = 2;
+  ctx.strokeStyle = CYAN; ctx.lineWidth = 3; ctx.lineCap = 'round';
   ctx.beginPath();
-  for (const [a, b] of E) {
+  for (const [a, c] of E) {
     ctx.moveTo((1 - lmRaw[a].x) * w, lmRaw[a].y * h);
-    ctx.lineTo((1 - lmRaw[b].x) * w, lmRaw[b].y * h);
+    ctx.lineTo((1 - lmRaw[c].x) * w, lmRaw[c].y * h);
   }
   ctx.stroke();
+}
+
+function drawHud() {
+  const w = W();
+  ctx.save();
+  ctx.font = '20px "Press Start 2P", monospace';
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#000'; ctx.fillText(String(score).padStart(4, '0'), 18, 40);
+  ctx.fillStyle = CYAN; ctx.fillText(String(score).padStart(4, '0'), 16, 38);
+  if (combo >= 2) {
+    ctx.font = '14px "Press Start 2P", monospace';
+    ctx.fillStyle = ORANGE; ctx.fillText('x' + combo, 18, 66);
+  }
+  // lives as hearts, top-right
+  for (let i = 0; i < LIVES; i++) {
+    ctx.fillStyle = i < lives ? RED : 'rgba(255,255,255,0.15)';
+    heart(w - 30 - i * 34, 30, 11);
+  }
+  ctx.restore();
+}
+
+function heart(x, y, s) {
+  ctx.beginPath();
+  ctx.moveTo(x, y + s * 0.3);
+  ctx.bezierCurveTo(x, y - s * 0.3, x - s, y - s * 0.3, x - s, y + s * 0.25);
+  ctx.bezierCurveTo(x - s, y + s * 0.7, x, y + s, x, y + s * 1.1);
+  ctx.bezierCurveTo(x, y + s, x + s, y + s * 0.7, x + s, y + s * 0.25);
+  ctx.bezierCurveTo(x + s, y - s * 0.3, x, y - s * 0.3, x, y + s * 0.3);
+  ctx.fill();
 }
 
 function banner(text, color, y, size) {
@@ -378,17 +434,16 @@ function resize() {
   canvas.height = innerHeight * dpr;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   scanPat = null;
-  if (!you.y) { you.y = innerHeight / 2; cpu.y = innerHeight / 2; }
 }
 addEventListener('resize', resize);
 
-const diffEl = document.getElementById('diff'), vDiff = document.getElementById('v-diff');
-diffEl.value = difficulty; vDiff.textContent = difficulty;
-diffEl.addEventListener('input', () => { difficulty = +diffEl.value; vDiff.textContent = difficulty; });
+const spdEl = document.getElementById('speed'), vSpd = document.getElementById('v-speed');
+spdEl.value = speed; vSpd.textContent = speed;
+spdEl.addEventListener('input', () => { speed = +spdEl.value; vSpd.textContent = speed; });
 
-const sizeEl = document.getElementById('size'), vSize = document.getElementById('v-size');
-sizeEl.value = paddleH; vSize.textContent = paddleH;
-sizeEl.addEventListener('input', () => { paddleH = +sizeEl.value; vSize.textContent = paddleH; });
+const bmEl = document.getElementById('block'), vBm = document.getElementById('v-block');
+bmEl.value = blockMult * 100; vBm.textContent = Math.round(blockMult * 100) + '%';
+bmEl.addEventListener('input', () => { blockMult = +bmEl.value / 100; vBm.textContent = bmEl.value + '%'; });
 
 function wireToggle(id, label, get, set) {
   const el = document.getElementById(id);
@@ -402,6 +457,5 @@ function wireToggle(id, label, get, set) {
 wireToggle('cam-tog', 'CAMERA', () => camOn, (v) => { camOn = v; });
 wireToggle('sound', 'SOUND', () => soundOn, (v) => { soundOn = v; });
 
-// space / click also serves through a rematch, for desks without much room
 addEventListener('keydown', (e) => { if (e.code === 'Space' && state === 'over') reset(); });
 addEventListener('pointerdown', (e) => { if (state === 'over' && e.target === canvas) reset(); });
