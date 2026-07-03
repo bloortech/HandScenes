@@ -56,6 +56,9 @@
   @keyframes pulse { 50% { box-shadow: 0 0 34px rgba(56,249,215,0.95); } }
   #note { font-size: 16px; opacity: 0.6; max-width: 430px; }
   #note.err { color: #ff8f8f; opacity: 1; }
+  .disclaimer { font-size: 15px !important; opacity: 0.55 !important; max-width: 500px !important; line-height: 1.35; }
+  .disclaimer a, .map-foot a { color: var(--neon); opacity: 0.9; text-decoration: none; border-bottom: 1px dotted var(--neon); }
+  .disclaimer a:hover, .map-foot a:hover { opacity: 1; }
   #gate-loader { display: none; width: 260px; max-width: 80vw; height: 13px; overflow: hidden;
     border: 2px solid var(--line); border-radius: 4px; background: rgba(56,249,215,0.08); }
   #gate-loader::before { content: ''; display: block; height: 100%; width: 38%;
@@ -188,6 +191,12 @@
     <h1>SIGN<br>SCHOOL</h1>
     <p>Learn the <b>ASL fingerspelling alphabet</b> with your webcam. The camera reads your handshape live and coaches you, letter by letter — hold each sign to pass, earn XP, unlock the next lesson.</p>
     <p class="sub">Either hand works. Everything runs in your browser — no video is uploaded, nothing is recorded.</p>
+    <p class="sub disclaimer">⚠ Hobby project, not a certified ASL course — made by a creative coder, not
+      an ASL teacher, and fingerspelling is only a tiny slice of ASL (a full language with its own
+      grammar). Handshapes were cross-checked against public references, but for real instruction
+      please learn from Deaf teachers and Deaf-led resources like
+      <a href="https://www.lifeprint.com" target="_blank" rel="noopener">Lifeprint&nbsp;(ASL&nbsp;University)</a> or
+      <a href="https://www.handspeak.com" target="_blank" rel="noopener">Handspeak</a>.</p>
     <button id="start">▶ PRESS START</button>
     <div id="gate-loader" aria-hidden="true"></div>
     <small id="note">you'll be asked for camera access — click allow</small>
@@ -210,9 +219,14 @@
       <div class="map-sec">Free practice</div>
       <div id="practice-grid"></div>
       <div class="map-foot">
-        J and Z are drawn in the air with motion — they're coming in a later update,
-        along with numbers and first words. Tip: sign with your palm facing the camera,
-        hand filling a good chunk of the frame.
+        All 26 letters! J and Z are drawn in the air — hold the handshape, then trace
+        the letter and watch your ink trail. Numbers and first words are coming next.
+        Tip: sign with your palm facing the camera, hand filling a good chunk of the frame.
+        <br><br>
+        ⚠ Sign School is a hobby project, not a certified ASL course or licensed platform —
+        no ASL teachers were involved. For real instruction, learn from Deaf-led resources:
+        <a href="https://www.lifeprint.com" target="_blank" rel="noopener">lifeprint.com</a> ·
+        <a href="https://www.handspeak.com" target="_blank" rel="noopener">handspeak.com</a>.
       </div>
     </div>
   </div>

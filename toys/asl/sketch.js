@@ -37,6 +37,16 @@ const WORD_HOLD_MS = 650;     // slightly quicker inside word spelling
 const HINT_AFTER_MS = 9000;   // quiz: auto-show the diagram after struggling
 const TIP_STABLE_MS = 450;    // a check must fail this long before we nag
 
+// motion letters (J/Z): trace the letter in the air with a fingertip. All
+// distances are in units of the hand's size at trace start, so a small wrist
+// flick and a big arm swipe both count.
+const SHAPE_ARM_MS = 350;     // hold the start shape this long before tracing
+const STROKE_MIN = 0.45;      // a direction segment must be this long to count
+const STROKE_TURN = 0.45;     // cos: heading deviating past ~63° starts a new stroke
+const MOVE_MIN = 0.015;       // per-frame movement below this is jitter
+const WOBBLE_MS = 700;        // losing the handshape this long mid-trace resets
+const TRAIL_MAX = 120;        // trail points kept for the on-screen ink
+
 // ---- curriculum ------------------------------------------------------------
 const UNITS = [
   { id: 'u1', name: 'First shapes', letters: ['A', 'B', 'C', 'L', 'O'], word: 'COLA' },
@@ -44,6 +54,7 @@ const UNITS = [
   { id: 'u3', name: 'Pinch & cross', letters: ['F', 'I', 'K', 'R', 'X'], word: 'FIX' },
   { id: 'u4', name: 'Sideways signs', letters: ['G', 'H', 'P', 'Q'], word: 'GAP' },
   { id: 'u5', name: 'Fist family', letters: ['E', 'S', 'T', 'N', 'M'], word: 'NEST' },
+  { id: 'u6', name: 'Motion letters', letters: ['J', 'Z'], word: 'JAZZ' },
 ];
 const XP_LEARN = 5, XP_QUIZ = 10, XP_WORD_LETTER = 8;
 
@@ -240,7 +251,7 @@ const LETTERS = {
     ],
   },
   D: {
-    desc: 'Index points up; middle, ring and pinky tips rest on your thumb.',
+    desc: 'Index points up; your middle fingertip rests on your thumb tip, ring and pinky curl in.',
     pose: { f: [0, 0.75, 0.8, 0.85], th: { a: 26, c: 0.5 } },
     checks: (q) => [
       [q.ext(0) && q.up(0), 'point your index straight up'],
@@ -293,6 +304,26 @@ const LETTERS = {
       [q.all(q.fold, 0, 1, 2), 'curl index, middle and ring into a fist'],
       [q.T.pf.r < q.F.pf(5).r + 0.25, 'keep your thumb tucked in, not sticking out'],
     ],
+  },
+  J: {
+    desc: 'Sign I, then draw the J in the air with your pinky — straight down, then a hook.',
+    pose: { f: [1, 1, 1, 0], th: { a: 55, c: 0.5 } },
+    // start shape = a proper I (pinky pointing up)
+    checks: (q) => [
+      [q.ext(3) && q.up(3), 'start from I — pinky straight up'],
+      [q.all(q.fold, 0, 1, 2), 'curl index, middle and ring into a fist'],
+      [q.T.pf.r < q.F.pf(5).r + 0.25, 'keep your thumb tucked in'],
+    ],
+    motion: {
+      tip: 20,                                   // trace with the pinky tip
+      // while drawing, the hand tilts — only require the handshape, not "up"
+      loose: (q) => q.ext(3) && q.all(q.fold, 0, 1, 2),
+      guide: ['now draw straight DOWN with your pinky', 'and hook sideways — finish the J!'],
+      pattern: [
+        (s) => s.dy > 0 && s.dy > Math.abs(s.dx) * 0.9,          // down
+        (s) => Math.abs(s.dx) > Math.abs(s.dy) * 0.7,            // sideways hook
+      ],
+    },
   },
   K: {
     desc: 'Index and middle up in a V, thumb planted between them on the middle knuckle.',
@@ -434,6 +465,25 @@ const LETTERS = {
       [q.F.d3(4, 20) / q.F.scale > 1.5 - 0.2 * q.A, 'stretch thumb and pinky apart — hang loose'],
     ],
   },
+  Z: {
+    desc: 'Point with your index ("1"), then slash a Z in the air: across, down the other way, across again.',
+    pose: { f: [0, 1, 1, 1], th: { a: 60, c: 0.5 } },
+    checks: (q) => [
+      [q.ext(0) && q.up(0), 'start by pointing your index straight up'],
+      [q.all(q.fold, 1, 2, 3), 'curl the rest into a fist'],
+    ],
+    motion: {
+      tip: 8,                                    // trace with the index tip
+      loose: (q) => q.ext(0) && q.all(q.fold, 1, 2, 3),
+      guide: ['slash ACROSS', 'now diagonally DOWN the other way', 'and across again — finish the Z!'],
+      pattern: [
+        // ctx carries the first stroke's direction so the zigzag must reverse
+        (s, ctx) => { ctx.d1 = Math.sign(s.dx || 1); return Math.abs(s.dx) > Math.abs(s.dy); },
+        (s, ctx) => s.dy > Math.abs(s.dx) * 0.3 && s.dx * ctx.d1 < 0,
+        (s, ctx) => Math.abs(s.dx) > Math.abs(s.dy) * 0.8 && s.dx * ctx.d1 > 0,
+      ],
+    },
+  },
 };
 
 // verify the target letter against the live hand; returns {ok, tips: [failed…]}
@@ -441,6 +491,120 @@ function checkLetter(letter) {
   const q = makeQ(features());
   const rows = LETTERS[letter].checks(q);
   return { ok: rows.every((r) => r[0]), rows };
+}
+
+// ---- motion letters (J/Z) -----------------------------------------------------
+// Two phases: hold the start shape, then trace. The fingertip path is chopped
+// into direction strokes (a new stroke starts when the heading turns sharply);
+// closed strokes plus the stroke in progress are matched against the letter's
+// pattern. A stroke that can't be part of the letter resets the trace.
+function newMotion() {
+  return {
+    phase: 'shape', shapeMs: 0, wobbleMs: 0,
+    strokes: [], cur: null, last: null, path: [], scale0: 1,
+  };
+}
+const motionFor = (letter) => (LETTERS[letter].motion ? newMotion() : null);
+
+// candidate = closed strokes + the in-progress one (if long enough to judge).
+// Returns 'bad' | 'partial' | 'complete' and how many strokes matched so far.
+function judgeStrokes(letter, strokes, cur) {
+  const pattern = LETTERS[letter].motion.pattern;
+  const seq = [...strokes];
+  if (cur && cur.len > STROKE_MIN + 0.05) seq.push(cur);
+  if (strokes.length > pattern.length) return { verdict: 'bad', matched: strokes.length };
+  const ctx = {};
+  for (let i = 0; i < seq.length; i++) {
+    if (i >= pattern.length) return { verdict: 'bad', matched: i };
+    if (!pattern[i](seq[i], ctx)) {
+      // a CLOSED stroke must match its slot; the open stroke gets grace while
+      // it's still forming (unless it's headed the opposite way entirely)
+      if (i < strokes.length) return { verdict: 'bad', matched: i };
+      return { verdict: 'partial', matched: i };
+    }
+  }
+  return { verdict: seq.length === pattern.length ? 'complete' : 'partial', matched: seq.length };
+}
+
+function updateMotion(now, dt, letter) {
+  const M = LETTERS[letter].motion;
+  const st = session.motion || (session.motion = newMotion());
+
+  if (!handVisible(now)) {
+    session.motion = newMotion();
+    setTips(now, [[false, 'show me one hand, palm to the camera 🖐']]);
+    setRing(0, false);
+    return;
+  }
+  const q = makeQ(features());
+  const tip = lm[M.tip];
+
+  if (st.phase === 'shape') {
+    const rows = LETTERS[letter].checks(q);
+    const ok = rows.every((r) => r[0]);
+    if (ok) {
+      st.shapeMs += dt;
+      setTipsRaw('hold it…', true);
+      if (st.shapeMs >= SHAPE_ARM_MS) {
+        st.phase = 'draw';
+        st.scale0 = q.F.scale;
+        st.last = { x: tip.x, y: tip.y };
+        st.path = [{ x: tip.x, y: tip.y }];
+        setTipsRaw(M.guide[0], true);
+      }
+    } else {
+      st.shapeMs = 0;
+      setTips(now, rows);
+    }
+    setRing(ok ? 0.12 : 0, ok);
+    return;
+  }
+
+  // ---- draw phase ----
+  if (!M.loose(q)) {                       // brief wobble is fine, giving up isn't
+    st.wobbleMs += dt;
+    if (st.wobbleMs > WOBBLE_MS) {
+      session.motion = newMotion();
+      setTipsRaw('keep the handshape while you draw — from the top!', false);
+      return;
+    }
+  } else {
+    st.wobbleMs = 0;
+  }
+
+  const dx = (tip.x - st.last.x) / st.scale0;
+  const dy = (tip.y - st.last.y) / st.scale0;
+  st.last = { x: tip.x, y: tip.y };
+  st.path.push({ x: tip.x, y: tip.y });
+  if (st.path.length > TRAIL_MAX) st.path.shift();
+
+  const step = Math.hypot(dx, dy);
+  if (step > MOVE_MIN) {
+    if (!st.cur) st.cur = { dx: 0, dy: 0, len: 0 };
+    const curLen = Math.hypot(st.cur.dx, st.cur.dy);
+    if (curLen > 0.35) {                   // enough heading to detect a turn
+      const dot = (dx * st.cur.dx + dy * st.cur.dy) / (step * curLen);
+      if (dot < STROKE_TURN) {             // sharp turn: close the stroke
+        if (st.cur.len >= STROKE_MIN) st.strokes.push(st.cur);
+        st.cur = { dx: 0, dy: 0, len: 0 };
+      }
+    }
+    st.cur.dx += dx; st.cur.dy += dy; st.cur.len += step;
+  }
+
+  const { verdict, matched } = judgeStrokes(letter, st.strokes, st.cur);
+  if (verdict === 'complete') {
+    setRing(1, true);
+    passStep(now);
+    return;
+  }
+  if (verdict === 'bad') {
+    session.motion = newMotion();
+    setTipsRaw('almost! start the letter from the top', false);
+    return;
+  }
+  setRing(0.12 + 0.88 * (matched / M.pattern.length), true);
+  setTipsRaw(M.guide[Math.min(matched, M.guide.length - 1)], true);
 }
 
 // ---- reference diagram (procedural FK hand) ---------------------------------
@@ -548,6 +712,33 @@ function drawRef(letter) {
     c.translate(ax, ay); c.rotate(a);
     c.beginPath(); c.moveTo(-14, 0); c.lineTo(10, 0); c.stroke();
     c.beginPath(); c.moveTo(10, -6); c.lineTo(20, 0); c.lineTo(10, 6); c.closePath(); c.fill();
+    c.restore();
+  }
+
+  // motion letters: amber "trace this" glyph beside the hand
+  if (LETTERS[letter].motion) {
+    c.save();
+    c.strokeStyle = '#ffcf5a'; c.fillStyle = '#ffcf5a';
+    c.lineWidth = 6; c.lineCap = 'round'; c.lineJoin = 'round';
+    const arrow = (x, y, a) => {           // small head pointing along angle a
+      c.save(); c.translate(x, y); c.rotate(a);
+      c.beginPath(); c.moveTo(-12, -8); c.lineTo(4, 0); c.lineTo(-12, 8); c.closePath(); c.fill();
+      c.restore();
+    };
+    if (letter === 'J') {
+      c.beginPath();
+      c.moveTo(84, 34);
+      c.lineTo(84, 108);
+      c.quadraticCurveTo(84, 140, 52, 136);
+      c.stroke();
+      arrow(46, 134, Math.PI * 0.94);
+    } else {                               // Z
+      c.beginPath();
+      c.moveTo(30, 40); c.lineTo(104, 40);
+      c.lineTo(30, 116); c.lineTo(104, 116);
+      c.stroke();
+      arrow(110, 116, 0);
+    }
     c.restore();
   }
 }
@@ -667,7 +858,9 @@ function enterStep() {
   wordStrip.innerHTML = '';
 
   if (s.type === 'learn') {
-    taskEl.innerHTML = `Copy the sign for <span class="g">${s.letter}</span>` +
+    taskEl.innerHTML = (LETTERS[s.letter].motion
+      ? `Sign <span class="g">${s.letter}</span> — hold the shape, then draw it in the air`
+      : `Copy the sign for <span class="g">${s.letter}</span>`) +
       (session.practice ? ' — free practice, leave whenever' : '');
     showRef(s.letter, true);
   } else if (s.type === 'quiz') {
@@ -680,6 +873,7 @@ function enterStep() {
     showRef(stepLetter(), false);
   }
   ringLetter.textContent = stepLetter();
+  session.motion = motionFor(stepLetter());
   const total = session.steps.length;
   barFill.style.width = `${(session.idx / total) * 100}%`;
   streakEl.textContent = session.streak > 1 ? `🔥${session.streak}` : '';
@@ -711,6 +905,7 @@ function passStep(now) {
     if (session.wordIdx < s.word.length) {
       dingWord();
       session.hold = 0;
+      session.motion = motionFor(stepLetter());
       ringLetter.textContent = stepLetter();
       showRef(stepLetter(), session.hintShown);
       renderWordStrip();
@@ -784,6 +979,12 @@ function updatePlay(now, dt) {
     showRef(stepLetter(), true);
   }
 
+  // motion letters (J/Z) go through the trace state machine instead of hold
+  if (LETTERS[stepLetter()].motion) {
+    updateMotion(now, dt, stepLetter());
+    return;
+  }
+
   if (!handVisible(now)) {
     session.hold = 0;
     setTips(now, [[false, 'show me one hand, palm to the camera 🖐']]);
@@ -817,6 +1018,11 @@ function setRing(t, good) {
 // Coaching: show the first 1-2 checks that have been failing for a moment
 // (TIP_STABLE_MS) so tips don't flicker as the hand moves between frames.
 let lastTipText = '';
+// direct text for the motion-letter guides ("slash ACROSS…")
+function setTipsRaw(text, ok) {
+  if (text !== lastTipText) { tipsEl.textContent = text; lastTipText = text; }
+  tipsEl.classList.toggle('ok', !!ok);
+}
 function setTips(now, rows, holdingOk = false) {
   if (holdingOk) {
     if (lastTipText !== 'hold') {
@@ -882,6 +1088,25 @@ function drawHand(map, now, good) {
   }
 }
 
+// fading ink trail of the fingertip while tracing a motion letter
+function drawTrail(map) {
+  const st = session && session.motion;
+  if (!map || !st || st.phase !== 'draw' || st.path.length < 2) return;
+  const X = (p) => map.ox + p.x * map.dw;
+  const Y = (p) => map.oy + p.y * map.dh;
+  const n = st.path.length;
+  ctx.lineCap = 'round';
+  for (let i = 1; i < n; i++) {
+    const a = st.path[i - 1], b = st.path[i];
+    ctx.strokeStyle = `rgba(255,207,90,${(0.85 * i) / n})`;
+    ctx.lineWidth = Math.max(3, canvas.height * 0.006) * (0.4 + (0.6 * i) / n);
+    ctx.beginPath();
+    ctx.moveTo(X(a), Y(a));
+    ctx.lineTo(X(b), Y(b));
+    ctx.stroke();
+  }
+}
+
 function drawDebug(now) {
   if (!debug || !session || session.idx >= session.steps.length || !handVisible(now)) return;
   let rows = [];
@@ -894,6 +1119,12 @@ function drawDebug(now) {
     ctx.fillStyle = pass ? 'rgba(125,255,138,0.9)' : 'rgba(255,143,143,0.9)';
     ctx.fillText(`${pass ? '✓' : '✗'} ${tip}`, x, y);
     y += lh;
+  }
+  const st = session.motion;
+  if (st) {
+    ctx.fillStyle = 'rgba(255,207,90,0.9)';
+    ctx.fillText(`phase:${st.phase} strokes:${st.strokes.length}` +
+      (st.cur ? ` cur(dx:${st.cur.dx.toFixed(2)} dy:${st.cur.dy.toFixed(2)} len:${st.cur.len.toFixed(2)})` : ''), x, y);
   }
 }
 
@@ -909,10 +1140,13 @@ function loop(now) {
       updatePlay(now, dt);
       holdOk = false;
       if (session && session.idx < session.steps.length && handVisible(now)) {
-        try { holdOk = checkLetter(stepLetter()).ok; } catch (e) {}
+        const t = stepLetter();
+        if (LETTERS[t].motion) holdOk = session.motion && session.motion.phase === 'draw';
+        else try { holdOk = checkLetter(t).ok; } catch (e) {}
       }
     }
     drawHand(map, now, holdOk);
+    drawTrail(map);
     drawDebug(now);
   } catch (err) {
     console.error('frame error (continuing):', err);
