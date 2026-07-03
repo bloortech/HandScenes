@@ -89,9 +89,6 @@ const SCENE_META = {
 // built yet show as dimmed "soon" cards so the categories read as a roadmap.
 const CATEGORIES = [
   { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }] },
-  { name: 'Explore', items: [
-    { href: '/toys/space/', title: '🛰 Space Museum', tag: 'Real NASA photos — Webb, Apollo, Mars, distant galaxies — float in the air. Pinch to grab one, flick to fling it, tap to read the real story.' },
-  ] },
   { name: 'Music', items: [
     { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
     { href: '/toys/ink/', title: '🖋 Water Ink', tag: 'Play drums (or any sound) and coloured ink drops swirl and bleed on paper — a different ink per drum.' },
@@ -102,6 +99,7 @@ const CATEGORIES = [
     { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
   ] },
   { name: 'Learn', items: [
+    { href: '/toys/space/', title: '🛰 Space Museum', tag: 'Real NASA photos — Webb, Apollo, Mars, distant galaxies — float in the air. Pinch to grab one, flick to fling it, tap to read the real story.' },
     { href: '/toys/asl/', title: '🤟 Sign School', tag: 'Learn the ASL fingerspelling alphabet, Duolingo-style — the camera reads your handshape and coaches you letter by letter. Earn XP, unlock lessons, spell real words.' },
   ] },
 ];
