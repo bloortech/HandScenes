@@ -94,16 +94,12 @@ const CATEGORIES = [
   ] },
   { name: 'Music', items: [
     { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
-  ] },
-  { name: 'Paint', items: [
     { href: '/toys/ink/', title: '🖋 Water Ink', tag: 'Play drums (or any sound) and coloured ink drops swirl and bleed on paper — a different ink per drum.' },
-    { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
   ] },
-  { name: 'Move', items: [
+  { name: 'Games', items: [
     { href: '/toys/jump/', title: '🏃 Jump Runner', tag: 'Body-tracked endless runner — you ARE the runner. Physically jump over the blocks, crouch under the fliers. Head + hips in frame is enough.' },
-  ] },
-  { name: 'Play', items: [
     { href: '/toys/pong/', title: '🏓 Hand Pong', tag: 'Play ping pong against the computer with your bare hand — move your palm to rally, flick to smash. First to 7 wins.' },
+    { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
   ] },
   { name: 'Learn', items: [
     { href: '/toys/asl/', title: '🤟 Sign School', tag: 'Learn the ASL fingerspelling alphabet, Duolingo-style — the camera reads your handshape and coaches you letter by letter. Earn XP, unlock lessons, spell real words.' },
