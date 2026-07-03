@@ -75,10 +75,13 @@ const SCENE_META = {
   4: {
     make: (r) => new CosmosScene(r, video),
     title: '🪐 Cosmos',
-    tag: 'Fly from a single planet out to a whole galaxy with one hand; tilt and pan the view with the other.',
+    tag: 'Fly from a single planet out to a whole galaxy with one hand; tilt and pan with the other. The asteroids, Sun flares and photos are real live NASA data.',
     body: '<span class="g">Right hand</span>: open your fist to zoom out, close ' +
       'to zoom in, move left/right to orbit. ' +
-      '<span class="g">Left hand</span>: up/down to tilt, left/right to pan.',
+      '<span class="g">Left hand</span>: up/down to tilt, left/right to pan. ' +
+      '<span class="g">Point</span> at an asteroid (real NEOs passing Earth this ' +
+      'week) to read it, or hit <span class="g">📷 TODAY IN SPACE</span> for the ' +
+      'day\'s real photos.',
   },
 };
 
@@ -86,6 +89,9 @@ const SCENE_META = {
 // built yet show as dimmed "soon" cards so the categories read as a roadmap.
 const CATEGORIES = [
   { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }] },
+  { name: 'Explore', items: [
+    { href: '/toys/space/', title: '🛰 Space Museum', tag: 'Real NASA photos — Webb, Apollo, Mars, distant galaxies — float in the air. Pinch to grab one, flick to fling it, tap to read the real story.' },
+  ] },
   { name: 'Music', items: [
     { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
   ] },
@@ -95,6 +101,9 @@ const CATEGORIES = [
   ] },
   { name: 'Move', items: [
     { href: '/toys/jump/', title: '🏃 Jump Runner', tag: 'Body-tracked endless runner — you ARE the runner. Physically jump over the blocks, crouch under the fliers. Head + hips in frame is enough.' },
+  ] },
+  { name: 'Play', items: [
+    { href: '/toys/pong/', title: '🏓 Hand Pong', tag: 'Play ping pong against the computer with your bare hand — move your palm to rally, flick to smash. First to 7 wins.' },
   ] },
   { name: 'Learn', items: [
     { href: '/toys/asl/', title: '🤟 Sign School', tag: 'Learn the ASL fingerspelling alphabet, Duolingo-style — the camera reads your handshape and coaches you letter by letter. Earn XP, unlock lessons, spell real words.' },
@@ -216,6 +225,15 @@ function buildControls() {
         if (c.rebuild) { buildControls(); return; }
         b.classList.toggle('on', on);
         b.textContent = `${c.label}: ${on ? 'ON' : 'OFF'}`;
+      });
+      wrap.appendChild(b);
+    } else if (c.type === 'button') {
+      const b = document.createElement('button');
+      b.className = 'toggle';
+      b.textContent = c.label;
+      b.addEventListener('click', () => {
+        track('control', { name: c.label, value: 'click' });
+        c.onClick();
       });
       wrap.appendChild(b);
     }

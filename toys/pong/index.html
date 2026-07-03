@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hand Pong — play ping pong with your hand</title>
+<link rel="stylesheet" href="/vendor/fonts/fonts.css">
+<style>
+  :root { --you: #ff9f1c; --ai: #38f9d7; --bg: #05070d; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg);
+    font-family: 'VT323', monospace; color: #eaf6ff; }
+  canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; }
+
+  #gate {
+    position: fixed; inset: 0; z-index: 20;
+    background: radial-gradient(circle at 50% 40%, #0c1424, #04060c 70%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; text-align: center; padding: 24px;
+  }
+  #gate h1 { font-family: 'Press Start 2P', monospace; font-size: 24px; color: var(--ai);
+    text-shadow: 0 0 16px rgba(56,249,215,0.55); margin: 0; line-height: 1.6; }
+  #gate h1 span { color: var(--you); text-shadow: 0 0 16px rgba(255,159,28,0.55); }
+  #gate p { font-size: 20px; opacity: 0.82; max-width: 460px; margin: 0; }
+  #start { font-family: 'Press Start 2P', monospace; font-size: 15px; cursor: pointer;
+    color: #04060c; background: var(--ai); border: 0; border-radius: 8px; padding: 15px 24px;
+    box-shadow: 0 0 22px rgba(56,249,215,0.6); animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow: 0 0 36px rgba(56,249,215,0.95); } }
+  #note { font-size: 17px; opacity: 0.55; max-width: 460px; }
+  #note.err { color: #ff9a9a; opacity: 0.95; }
+  #gate-loader { display: none; width: 250px; max-width: 80vw; height: 12px; overflow: hidden;
+    border: 2px solid rgba(56,249,215,0.45); border-radius: 4px; }
+  #gate-loader::before { content: ''; display: block; height: 100%; width: 38%;
+    background: var(--ai); box-shadow: 0 0 12px var(--ai); animation: scan 1.1s ease-in-out infinite; }
+  @keyframes scan { 0% { transform: translateX(-110%); } 100% { transform: translateX(285%); } }
+  #gate.loading #start { display: none; }
+  #gate.loading #gate-loader { display: block; }
+
+  #panel { position: fixed; top: 12px; right: 12px; z-index: 8; display: none;
+    flex-direction: column; gap: 9px; width: 190px; padding: 10px 12px;
+    background: rgba(8,14,24,0.82); border: 2px solid rgba(56,249,215,0.4);
+    border-radius: 8px; backdrop-filter: blur(3px); }
+  body.go #panel { display: flex; }
+  #panel h3 { margin: 0 0 2px; font-size: 17px; letter-spacing: 1px; color: var(--ai); }
+  .ctrl .row { display: flex; justify-content: space-between; font-size: 16px; }
+  .ctrl .row .val { opacity: 0.65; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 12px;
+    background: transparent; margin: 2px 0 0; }
+  input[type=range]::-webkit-slider-runnable-track { height: 3px; background: rgba(56,249,215,0.35); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 14px;
+    margin-top: -6px; background: var(--ai); cursor: pointer; }
+  .tog { font-family: 'VT323', monospace; font-size: 15px; cursor: pointer;
+    background: transparent; color: #eaf6ff; border: 1px solid rgba(56,249,215,0.4);
+    border-radius: 4px; padding: 3px 6px; }
+  .tog.on { background: var(--ai); color: #04060c; }
+</style>
+</head>
+<body>
+  <a href="/" title="back to HandScenes" style="position:fixed;top:10px;left:10px;z-index:9999;font-family:'VT323',monospace;font-size:16px;color:#04120e;background:#38f9d7;border-radius:6px;padding:6px 11px;text-decoration:none;box-shadow:0 0 12px rgba(56,249,215,0.5);opacity:0.9">← SCENES</a>
+  <div id="gate">
+    <h1>HAND <span>PONG</span></h1>
+    <p>Your hand is the paddle. Move it up and down to rally, and flick to smash. First to 7 wins. Runs in your browser; nothing is uploaded.</p>
+    <button id="start">▶ PRESS START</button>
+    <div id="gate-loader" aria-hidden="true"></div>
+    <small id="note">you'll be asked for camera access — click allow</small>
+  </div>
+
+  <video id="cam" autoplay muted playsinline style="display:none"></video>
+  <canvas id="game"></canvas>
+
+  <div id="panel">
+    <h3>HAND PONG</h3>
+    <div class="ctrl"><div class="row"><span>DIFFICULTY</span><span class="val" id="v-diff"></span></div>
+      <input type="range" id="diff" min="1" max="5" step="1"></div>
+    <div class="ctrl"><div class="row"><span>PADDLE</span><span class="val" id="v-size"></span></div>
+      <input type="range" id="size" min="70" max="170" step="10"></div>
+    <button class="tog on" id="cam-tog">CAMERA: ON</button>
+    <button class="tog on" id="sound">SOUND: ON</button>
+  </div>
+
+  <script type="module" src="sketch.js"></script>
+</body>
+</html>
