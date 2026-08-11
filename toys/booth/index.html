@@ -61,7 +61,11 @@
     text-decoration: none; font-size: 15px; }
   #bar label { display: flex; align-items: center; gap: 7px; opacity: 0.85; letter-spacing: 1px; }
   #bar b { font-weight: normal; opacity: 0.6; min-width: 34px; }
-  #bar .spacer { flex: 1; }
+  /* live plain-English description of whatever the pointer is over */
+  #hint { flex: 1; min-width: 0; font-size: 18px; line-height: 1.15; padding: 0 14px;
+    color: var(--voice); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #hint.idle { color: var(--ink); opacity: 0.4; }
+  @media (max-width: 860px) { #hint { display: none; } }
   #bar select { font-family: 'VT323', monospace; font-size: 16px; background: transparent;
     color: var(--ink); border: 1px solid rgba(232,236,244,0.28); border-radius: 4px; padding: 1px 4px; }
   #bar select option { background: #12111c; }
@@ -122,24 +126,26 @@
       </select>
     </label>
     <label>VOL <input type="range" id="vol" min="-30" max="0" step="1"><b id="v-vol"></b></label>
-    <div class="spacer"></div>
+    <div id="hint"></div>
     <button id="play" class="on">■ STOP</button>
     <button id="help">? HELP</button>
   </div>
 
   <div id="help-card">
     <h4>HOW TO PLAY</h4>
-    <p>Your index fingertip is the cursor — up to two hands, one per deck. <em>Hold still</em> on a
-      control to arm it; moving fast passes straight over.</p>
-    <p><em>DRUMS</em> hold a cell to switch that step on or off.</p>
-    <p><em>CHORDS</em> hold a pad to latch it — it keeps ringing while you go play the drums.</p>
-    <p><em>VOICE</em> MIC unmutes (it was granted at the start screen, so there's no prompt),
-      TUNE snaps your voice to the key, REC counts in a bar then captures two and loops them.
-      <em>Wear headphones</em> or the mic will howl.</p>
-    <p><em>DJ</em> move a hand around the pad — left/right sweeps the filter, up adds delay + reverb.
-      It stays where you left it.</p>
-    <p>Mouse works everywhere too. Keys: <em>space</em> play/stop, <em>r</em> reset the filter,
-      <em>x</em> clear the drums.</p>
+    <p><em>Point at any control</em> and the bar along the top says, in plain words, what it does.
+      Nothing here can break — try things.</p>
+    <p><em>Click</em> to work the three left/top decks. Only the <em>DJ pad</em> reads your hands:
+      wave a hand around it and the whole mix changes.</p>
+    <p><b>A first go:</b> pick a beat with <em>GROOVE</em>, hold a chord pad, then sweep your hand
+      across the DJ pad. That's a track.</p>
+    <p><em>DRUMS</em> each row is one drum, each column a beat. Lit squares play.</p>
+    <p><em>CHORDS</em> click a pad to hold it; it keeps ringing while you do other things.
+      All eight fit the key, so none can sound wrong.</p>
+    <p><em>VOICE</em> MIC unmutes you (already permitted at the start screen — no prompt).
+      Push <em>GAIN</em> until the meter moves, <em>TUNE</em> pulls you onto the right notes,
+      <em>REC</em> counts in a bar then loops the next two. <em>Wear headphones</em> or it will howl.</p>
+    <p>Keys: <em>space</em> play/stop, <em>r</em> reset the filter, <em>x</em> clear the drums.</p>
   </div>
 
   <div id="toast"></div>

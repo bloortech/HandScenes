@@ -290,6 +290,7 @@ const LOOP_BARS = 2;
 V.tune = 0.85; V.recPhase = 'idle'; V.recBars = 0; V.level = 0; V.f0 = -1; V.snapped = null;
 V.blocks = []; V.startFrame = 0; V.fromFrame = 0; V.needSamples = 0;
 V.player = null; V.loopOn = false; V.loopPending = false; V.finish = false; V.collect = false;
+V.gainAmt = 6;      // mic preamp; laptop mics need a lot of it
 V.ready = false;    // the chain exists (permission was granted at the gate)
 V.canRec = false;   // the recorder worklet loaded
 V.denied = false;   // permission was refused, so there is nothing to switch on
@@ -352,18 +353,24 @@ async function buildVoice(stream) {
   V.stream = stream;
   V.src = raw.createMediaStreamSource(stream);
 
+  // Laptop mics run very quiet. The preamp sits FIRST so the pitch tracker and
+  // the meter see the boosted signal too, not just the speakers.
+  V.boost = new Tone.Gain(V.gainAmt);
   V.hp = new Tone.Filter(95, 'highpass');
-  V.comp = new Tone.Compressor({ threshold: -24, ratio: 3, attack: 0.005, release: 0.12 });
+  V.comp = new Tone.Compressor({ threshold: -34, ratio: 5, attack: 0.004, release: 0.12 });
+  V.makeup = new Tone.Gain(2.2);
   V.shift = new Tone.PitchShift({ pitch: 0, windowSize: 0.055, delayTime: 0, wet: 1 });
   V.mixer = new Tone.CrossFade(0);                  // a = raw, b = tuned
   V.gain = new Tone.Gain(0).connect(A.voice);       // silent until MIC is switched on
   V.wave = new Tone.Analyser('waveform', 2048);
 
-  Tone.connect(V.src, V.hp);
+  Tone.connect(V.src, V.boost);
+  V.boost.connect(V.hp);
   V.hp.connect(V.wave);
   V.hp.connect(V.comp);
-  V.comp.connect(V.mixer.a);
-  V.comp.connect(V.shift);
+  V.comp.connect(V.makeup);
+  V.makeup.connect(V.mixer.a);
+  V.makeup.connect(V.shift);
   V.shift.connect(V.mixer.b);
   V.mixer.connect(V.gain);
   V.mixer.fade.value = V.tune > 0.05 ? 1 : 0;
@@ -420,6 +427,14 @@ function finishCapture() {
   }
   V.blocks = [];
   if (written < V.needSamples * 0.5) { toast('recording came up short — try again'); return; }
+
+  // Normalise. A quiet take is the usual outcome on a laptop mic, and a loop
+  // you can't hear reads as "it didn't record".
+  let peak = 0;
+  for (let i = 0; i < out.length; i++) { const a = Math.abs(out[i]); if (a > peak) peak = a; }
+  if (peak < 0.002) { toast('that came out silent — raise GAIN and try again'); return; }
+  const norm = Math.min(12, 0.9 / peak);
+  if (norm > 1) for (let i = 0; i < out.length; i++) out[i] *= norm;
 
   const ab = raw.createBuffer(1, V.needSamples, raw.sampleRate);
   ab.copyToChannel(out, 0);
@@ -480,6 +495,7 @@ let landmarker = null, lastVideoTime = -1, camOk = false;
 const slots = new Map();                            // handedness label -> smoothed tip
 let cursors = [];
 const mouse = { x: 0, y: 0, down: false };
+const hoverPt = { x: -1, y: -1 };     // pointer position regardless of buttons, for hints
 
 function detect() {
   if (!landmarker || !video.videoWidth) return;
@@ -527,12 +543,27 @@ const inRect = (r, c) => c.x >= r.x && c.x <= r.x + r.w && c.y >= r.y && c.y <= 
 const presses = new Map();
 let dt = 0;
 
+// Hands drive the DJ pad only. Aiming a fingertip at a small tile is fiddly and
+// the grids are far easier to click, but sweeping a filter is exactly what a
+// hand is good at — so this is true only while the DJ deck is drawing.
+let allowHands = false;
+// Plain-English label for whatever the pointer is over, shown up in the bar.
+let hint = '';
+function tellHint(r, tip) {
+  if (!tip) return;
+  if (inRect(r, hoverPt)) { hint = tip; return; }
+  if (!allowHands) return;
+  for (const c of cursors) if (c.hand && inRect(r, c)) { hint = tip; return; }
+}
+
 // Dwell-to-arm. Fires once per entry; a mouse click fires immediately. A fast
 // blip only PAUSES the fill rather than clearing it — tracking jitter would
 // otherwise keep resetting a dwell you were halfway through.
-function press(key, r, need = 0.26) {
+function press(key, r, need = 0.26, tip) {
+  tellHint(r, tip);
   let inside = false, moving = true, instant = false;
   for (const c of cursors) {
+    if (c.hand && !allowHands) continue;
     if (!inRect(r, c)) continue;
     inside = true;
     if (c.slow) moving = false;
@@ -552,9 +583,13 @@ function press(key, r, need = 0.26) {
 // somewhere else would yank the filter with it — but once engaged you can move
 // as fast as you like, which is the opposite of the dwell rule above.
 const grabs = new Map();
-function grab(key, r, settle = 0.14) {
+function grab(key, r, settle = 0.14, tip) {
+  tellHint(r, tip);
   let hit = null;
-  for (const c of cursors) if (inRect(r, c)) { hit = c; break; }
+  for (const c of cursors) {
+    if (c.hand && !allowHands) continue;
+    if (inRect(r, c)) { hit = c; break; }
+  }
   let g = grabs.get(key);
   if (!g) { g = { t: 0 }; grabs.set(key, g); }
   if (!hit) { g.t = 0; return null; }
@@ -649,9 +684,19 @@ function slider(r, v, col, label) {
 }
 
 // ---- decks ---------------------------------------------------------------
+// deck title plus a plain-language line saying what the panel is for
+function deckHead(f, col, title, sub, tag) {
+  ctx.font = '15px "Press Start 2P", monospace';
+  const tw = ctx.measureText(title).width;
+  text(title, f.tx, f.ty, 15, rgba(col, 0.85), 'left', 'top', 'Press Start 2P');
+  if (tag) text(tag, f.tx + f.body.w, f.ty + 3, 17, rgba(col, 0.5), 'right', 'top');
+  // the subtitle is the first thing to go when a quadrant gets narrow
+  if (f.body.w > 400) text(sub, f.tx + tw + 12, f.ty + 3, 17, rgba(COL.ink, 0.4), 'left', 'top');
+}
+
 function deckDrums(q) {
   const f = frame(q), col = q.col;
-  text('DRUMS', f.tx, f.ty, 15, rgba(col, 0.85), 'left', 'top', 'Press Start 2P');
+  deckHead(f, col, 'DRUMS', 'the beat — click squares');
 
   const labW = Math.min(52, f.body.w * 0.13);
   const gridR = { x: f.body.x + labW, y: f.body.y, w: f.body.w - labW, h: f.body.h };
@@ -664,7 +709,9 @@ function deckDrums(q) {
 
   for (const c of cells) {
     const r = c.r, s = c.c;
-    const st = press('d' + r + '-' + s, c, 0.38);
+    const st = press('d' + r + '-' + s, c, 0.38,
+      'Click a square to make the ' + ROW_META[r].name + ' hit on beat ' + (s / 2 + 1).toFixed(1).replace('.0', '') +
+      ' of the bar. Lit squares play; the bar sweeps left to right.');
     if (st.fired) pattern[r][s] = !pattern[r][s];
     const live = pattern[r][s] && s === playStep;
     if (live) { ctx.save(); ctx.shadowColor = rgba(col, 0.9); ctx.shadowBlur = 18; }
@@ -692,31 +739,34 @@ function deckDrums(q) {
   }
 
   const [kb, pb, cb] = row(f.foot, 3);
-  const k = press('kit', kb); if (k.fired) { kitIdx = (kitIdx + 1) % KIT_NAMES.length; loadKit(KIT_NAMES[kitIdx]); }
+  const k = press('kit', kb, 0.26, 'KIT — which drum machine the sounds come from. 808 is deep and boomy, 909 punchier, acoustic is a real-ish kit.');
+  if (k.fired) { kitIdx = (kitIdx + 1) % KIT_NAMES.length; loadKit(KIT_NAMES[kitIdx]); }
   tile(kb, KIT_NAMES[kitIdx], { col, p: k.p, hot: k.hot, sub: 'KIT' });
-  const pr = press('preset', pb);
+  const pr = press('preset', pb, 0.26, 'GROOVE — drop in a ready-made beat. Click again for the next one. Good place to start, then edit the squares.');
   if (pr.fired) { presetIdx = (presetIdx + 1) % PRESETS.length; loadPreset(presetIdx); }
   tile(pb, PRESETS[presetIdx].name, { col, p: pr.p, hot: pr.hot, sub: 'GROOVE' });
-  const cl = press('clr', cb); if (cl.fired) clearDrums();
+  const cl = press('clr', cb, 0.26, 'CLEAR — switch every drum square off and start the beat from scratch.');
+  if (cl.fired) clearDrums();
   tile(cb, 'CLEAR', { col, p: cl.p, hot: cl.hot });
 }
 
 function deckSynth(q) {
   const f = frame(q), col = q.col;
   const keyName = NOTE_NAMES[rootPc] + (mode === 'minor' ? ' minor' : ' major');
-  text('CHORDS', f.tx, f.ty, 15, rgba(col, 0.85), 'left', 'top', 'Press Start 2P');
-  text(keyName, f.tx + f.body.w, f.ty + 2, 18, rgba(col, 0.5), 'right', 'top');
+  deckHead(f, col, 'CHORDS', 'the tune — click a pad to hold it', keyName);
 
   const cells = gridCells(f.body, 4, 2, 8);
   cells.forEach((c, i) => {
     const ch = chordAt(i);
-    const st = press('ch' + i, c, 0.24);
+    const st = press('ch' + i, c, 0.24,
+      ch.name + ' — click to hold this chord; it keeps ringing while you go do something else. ' +
+      'Click it again to stop. All eight belong to the key, so none of them can sound wrong.');
     if (st.fired) selectChord(i);
     tile(c, ch.label, { col, on: heldChord === i, p: st.p, hot: st.hot, sub: ch.name, size: 26 });
   });
 
   const [wb, ab, bb] = row(f.foot, 3);
-  const w = press('wave', wb);
+  const w = press('wave', wb, 0.26, 'WAVE — the flavour of the synth. SAW is bright and buzzy, SQR is hollow and video-gamey, SOFT is a mellow pad.');
   if (w.fired) {
     waveIdx = (waveIdx + 1) % WAVES.length;
     A.synth.set({ oscillator: WAVES[waveIdx].set });
@@ -728,10 +778,10 @@ function deckSynth(q) {
     }
   }
   tile(wb, WAVES[waveIdx].label, { col, p: w.p, hot: w.hot, sub: 'WAVE' });
-  const ar = press('arp', ab);
+  const ar = press('arp', ab, 0.26, 'ARP — instead of holding the chord as one block, plays its notes one at a time in time with the beat.');
   if (ar.fired) { arpOn = !arpOn; releaseChord(); arpIdx = 0; attackHeld(); }
   tile(ab, 'ARP', { col, on: arpOn, p: ar.p, hot: ar.hot });
-  const bs = press('bass', bb);
+  const bs = press('bass', bb, 0.26, 'BASS — add a deep bass note underneath whatever chord is held. Usually leave this on.');
   if (bs.fired) {
     bassOn = !bassOn;
     if (!bassOn) { try { A.bass.triggerRelease(); } catch (e) { /* noop */ } }
@@ -742,11 +792,10 @@ function deckSynth(q) {
 
 function deckVoice(q) {
   const f = frame(q), col = q.col;
-  text('VOICE', f.tx, f.ty, 15, rgba(col, 0.85), 'left', 'top', 'Press Start 2P');
-  if (V.on) text('🎧 use headphones', f.tx + f.body.w, f.ty + 2, 17, rgba(col, 0.45), 'right', 'top');
+  deckHead(f, col, 'VOICE', 'sing over it', V.on ? '🎧 headphones!' : '');
 
-  const tuneH = Math.min(38, f.body.h * 0.3), gapT = 9;
-  const scopeH = f.body.h - tuneH - gapT;
+  const sliderH = Math.min(30, f.body.h * 0.2), gapT = 7;
+  const scopeH = f.body.h - sliderH * 2 - gapT * 2;
   const scope = { x: f.body.x, y: f.body.y, w: f.body.w, h: scopeH };
   roundRect(scope, 6); ctx.fillStyle = rgba(col, 0.05); ctx.fill();
   roundRect(scope, 6); ctx.strokeStyle = rgba(col, 0.25); ctx.lineWidth = 1; ctx.stroke();
@@ -784,12 +833,29 @@ function deckVoice(q) {
     const msg = V.recPhase === 'countin' ? 'REC IN ' + (4 - Math.floor(playStep / 2)) : '● REC';
     text(msg, scope.x + 10, scope.y + 12, 22, rgba(V.recPhase === 'rec' ? [255, 90, 90] : col, 0.95), 'left', 'top');
   }
-  // level
-  ctx.fillStyle = rgba(col, 0.5);
-  ctx.fillRect(scope.x + 8, scope.y + scope.h - 7, (scope.w - 16) * Math.min(1, V.level * 6), 3);
+  // input meter — turns green when there's enough signal to track a pitch
+  if (V.on) {
+    const lvl = Math.min(1, V.level * 6);
+    ctx.fillStyle = rgba(COL.ink, 0.12);
+    ctx.fillRect(scope.x + 8, scope.y + scope.h - 8, scope.w - 16, 4);
+    ctx.fillStyle = V.level > 0.02 ? 'rgba(120,235,140,0.85)' : rgba(col, 0.5);
+    ctx.fillRect(scope.x + 8, scope.y + scope.h - 8, (scope.w - 16) * lvl, 4);
+    if (V.level < 0.012) {
+      text('too quiet — raise GAIN', scope.x + scope.w / 2, scope.y + scope.h - 16, 17,
+        rgba(col, 0.6), 'center', 'bottom');
+    }
+  }
 
-  const tuneR = { x: f.body.x, y: scope.y + scopeH + gapT, w: f.body.w, h: tuneH };
-  const g = grab('tune', tuneR);
+  const gainR = { x: f.body.x, y: scope.y + scopeH + gapT, w: f.body.w, h: sliderH };
+  const gg = grab('gain', gainR, 0.14, 'GAIN — how hard your mic is boosted. If the green meter barely moves, push this up.');
+  if (gg) {
+    V.gainAmt = 1 + clamp01((gg.x - gainR.x) / gainR.w) * 19;    // 1x .. 20x
+    if (V.ready) V.boost.gain.rampTo(V.gainAmt, 0.05);
+  }
+  slider(gainR, (V.gainAmt - 1) / 19, col, 'GAIN ' + V.gainAmt.toFixed(0) + '×');
+
+  const tuneR = { x: f.body.x, y: gainR.y + sliderH + gapT, w: f.body.w, h: sliderH };
+  const g = grab('tune', tuneR, 0.14, 'TUNE — drags your singing onto the nearest note of the key. Left is your natural voice, right is full robot.');
   if (g) {
     V.tune = clamp01((g.x - tuneR.x) / tuneR.w);
     if (V.on) V.mixer.fade.value = V.tune > 0.05 ? 1 : 0;
@@ -797,10 +863,10 @@ function deckVoice(q) {
   slider(tuneR, V.tune, col, 'TUNE ' + (V.tune < 0.05 ? 'off' : Math.round(V.tune * 100) + '%'));
 
   const [mb, rb, lb, cb] = row(f.foot, 4);
-  const m = press('mic', mb);
+  const m = press('mic', mb, 0.26, 'MIC — unmute your voice. Permission was already given at the start screen, so this is instant. Wear headphones.');
   if (m.fired) toggleMic();
   tile(mb, 'MIC', { col, on: V.on, p: m.p, hot: m.hot });
-  const rc = press('rec', rb);
+  const rc = press('rec', rb, 0.26, 'REC — counts you in for one bar, then records the next two bars of singing and starts looping it.');
   if (rc.fired) {
     if (!V.on) toast('switch the mic on first');
     else if (!V.canRec) toast('recording is unavailable in this browser');
@@ -809,21 +875,23 @@ function deckVoice(q) {
   }
   tile(rb, V.recPhase === 'idle' ? 'REC' : V.recPhase === 'rec' ? '●' : '…',
     { col: V.recPhase === 'rec' ? [255, 90, 90] : col, on: V.recPhase !== 'idle', p: rc.p, hot: rc.hot });
-  const lp = press('loop', lb);
+  const lp = press('loop', lb, 0.26, 'LOOP — play the phrase you recorded over and over, in time with the beat.');
   if (lp.fired) setLoop(!V.loopOn);
   tile(lb, 'LOOP', { col, on: V.loopOn, p: lp.p, hot: lp.hot });
-  const cl = press('vclr', cb);
+  const cl = press('vclr', cb, 0.26, 'CLR — throw the recorded phrase away so you can sing a new one.');
   if (cl.fired) clearLoop();
   tile(cb, 'CLR', { col, p: cl.p, hot: cl.hot });
 }
 
 function deckDj(q) {
   const f = frame(q), col = q.col;
-  text('DJ', f.tx, f.ty, 15, rgba(col, 0.85), 'left', 'top', 'Press Start 2P');
+  deckHead(f, col, 'DJ', 'shape the whole mix', '✋ hands work here');
 
   const xfH = 30, gap = 9;
   const pad = { x: f.body.x, y: f.body.y, w: f.body.w, h: f.body.h - xfH - gap };
-  const g = grab('xy', pad);
+  const g = grab('xy', pad, 0.14,
+    'Move your hand (or drag) around this pad. LEFT muffles everything like it is behind a wall, RIGHT thins it out ' +
+    'to a tinny radio, MIDDLE is normal. UP adds echo and space. It stays where you leave it.');
   if (g) {
     filtX = clamp01((g.x - pad.x) / pad.w);
     fxY = clamp01(1 - (g.y - pad.y) / pad.h);
@@ -855,7 +923,8 @@ function deckDj(q) {
   text('FX ▲', pad.x + 8, pad.y + 8, 16, rgba(col, 0.4), 'left', 'top');
 
   const xf = { x: f.body.x, y: pad.y + pad.h + gap, w: f.body.w, h: xfH };
-  const gx = grab('xfade', xf);
+  const gx = grab('xfade', xf, 0.14,
+    'CROSSFADER — slide between drums only (left) and chords only (right). Middle plays both. Your voice is never faded out.');
   if (gx) { xfade = clamp01((gx.x - xf.x) / xf.w); applyXfade(); }
   roundRect(xf, 4); ctx.fillStyle = rgba(col, 0.06); ctx.fill();
   ctx.save(); roundRect(xf, 4); ctx.clip();
@@ -872,10 +941,12 @@ function deckDj(q) {
   const [sb, db] = row(f.foot, 2);
   // stutter is momentary — hold your hand on it and the beat repeats, take it
   // away and the bar carries on, which is how you'd actually use a beat-repeat
-  const sHot = !!grab('stut', sb, 0.12);
+  const sHot = !!grab('stut', sb, 0.12,
+    'STUTTER — hold your hand here (or hold the mouse down) and the last half-beat repeats fast, like a stuck record. Let go and the beat carries on.');
   if (sHot !== stutter) setStutter(sHot);
   tile(sb, 'STUTTER', { col, on: stutter, hot: sHot });
-  const dp = press('drop', db);
+  const dp = press('drop', db, 0.26,
+    'DROP — cuts everything to silence for half a bar, then slams back in with the filter reset. The classic build-up trick.');
   if (dp.fired) fireDrop();
   tile(db, 'DROP', { col, on: dropLeft > 0, p: dp.p, hot: dp.hot });
 }
@@ -924,7 +995,13 @@ function loop() {
   }
 
   const qs = quads(W, H);
-  deckDrums(qs[0]); deckSynth(qs[1]); deckVoice(qs[2]); deckDj(qs[3]);
+  hint = '';
+  allowHands = false;
+  deckDrums(qs[0]); deckSynth(qs[1]); deckVoice(qs[2]);
+  allowHands = true;                    // hands only reach the DJ deck
+  deckDj(qs[3]);
+  allowHands = false;
+  showHint(hint);
 
   // quadrant seams
   ctx.strokeStyle = rgba(COL.ink, 0.12); ctx.lineWidth = 1;
@@ -938,17 +1015,32 @@ function loop() {
     ctx.fillRect(0, BAR_H, W, H - BAR_H);
   }
 
+  // Hand cursors: bright over the DJ deck where they do something, faint
+  // elsewhere so it's obvious the other decks are waiting for a click.
   for (const c of cursors) {
     if (!c.hand) continue;
-    ctx.strokeStyle = rgba(COL.ink, c.slow ? 0.95 : 0.4);
-    ctx.lineWidth = 2.4;
+    const live = inRect(qs[3], c);
+    const col = live ? COL.dj : COL.ink;
+    ctx.strokeStyle = rgba(col, live ? (c.slow ? 0.95 : 0.5) : 0.16);
+    ctx.lineWidth = live ? 2.4 : 1.2;
     ctx.beginPath(); ctx.arc(c.x, c.y, c.slow ? 12 : 17, 0, Math.PI * 2); ctx.stroke();
-    ctx.fillStyle = rgba(COL.ink, 0.9);
+    ctx.fillStyle = rgba(col, live ? 0.9 : 0.16);
     ctx.beginPath(); ctx.arc(c.x, c.y, 2.6, 0, Math.PI * 2); ctx.fill();
   }
 }
 
 // ---- ui wiring -----------------------------------------------------------
+const IDLE_HINT = 'Point at any control to read what it does. Only the DJ pad uses your hands — everything else is click.';
+let lastHint = null;
+const hintEl = document.getElementById('hint');
+function showHint(h) {
+  const t = h || IDLE_HINT;
+  if (t === lastHint) return;             // don't touch the DOM 60x a second
+  lastHint = t;
+  hintEl.textContent = t;
+  hintEl.classList.toggle('idle', !h);
+}
+
 let toastT = 0;
 function toast(msg) {
   toastEl.textContent = msg;
@@ -1009,7 +1101,10 @@ function wireBar() {
   helpBtn.addEventListener('click', () => card.classList.toggle('show'));
 
   cv.addEventListener('mousedown', (e) => { mouse.down = true; mouse.x = e.clientX; mouse.y = e.clientY; });
-  window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });
+  window.addEventListener('mousemove', (e) => {
+    mouse.x = e.clientX; mouse.y = e.clientY;
+    hoverPt.x = e.clientX; hoverPt.y = e.clientY;
+  });
   window.addEventListener('mouseup', () => { mouse.down = false; });
   cv.addEventListener('touchstart', (e) => { const t = e.touches[0]; mouse.down = true; mouse.x = t.clientX; mouse.y = t.clientY; }, { passive: true });
   cv.addEventListener('touchmove', (e) => { const t = e.touches[0]; mouse.x = t.clientX; mouse.y = t.clientY; }, { passive: true });
