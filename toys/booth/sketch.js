@@ -288,8 +288,11 @@ function applyXfade() { A.xfade.fade.rampTo(xfade, 0.06); }
 // ---- vocal booth ---------------------------------------------------------
 const LOOP_BARS = 2;
 V.tune = 0.85; V.recPhase = 'idle'; V.recBars = 0; V.level = 0; V.f0 = -1; V.snapped = null;
-V.chunks = []; V.times = []; V.chunkSize = 2048; V.targetTime = 0; V.needSamples = 0;
+V.blocks = []; V.startFrame = 0; V.fromFrame = 0; V.needSamples = 0;
 V.player = null; V.loopOn = false; V.loopPending = false; V.finish = false; V.collect = false;
+V.ready = false;    // the chain exists (permission was granted at the gate)
+V.canRec = false;   // the recorder worklet loaded
+V.denied = false;   // permission was refused, so there is nothing to switch on
 let curShift = 0;
 
 function snapMidi(m) {
@@ -341,83 +344,85 @@ function detectPitch(buf, sr) {
   return { f: sr / lag, rms };
 }
 
-async function openMic() {
+// Built once at boot from the stream the START click already got permission
+// for. Asking for the mic later — when a hand dwells on the MIC tile — has no
+// user gesture behind it, so the browser blocks the request outright.
+async function buildVoice(stream) {
   const raw = Tone.getContext().rawContext;
-  // Tone.UserMedia opens the stream with echo-cancellation and noise-suppression
-  // OFF, which is exactly what a pitch tracker wants (and exactly why you need
-  // headphones — the speakers will otherwise feed straight back in).
-  V.mic = new Tone.UserMedia();
-  await V.mic.open();
+  V.stream = stream;
+  V.src = raw.createMediaStreamSource(stream);
 
   V.hp = new Tone.Filter(95, 'highpass');
   V.comp = new Tone.Compressor({ threshold: -24, ratio: 3, attack: 0.005, release: 0.12 });
   V.shift = new Tone.PitchShift({ pitch: 0, windowSize: 0.055, delayTime: 0, wet: 1 });
   V.mixer = new Tone.CrossFade(0);                  // a = raw, b = tuned
-  V.gain = new Tone.Gain(0.9).connect(A.voice);
+  V.gain = new Tone.Gain(0).connect(A.voice);       // silent until MIC is switched on
   V.wave = new Tone.Analyser('waveform', 2048);
 
-  V.mic.connect(V.hp);
+  Tone.connect(V.src, V.hp);
   V.hp.connect(V.wave);
   V.hp.connect(V.comp);
   V.comp.connect(V.mixer.a);
   V.comp.connect(V.shift);
   V.shift.connect(V.mixer.b);
   V.mixer.connect(V.gain);
-
-  // A tap for the loop recorder. ScriptProcessor is deprecated but universally
-  // present, and it gives us a sample counter we can line up with the bar —
-  // MediaRecorder's start latency would smear the loop point.
-  V.chunkSize = 2048;
-  V.tap = raw.createScriptProcessor(V.chunkSize, 1, 1);
-  V.sink = raw.createGain(); V.sink.gain.value = 0;
-  V.gain.connect(V.tap);
-  V.tap.connect(V.sink); V.sink.connect(raw.destination);
-  V.tap.onaudioprocess = (e) => {
-    if (!V.collect) return;
-    const inp = e.inputBuffer.getChannelData(0);
-    // stamp every chunk with its place on the audio clock, so the downbeat can
-    // later be found to the sample instead of to the nearest 2048-frame block
-    V.times.push(typeof e.playbackTime === 'number' ? e.playbackTime : raw.currentTime);
-    V.chunks.push(new Float32Array(inp));
-    if (V.chunks.length * V.chunkSize >= V.needSamples + V.chunkSize * 4) V.finish = true;
-  };
-  V.on = true;
   V.mixer.fade.value = V.tune > 0.05 ? 1 : 0;
+
+  // Loop-recorder tap, on an audio worklet. Tapping the processed voice
+  // pre-mute keeps the captured level independent of the monitor volume.
+  try {
+    await raw.audioWorklet.addModule('rec-tap.js');
+    V.tap = new AudioWorkletNode(raw, 'rec-tap', { numberOfInputs: 1, numberOfOutputs: 1 });
+    V.sink = raw.createGain(); V.sink.gain.value = 0;
+    V.mixer.connect(V.tap);
+    V.tap.connect(V.sink); V.sink.connect(raw.destination);
+    V.tap.port.onmessage = (e) => {
+      if (!V.collect) return;
+      V.blocks.push(e.data);
+      if (e.data.f + e.data.d.length >= V.fromFrame + V.needSamples) V.finish = true;
+    };
+    V.canRec = true;
+  } catch (e) {
+    V.canRec = false;                               // singing still works, looping doesn't
+  }
+  V.ready = true;
 }
 
 function beginCapture(time) {
   const raw = Tone.getContext().rawContext;
-  V.needSamples = Math.round(LOOP_BARS * 4 * (60 / Tone.Transport.bpm.value) * raw.sampleRate);
+  const sr = raw.sampleRate;
+  V.needSamples = Math.round(LOOP_BARS * 4 * (60 / Tone.Transport.bpm.value) * sr);
   V.recBpm = Tone.Transport.bpm.value;
   V.recPhase = 'rec'; V.recBars = 0;
-  V.chunks = []; V.times = []; V.collect = true; V.finish = false;
-  V.targetTime = time;               // audio-clock time of the downbeat we start on
+  V.blocks = []; V.collect = true; V.finish = false;
+  // `time` is an audio-clock timestamp and the worklet stamps blocks with
+  // frames on that same clock, so the downbeat is a plain frame index. The
+  // tuned signal arrives one pitch-shift window late, so slide the cut forward.
+  V.startFrame = Math.round(time * sr);
+  V.fromFrame = V.startFrame + (V.tune > 0.05 ? Math.round(0.055 * sr) : 0);
+  if (V.tap) V.tap.port.postMessage({ on: true });
 }
 
 function finishCapture() {
   const raw = Tone.getContext().rawContext;
-  const sr = raw.sampleRate;
   V.collect = false; V.recPhase = 'idle'; V.finish = false;
-  const total = V.chunks.reduce((n, c) => n + c.length, 0);
-  const all = new Float32Array(total);
-  let o = 0; for (const c of V.chunks) { all.set(c, o); o += c.length; }
+  if (V.tap) V.tap.port.postMessage({ on: false });
 
-  // walk the stamped chunks to find the sample sitting exactly on the downbeat
-  let start = 0;
-  for (let i = 0; i < V.times.length; i++) {
-    if (V.times[i] <= V.targetTime) start = i * V.chunkSize + Math.round((V.targetTime - V.times[i]) * sr);
+  // drop each stamped block into place; gaps stay silent rather than shifting
+  const out = new Float32Array(V.needSamples);
+  let written = 0;
+  for (const b of V.blocks) {
+    const off = b.f - V.fromFrame;
+    if (off + b.d.length <= 0 || off >= out.length) continue;
+    const from = Math.max(0, -off), to = Math.max(0, off);
+    const n = Math.min(b.d.length - from, out.length - to);
+    if (n > 0) { out.set(b.d.subarray(from, from + n), to); written += n; }
   }
-  V.chunks = []; V.times = [];
-  // the tuned signal arrives one pitch-shift window late, so slide the window on
-  const lat = V.tune > 0.05 ? Math.round(0.055 * sr) : 0;
-  const from = Math.max(0, Math.min(total, start + lat));
-  const slice = all.subarray(from, from + V.needSamples);
-  if (slice.length < V.needSamples * 0.5) { toast('recording came up short — try again'); return; }
+  V.blocks = [];
+  if (written < V.needSamples * 0.5) { toast('recording came up short — try again'); return; }
 
-  const take = new Float32Array(V.needSamples);   // pad with silence if we ran out
-  take.set(slice.subarray(0, Math.min(slice.length, V.needSamples)));
   const ab = raw.createBuffer(1, V.needSamples, raw.sampleRate);
-  ab.copyToChannel(take, 0);
+  ab.copyToChannel(out, 0);
 
   if (V.player) { try { V.player.stop(); V.player.dispose(); } catch (e) { /* noop */ } }
   V.player = new Tone.Player(ab).connect(A.voice);
@@ -436,12 +441,13 @@ function setLoop(on) {
 function clearLoop() {
   if (V.player) { try { V.player.stop(); V.player.dispose(); } catch (e) { /* noop */ } }
   V.player = null; V.loopOn = false; V.loopPending = false;
-  V.recPhase = 'idle'; V.collect = false; V.chunks = []; V.times = [];
+  V.recPhase = 'idle'; V.collect = false; V.blocks = [];
+  if (V.tap) V.tap.port.postMessage({ on: false });
 }
 
 let pitchFrame = 0;
 function updateVoice() {
-  if (!V.on) return;
+  if (!V.ready || !V.on) return;
   if (V.finish) finishCapture();
   const raw = Tone.getContext().rawContext;
   V.buf = V.wave.getValue();
@@ -524,7 +530,7 @@ let dt = 0;
 // Dwell-to-arm. Fires once per entry; a mouse click fires immediately. A fast
 // blip only PAUSES the fill rather than clearing it — tracking jitter would
 // otherwise keep resetting a dwell you were halfway through.
-function press(key, r, need = 0.34) {
+function press(key, r, need = 0.26) {
   let inside = false, moving = true, instant = false;
   for (const c of cursors) {
     if (!inRect(r, c)) continue;
@@ -711,7 +717,16 @@ function deckSynth(q) {
 
   const [wb, ab, bb] = row(f.foot, 3);
   const w = press('wave', wb);
-  if (w.fired) { waveIdx = (waveIdx + 1) % WAVES.length; A.synth.set({ oscillator: WAVES[waveIdx].set }); }
+  if (w.fired) {
+    waveIdx = (waveIdx + 1) % WAVES.length;
+    A.synth.set({ oscillator: WAVES[waveIdx].set });
+    // a sustaining chord keeps its old oscillators, so the change wouldn't be
+    // audible until you played the next pad — retrigger and you hear it now
+    if (heldChord >= 0 && !arpOn) {
+      A.synth.releaseAll();
+      A.synth.triggerAttack(chordAt(heldChord).notes.map(midiHz));
+    }
+  }
   tile(wb, WAVES[waveIdx].label, { col, p: w.p, hot: w.hot, sub: 'WAVE' });
   const ar = press('arp', ab);
   if (ar.fired) { arpOn = !arpOn; releaseChord(); arpIdx = 0; attackHeld(); }
@@ -760,7 +775,9 @@ function deckVoice(q) {
       ctx.stroke();
     }
   } else {
-    text(V.on ? 'listening…' : 'MIC OFF', scope.x + scope.w / 2, scope.y + scope.h / 2,
+    const msg = !V.ready ? (V.denied ? 'NO MIC' : 'MIC UNAVAILABLE')
+      : V.on ? 'listening…' : 'MIC MUTED';
+    text(msg, scope.x + scope.w / 2, scope.y + scope.h / 2,
       Math.min(30, scope.h * 0.34), rgba(col, 0.35), 'center', 'middle');
   }
   if (V.recPhase === 'countin' || V.recPhase === 'rec') {
@@ -786,8 +803,9 @@ function deckVoice(q) {
   const rc = press('rec', rb);
   if (rc.fired) {
     if (!V.on) toast('switch the mic on first');
+    else if (!V.canRec) toast('recording is unavailable in this browser');
     else if (V.recPhase === 'idle') { V.recPhase = 'armed'; toast('recording starts on the next bar'); }
-    else { V.recPhase = 'idle'; V.collect = false; }
+    else { V.recPhase = 'idle'; V.collect = false; V.blocks = []; }
   }
   tile(rb, V.recPhase === 'idle' ? 'REC' : V.recPhase === 'rec' ? '●' : '…',
     { col: V.recPhase === 'rec' ? [255, 90, 90] : col, on: V.recPhase !== 'idle', p: rc.p, hot: rc.hot });
@@ -939,29 +957,22 @@ function toast(msg) {
   toastT = setTimeout(() => toastEl.classList.remove('show'), 2200);
 }
 
-// tear the whole chain down rather than just closing the stream — otherwise
-// switching the mic back on would build a second one alongside the first
-function closeMic() {
-  V.on = false; V.buf = null; V.f0 = -1; V.snapped = null;
-  V.recPhase = 'idle'; V.collect = false; V.chunks = []; V.times = [];
-  if (V.tap) { V.tap.onaudioprocess = null; try { V.tap.disconnect(); } catch (e) { /* noop */ } }
-  if (V.sink) { try { V.sink.disconnect(); } catch (e) { /* noop */ } }
-  try { V.mic.close(); } catch (e) { /* noop */ }
-  for (const n of ['mic', 'hp', 'comp', 'shift', 'mixer', 'gain', 'wave']) {
-    if (V[n]) { try { V[n].dispose(); } catch (e) { /* noop */ } V[n] = null; }
+// Just a mute now — the stream was opened at the gate, so switching the mic on
+// is instant and never raises a permission prompt mid-performance.
+function toggleMic() {
+  if (!V.ready) {
+    toast(V.denied
+      ? 'microphone was blocked — reload and allow it at the start screen'
+      : 'no microphone found');
+    return;
   }
-  V.tap = null; V.sink = null;
-}
-
-async function toggleMic() {
-  if (V.on) { closeMic(); toast('mic off'); return; }
-  try {
-    await openMic();
-    toast('mic on — headphones recommended');
-  } catch (e) {
-    closeMic();                       // don't leave a half-built chain behind
-    toast('mic blocked: ' + (e && e.name ? e.name : e));
+  V.on = !V.on;
+  V.gain.gain.rampTo(V.on ? 0.9 : 0, 0.06);
+  if (!V.on) {
+    V.buf = null; V.f0 = -1; V.snapped = null;
+    if (V.recPhase !== 'idle') { V.recPhase = 'idle'; V.collect = false; V.blocks = []; }
   }
+  toast(V.on ? 'mic live — wear headphones' : 'mic muted');
 }
 
 function wireBar() {
@@ -1021,23 +1032,48 @@ async function start() {
   gate.classList.add('loading');
   note.textContent = 'warming up the decks…';
   try {
+    // Hand Tone a genuine AudioContext. Left alone it builds a
+    // standardized-audio-context proxy, which AudioWorkletNode refuses and
+    // which has no createScriptProcessor — the loop recorder needs a real one.
+    Tone.setContext(new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' }));
     await Tone.start();
     try { await document.fonts.ready; } catch (e) { /* canvas will fall back to monospace */ }
     Tone.Transport.bpm.value = 124;      // before the graph, so '8n' delay resolves at this tempo
     await buildAudio();
     loadPreset(0);
 
+    // ONE prompt, on the START click. Opening the mic later — when a hand
+    // dwells on the MIC tile — has no user gesture behind it, so the browser
+    // blocks the request. The stream is taken now and simply kept muted.
+    const VID = { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } };
+    const AUD = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+    let camStream = null, micStream = null;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } });
-      video.srcObject = stream;
-      await video.play();
-      const fileset = await FilesetResolver.forVisionTasks(WASM);
-      const opts = { baseOptions: { modelAssetPath: MODEL, delegate: 'GPU' }, numHands: 2, runningMode: 'VIDEO' };
-      try { landmarker = await HandLandmarker.createFromOptions(fileset, opts); }
-      catch (e) { opts.baseOptions.delegate = 'CPU'; landmarker = await HandLandmarker.createFromOptions(fileset, opts); }
-      camOk = true;
+      const both = await navigator.mediaDevices.getUserMedia({ video: VID, audio: AUD });
+      camStream = new MediaStream(both.getVideoTracks());
+      const at = both.getAudioTracks();
+      if (at.length) micStream = new MediaStream(at);
     } catch (e) {
-      camOk = false;      // no camera is survivable — the whole booth works with a mouse
+      V.denied = true;                   // refused, or there's no mic on this machine
+      try { camStream = await navigator.mediaDevices.getUserMedia({ video: VID }); }
+      catch (e2) { camStream = null; }
+    }
+
+    if (camStream) {
+      try {
+        video.srcObject = camStream;
+        await video.play();
+        const fileset = await FilesetResolver.forVisionTasks(WASM);
+        const opts = { baseOptions: { modelAssetPath: MODEL, delegate: 'GPU' }, numHands: 2, runningMode: 'VIDEO' };
+        try { landmarker = await HandLandmarker.createFromOptions(fileset, opts); }
+        catch (e) { opts.baseOptions.delegate = 'CPU'; landmarker = await HandLandmarker.createFromOptions(fileset, opts); }
+        camOk = true;
+      } catch (e) {
+        camOk = false;    // no camera is survivable — the whole booth works with a mouse
+      }
+    }
+    if (micStream) {
+      try { await buildVoice(micStream); } catch (e) { V.ready = false; V.denied = true; }
     }
 
     applyFilter(); applyFx(); applyXfade();
