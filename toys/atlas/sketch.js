@@ -25,19 +25,6 @@ const btnReset = $('btn-reset');
 let atlas = null;
 let labelsOn = true;
 
-// The real anatomical model replaces the procedural skeleton, and with it the
-// procedural muscle layer and the tiered labels (anatomy.js disables both once
-// an external model is in). Reflect that in the toolbar rather than leaving
-// dead buttons the user can click for no effect.
-function lockProceduralControls() {
-  for (const el of [chipBones, chipMuscles, btnLabels]) el.disabled = true;
-  chipMuscles.classList.remove('solid');
-  chipBones.classList.add('solid');
-  btnLabels.textContent = 'LABELS: —';
-  btnLabels.title = 'The anatomical model names bones on click instead of floating labels';
-  chipMuscles.title = 'The muscle layer belongs to the simplified fallback skeleton';
-}
-
 async function boot() {
   gate.classList.add('loading');
   note.classList.remove('err');
@@ -47,7 +34,10 @@ async function boot() {
     atlas = initAtlas({
       canvas: $('anatomy-canvas'),
       stageEl,
-      hud: { name: $('hud-name'), sub: $('hud-sub'), level: $('detail-level') },
+      hud: {
+        name: $('hud-name'), sub: $('hud-sub'),
+        meta: $('hud-meta'), level: $('detail-level'),
+      },
     });
   } catch (err) {
     console.warn('atlas unavailable:', err);
@@ -68,7 +58,10 @@ async function boot() {
   } catch (e) {
     console.warn('anatomical model failed; keeping the simplified skeleton.', e);
   }
-  if (loaded) lockProceduralControls();
+  if (!loaded) {
+    // Fallback skeleton is in: say so rather than passing it off as the real one.
+    $('detail-level').textContent = 'Simplified skeleton';
+  }
 
   gate.style.display = 'none';
 }
@@ -95,6 +88,20 @@ btnLabels.addEventListener('click', () => {
 btnLabels.classList.add('solid');
 
 btnReset.addEventListener('click', () => atlas?.resetView());
+
+// ---- zoom ----------------------------------------------------------------
+// Buttons as well as the wheel: on a trackpad or touchscreen a scroll gesture
+// often never reaches the canvas, which left the detail tiers unreachable.
+const ZOOM_STEP = 0.8;                       // <1 moves the camera closer
+const zoomIn = () => atlas?.zoomBy(ZOOM_STEP);
+const zoomOut = () => atlas?.zoomBy(1 / ZOOM_STEP);
+$('btn-zoom-in').addEventListener('click', zoomIn);
+$('btn-zoom-out').addEventListener('click', zoomOut);
+addEventListener('keydown', (e) => {
+  if (motion?.isRunning()) return;
+  if (e.key === '+' || e.key === '=') zoomIn();
+  if (e.key === '-' || e.key === '_') zoomOut();
+});
 
 // ---- Live Motion (opt-in webcam) ----------------------------------------
 const btnMotion = $('btn-motion');

@@ -61,7 +61,8 @@ export function initAtlas({ canvas, stageEl, hud }) {
     color: 0xc0433f, roughness: 0.75, metalness: 0.0,
     transparent: true, opacity: 0.62, depthWrite: false,
   });
-  const HIGHLIGHT = new THREE.Color(0x0b835c);
+  // Neon, to match the HandScenes palette the rest of this toy uses.
+  const HIGHLIGHT = new THREE.Color(0x38f9d7);
 
   const model = new THREE.Group();
   const skeleton = new THREE.Group();
@@ -441,15 +442,13 @@ export function initAtlas({ canvas, stageEl, hud }) {
   function updateLOD() {
     if (motionActive) {
       for (const L of labels) if (L.obj.visible) L.obj.visible = false;
+      for (const L of extLabels) if (L.obj.visible) L.obj.visible = false;
       if (hud.level && lastLevel !== 'Live motion') { hud.level.textContent = 'Live motion'; lastLevel = 'Live motion'; }
       return;
     }
-    if (externalModel) {
-      if (hud.level && lastLevel !== 'Anatomical model') { hud.level.textContent = 'Anatomical model'; lastLevel = 'Anatomical model'; }
-      return;
-    }
+    const active = externalModel ? extLabels : labels;
     const d = camera.position.distanceTo(controls.target);
-    for (const L of labels) {
+    for (const L of active) {
       let vis = labelsEnabled;
       if (vis) {
         if (L.tier === 0) vis = d >= 3.0;                    // regions: far
@@ -474,15 +473,24 @@ export function initAtlas({ canvas, stageEl, hud }) {
   let pinned = null;
 
   function setHud(mesh) {
-    if (mesh) {
-      hud.name.textContent = mesh.userData.name;
-      hud.sub.textContent = mesh.userData.desc;
-    } else if (pinned) {
-      hud.name.textContent = pinned.userData.name;
-      hud.sub.textContent = pinned.userData.desc;
+    const show = mesh || pinned;
+    if (show) {
+      const u = show.userData;
+      hud.name.textContent = u.name;
+      hud.sub.textContent = u.desc;
+      if (hud.meta) {
+        // Only the external model carries region/class/side; the procedural
+        // one has no such taxonomy, so the strip stays empty there.
+        const bits = [u.region, u.cls, u.side && u.side !== 'Midline' ? u.side + ' side' : null]
+          .filter(Boolean);
+        hud.meta.textContent = bits.join('  ·  ');
+        hud.meta.style.display = bits.length ? '' : 'none';
+      }
     } else {
       hud.name.textContent = 'Select a bone';
-      hud.sub.textContent = 'Hover or click any part to identify it';
+      hud.sub.textContent = 'Hover any bone to identify it, or click to pin it here. '
+        + 'Zoom in for finer structures — the labels change with the detail level.';
+      if (hud.meta) { hud.meta.textContent = ''; hud.meta.style.display = 'none'; }
     }
   }
   function highlight(mesh, on) {
@@ -497,7 +505,12 @@ export function initAtlas({ canvas, stageEl, hud }) {
   }
   function pick() {
     raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(pickables, false);
+    // Muscles are only hoverable while their layer is showing, so the bones
+    // stay reachable underneath when it is off.
+    const targets = muscles.visible && muscleTargets.length
+      ? pickables.concat(muscleTargets)
+      : pickables;
+    const hits = raycaster.intersectObjects(targets, false);
     return hits.length ? hits[0].object : null;
   }
 
@@ -522,6 +535,203 @@ export function initAtlas({ canvas, stageEl, hud }) {
     if (pinned) pinned.material.color.copy(HIGHLIGHT);
     setHud(hit);
   });
+
+  // ============================================================
+  //  EXTERNAL-MODEL LABELS + MUSCLES
+  //
+  //  The tiered labels above and the muscle meshes are positioned in the
+  //  PROCEDURAL skeleton's coordinates, so they do not line up with a real
+  //  anatomical model — which is why loading one used to switch both off and
+  //  leave the viewer with nothing but a silent mesh. Instead, rebuild both
+  //  from the loaded model's own geometry: every anchor below is the centre of
+  //  the actual named bone's bounding box, so it lands on the real bone at
+  //  whatever scale the model was normalised to.
+  //
+  //  Bilateral specs match only the `.r` meshes (the originals; `.l` are the
+  //  mirrored clones) so a label sits ON a bone rather than floating at the
+  //  midline between the pair.
+  // ============================================================
+  const IS_RIGHT = /\.r\.?$/i;
+
+  // Region + bone class, used for labels and for the identify card.
+  // Foot is tested before hand: "..._finger_of_foot" contains "finger".
+  const REGION_MAP = [
+    [/of_foot|calcaneus|talus|navicular|cuboid|cuneiform|metatarsal/i, 'Foot'],
+    [/of_hand|scaphoid|lunate|triquetrum|pisiform|trapezium|trapezoid|capitate|hamate|metacarpal|finger/i, 'Hand'],
+    [/frontal|parietal|occipital|temporal|sphenoid|ethmoid|nasal|lacrimal|zygomat|maxilla|palatine|vomer|concha|mandible|incisor|canine|premolar|molar/i, 'Skull'],
+    [/atlas|axis|cervical/i, 'Cervical spine'],
+    [/thoracic_vert/i, 'Thoracic spine'],
+    [/lumbar/i, 'Lumbar spine'],
+    [/sacrum|coccyx|hip_bone/i, 'Pelvis'],
+    [/rib|costal|sternum|manubrium/i, 'Thoracic cage'],
+    [/clavicle|scapula/i, 'Shoulder girdle'],
+    [/humerus|radius|ulna/i, 'Arm'],
+    [/femur|patella|tibia|fibula/i, 'Leg'],
+  ];
+  const CLASS_MAP = [
+    [/incisor|canine|premolar|molar/i, 'Tooth'],
+    [/patella|sesamoid/i, 'Sesamoid bone'],
+    [/femur|humerus|tibia|fibula|radius|ulna|metacarpal|metatarsal|phalanx|clavicle/i, 'Long bone'],
+    [/scaphoid|lunate|triquetrum|pisiform|trapezium|trapezoid|capitate|hamate|talus|calcaneus|navicular|cuboid|cuneiform/i, 'Short bone'],
+    [/scapula|rib|costal|sternum|manubrium|hip_bone|frontal|parietal|occipital|nasal|lacrimal|vomer/i, 'Flat bone'],
+    [/vertebra|atlas|axis|sacrum|coccyx|maxilla|mandible|palatine|zygomat|sphenoid|ethmoid|temporal|concha/i, 'Irregular bone'],
+  ];
+  const lookup = (table, name, fallback) => {
+    for (const [re, v] of table) if (re.test(name)) return v;
+    return fallback;
+  };
+
+  const EXT_LABELS = [
+    // tier 0 — regions (zoomed out)
+    { t: 0, x: 'Skull', re: /frontal|parietal|occipital|temporal|sphenoid|ethmoid|maxilla|mandible|zygomat|nasal|vomer|palatine|lacrimal|concha/i },
+    { t: 0, x: 'Vertebral column', re: /atlas|axis|cervical|thoracic_vert|lumbar|sacrum|coccyx/i },
+    { t: 0, x: 'Thoracic cage', re: /rib_\(|costal|sternum|manubrium/i, side: 'r' },
+    { t: 0, x: 'Upper limb', re: /humerus|radius|ulna/i, side: 'r' },
+    { t: 0, x: 'Pelvic girdle', re: /hip_bone/i, side: 'r' },
+    { t: 0, x: 'Lower limb', re: /femur|tibia|fibula/i, side: 'r' },
+    // tier 1 — major bones (mid zoom)
+    { t: 1, x: 'Cranium', re: /frontal_bone|parietal/i },
+    { t: 1, x: 'Mandible', re: /mandible/i },
+    { t: 1, x: 'Clavicle', re: /clavicle/i, side: 'r' },
+    { t: 1, x: 'Scapula', re: /scapula/i, side: 'r' },
+    { t: 1, x: 'Sternum', re: /sternum|manubrium/i },
+    { t: 1, x: 'Ribs', re: /rib_\(/i, side: 'r' },
+    { t: 1, x: 'Humerus', re: /humerus/i, side: 'r' },
+    { t: 1, x: 'Radius', re: /radius/i, side: 'r' },
+    { t: 1, x: 'Ulna', re: /ulna/i, side: 'r' },
+    { t: 1, x: 'Hip bone', re: /hip_bone/i, side: 'r' },
+    { t: 1, x: 'Femur', re: /femur/i, side: 'r' },
+    { t: 1, x: 'Patella', re: /patella/i, side: 'r' },
+    { t: 1, x: 'Tibia', re: /tibia/i, side: 'r' },
+    { t: 1, x: 'Fibula', re: /fibula/i, side: 'r' },
+    // tier 2 — fine detail (zoomed in)
+    { t: 2, x: 'Cervical spine (C1–C7)', re: /atlas|axis|cervical/i },
+    { t: 2, x: 'Thoracic spine (T1–T12)', re: /thoracic_vert/i },
+    { t: 2, x: 'Lumbar spine (L1–L5)', re: /lumbar/i },
+    { t: 2, x: 'Sacrum', re: /sacrum/i },
+    { t: 2, x: 'Coccyx', re: /coccyx/i },
+    { t: 2, x: 'Carpals', re: /scaphoid|lunate|triquetrum|pisiform|trapezium|trapezoid|capitate|hamate/i, side: 'r' },
+    { t: 2, x: 'Metacarpals', re: /metacarpal/i, side: 'r' },
+    { t: 2, x: 'Phalanges', re: /phalanx/i, not: /of_foot/i, side: 'r' },
+    { t: 2, x: 'Tarsals', re: /talus|navicular|cuboid|cuneiform/i, side: 'r' },
+    { t: 2, x: 'Calcaneus', re: /calcaneus/i, side: 'r' },
+    { t: 2, x: 'Metatarsals', re: /metatarsal/i, side: 'r' },
+    { t: 2, x: 'Toe phalanges', re: /phalanx.*of_foot/i, side: 'r' },
+  ];
+
+  // World-space bounding box of every mesh in `meshes` matching a spec.
+  function specBox(meshes, spec) {
+    const box = new THREE.Box3();
+    let hit = 0;
+    for (const m of meshes) {
+      if (!spec.re.test(m.name)) continue;
+      if (spec.not && spec.not.test(m.name)) continue;
+      if (spec.side === 'r' && !IS_RIGHT.test(m.name)) continue;
+      box.expandByObject(m);
+      hit++;
+    }
+    return hit && !box.isEmpty() ? box : null;
+  }
+
+  const extLabels = [];
+  function buildExternalLabels(meshes) {
+    for (const { obj } of extLabels) obj.parent && obj.parent.remove(obj);
+    extLabels.length = 0;
+    for (const spec of EXT_LABELS) {
+      const box = specBox(meshes, spec);
+      if (!box) continue;                      // model lacks that bone: skip it
+      const p = model.worldToLocal(box.getCenter(new THREE.Vector3()));
+      const el = document.createElement('div');
+      el.textContent = spec.x;
+      el.style.cssText =
+        TIER_STYLE[spec.t] +
+        ';border:1px solid rgba(18,22,28,.12);border-radius:999px;white-space:nowrap;' +
+        'box-shadow:0 2px 8px rgba(18,22,28,.10);transform:translate(-50%,-50%)';
+      const o = new CSS2DObject(el);
+      o.position.copy(p);
+      o.visible = false;
+      model.add(o);
+      extLabels.push({ obj: o, tier: spec.t, muscle: false });
+    }
+    return extLabels.length;
+  }
+
+  // Schematic muscle layer laid over the real skeleton. Each belly is a capsule
+  // along a REAL bone's axis (not a scanned muscle mesh) — indicative of where
+  // the muscle sits, at whatever scale the model loaded at.
+  const MUSCLE_SPECS = [
+    { name: 'Deltoid', from: /humerus/i, at: 'top', span: 0.28, r: 0.55, z: 0.0 },
+    { name: 'Biceps brachii', from: /humerus/i, at: 'mid', span: 0.62, r: 0.34, z: 0.5 },
+    { name: 'Quadriceps femoris', from: /femur/i, at: 'mid', span: 0.72, r: 0.34, z: 0.5 },
+    { name: 'Gastrocnemius', from: /tibia/i, at: 'upper', span: 0.5, r: 0.38, z: -0.6 },
+  ];
+
+  const muscleTargets = [];
+  function buildExternalMuscles(meshes) {
+    for (let i = muscles.children.length - 1; i >= 0; i--) {
+      const c = muscles.children[i];
+      muscles.remove(c);
+      if (c.geometry) c.geometry.dispose();
+    }
+    muscleTargets.length = 0;
+    let made = 0;
+    for (const side of ['r', 'l']) {
+      for (const spec of MUSCLE_SPECS) {
+        // Filter by side explicitly: specBox's 'r' filter cannot express "the
+        // mirrored .l clone only", and we need one belly per limb.
+        const b = new THREE.Box3();
+        let hit = 0;
+        for (const m of meshes) {
+          if (!spec.from.test(m.name)) continue;
+          const isR = IS_RIGHT.test(m.name);
+          if ((side === 'r') !== isR) continue;
+          b.expandByObject(m); hit++;
+        }
+        if (!hit || b.isEmpty()) continue;
+        const size = b.getSize(new THREE.Vector3());
+        const c = b.getCenter(new THREE.Vector3());
+        const len = size.y;
+        const yTop = c.y + len / 2, yBot = c.y - len / 2;
+        let ya, yb;
+        if (spec.at === 'top') { ya = yTop; yb = yTop - len * spec.span; }
+        else if (spec.at === 'upper') { ya = yTop - len * 0.05; yb = yTop - len * (0.05 + spec.span); }
+        else { ya = c.y + len * spec.span / 2; yb = c.y - len * spec.span / 2; }
+        const thick = Math.max(size.x, size.z);
+        const a = model.worldToLocal(new THREE.Vector3(c.x, ya, c.z + thick * spec.z));
+        const d = model.worldToLocal(new THREE.Vector3(c.x, yb, c.z + thick * spec.z));
+        const g = muscleCapsule(a, d, thick * spec.r);
+        // muscleCapsule builds a 3-mesh Group sharing the one muscleMat. Give
+        // each belly its own material clone so highlighting picks out that
+        // muscle and not every muscle at once, and register the meshes so the
+        // layer can be hovered and identified like the bones.
+        const mat = muscleMat.clone();
+        const info = {
+          name: spec.name,
+          desc: describeMuscle(spec.name),
+          region: lookup(REGION_MAP, spec.from.source, 'Skeleton'),
+          cls: 'Skeletal muscle',
+          side: side === 'r' ? 'Right' : 'Left',
+          baseColor: mat.color.clone(),
+        };
+        g.traverse((n) => {
+          if (!n.isMesh) return;
+          n.material = mat;
+          n.userData = info;
+          muscleTargets.push(n);
+        });
+        made++;
+      }
+    }
+    return made;
+  }
+
+  const MUSCLE_DEFS = {
+    'Deltoid': 'The rounded shoulder cap that lifts the arm away from the body.',
+    'Biceps brachii': 'The front upper-arm muscle that bends the elbow and turns the palm up.',
+    'Quadriceps femoris': 'The four-part front thigh muscle that straightens the knee.',
+    'Gastrocnemius': 'The calf muscle that points the foot down and pushes you off the ground.',
+  };
+  const describeMuscle = (n) => MUSCLE_DEFS[n] || 'A skeletal muscle.';
 
   // ============================================================
   //  RESIZE + RENDER LOOP
@@ -554,8 +764,20 @@ export function initAtlas({ canvas, stageEl, hud }) {
   //  PUBLIC API
   // ============================================================
   return {
-    setMuscles(on) { if (!externalModel) muscles.visible = on; },
-    toggleLabels(on) { if (externalModel) return false; labelsEnabled = on; return on; },
+    // Both now work on the real model too: the muscle layer and the labels are
+    // rebuilt from its own bones when it loads.
+    setMuscles(on) { muscles.visible = on; },
+    toggleLabels(on) { labelsEnabled = on; return on; },
+    // Zoom by a factor along the view direction, clamped to the orbit limits,
+    // so the buttons feel identical to scrolling (and work on touch/trackpads
+    // where a wheel gesture may not reach the canvas).
+    zoomBy(factor) {
+      const dir = new THREE.Vector3().subVectors(camera.position, controls.target);
+      const d = THREE.MathUtils.clamp(dir.length() * factor, controls.minDistance, controls.maxDistance);
+      camera.position.copy(controls.target).add(dir.setLength(d));
+      controls.update();
+      return d;
+    },
     resetView() {
       controls.autoRotate = true;
       camera.position.set(0, 0.08, 2.7);
@@ -572,6 +794,14 @@ export function initAtlas({ canvas, stageEl, hud }) {
       controls.autoRotate = !active;
     },
     getCamera: () => camera,
+    // What actually got built. Useful when checking that a swapped-in model
+    // still yields labels and muscles rather than silently producing none.
+    stats: () => ({
+      external: !!externalModel,
+      pickable: pickables.length,
+      labels: (externalModel ? extLabels : labels).length,
+      muscles: muscles.children.length,
+    }),
 
     // Load a real anatomical model (GLTF/GLB). Auto-centres it, scales to a
     // human height, frames the camera, gives every mesh a clickable name, and
@@ -638,17 +868,31 @@ export function initAtlas({ canvas, stageEl, hud }) {
           else n.material = n.material.clone();
           n.material.side = THREE.DoubleSide; // mirrored (negative-scale) meshes render correctly
           const col = n.material.color ? n.material.color.clone() : new THREE.Color(0xffffff);
-          n.userData = { name: prettyName(n.name), desc: describeBone(n.name), baseColor: col };
+          n.userData = {
+            name: prettyName(n.name),
+            desc: describeBone(n.name),
+            region: lookup(REGION_MAP, n.name, 'Skeleton'),
+            cls: lookup(CLASS_MAP, n.name, 'Bone'),
+            side: IS_RIGHT.test(n.name) ? 'Right' : (/\.l\.?$/i.test(n.name) ? 'Left' : 'Midline'),
+            baseColor: col,
+          };
           ext.push(n);
         });
 
         // Swap in: hide the procedural skeleton, repoint raycasting + labels.
-        skeleton.visible = false; muscles.visible = false; shadow.visible = false;
+        skeleton.visible = false; shadow.visible = false;
         labels.forEach((L) => (L.obj.visible = false));
-        labelsEnabled = false;
         pickables.length = 0; pickables.push(...ext);
         model.add(obj);
         externalModel = obj;
+
+        // Rebuild labels and the muscle layer against the REAL bones, so both
+        // toggles keep working instead of going dead on the good model.
+        obj.updateMatrixWorld(true);
+        buildExternalLabels(ext);
+        buildExternalMuscles(ext);
+        muscles.visible = false;   // off until the user asks, as before
+        labelsEnabled = true;
 
         controls.target.set(0, 0, 0);
         camera.position.set(0, 0.1, 2.7);
