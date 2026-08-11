@@ -11,7 +11,6 @@ import { CradleScene } from './scenes/cradle.js';
 import { GardenScene } from './scenes/garden.js';
 import { ShapesScene } from './scenes/shapes.js';
 import { CosmosScene } from './scenes/cosmos.js';
-import { SolarSystemScene } from './scenes/solarsystem.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -40,7 +39,7 @@ const HAND_CONNECTIONS = [
 ];
 
 // Vercel Web Analytics custom events (aggregate, anonymous; no-op if blocked).
-const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'cosmos', 5: 'solarsystem' };
+const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'cosmos' };
 function track(name, data) {
   try { if (window.va) window.va('event', { name, data }); } catch (e) { /* ignore */ }
 }
@@ -84,16 +83,6 @@ const SCENE_META = {
       'week) to read it, or hit <span class="g">📷 TODAY IN SPACE</span> for the ' +
       'day\'s real photos.',
   },
-  5: {
-    make: (r) => new SolarSystemScene(r, video),
-    title: '🪐 Solar System',
-    tag: 'Explore the REAL solar system with your mouse — planets with true NASA textures, sizes and today\'s actual positions. Click any planet to learn about it.',
-    body: 'The planets are where they <span class="g">really are today</span>, with ' +
-      'real NASA surface maps. <span class="g">Drag</span> to orbit, ' +
-      '<span class="g">scroll</span> to zoom, <span class="g">right-drag</span> to ' +
-      'pan. <span class="g">Click</span> a planet to select it, ' +
-      '<span class="g">double-click</span> to learn more.',
-  },
 };
 
 // Home gallery grouping. Visual scenes reference SCENE_META by key; flows not
@@ -103,6 +92,7 @@ const CATEGORIES = [
   { name: 'Music', items: [
     { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
     { href: '/toys/ink/', title: '🖋 Water Ink', tag: 'Play drums (or any sound) and coloured ink drops swirl and bleed on paper — a different ink per drum.' },
+    { href: '/toys/booth/', title: '🎛 DJ Booth', tag: 'Four decks on one screen — drum grid, chord pads, an autotuned vocal booth and a DJ filter pad. Play two of them at once, one hand each.' },
   ] },
   { name: 'Games', items: [
     { href: '/toys/jump/', title: '🏃 Jump Runner', tag: 'Body-tracked endless runner — you ARE the runner. Physically jump over the blocks, crouch under the fliers. Head + hips in frame is enough.' },
@@ -110,7 +100,7 @@ const CATEGORIES = [
     { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
   ] },
   { name: 'Learn', items: [
-    { key: '5' },
+    { href: '/toys/atlas/', title: '🦴 Anatomy Atlas', tag: 'Spin a real human skeleton in 3D and click any bone to learn its name and what it does — 144 individually named bones. Mouse only, no camera.' },
     { href: '/toys/asl/', title: '🤟 Sign School', tag: 'Learn the ASL fingerspelling alphabet, Duolingo-style — the camera reads your handshape and coaches you letter by letter. Earn XP, unlock lessons, spell real words.' },
   ] },
 ];
@@ -407,7 +397,7 @@ function toggleTrack() {
 trackBtn.addEventListener('click', toggleTrack);
 
 addEventListener('keydown', (e) => {
-  if (['1', '2', '3', '4', '5'].includes(e.key)) selectScene(e.key);
+  if (['1', '2', '3', '4'].includes(e.key)) selectScene(e.key);
   if (e.key === 'v') toggleCam();
   if (e.key === 'h') toggleUI();
   if (e.key === 't') toggleTrack();

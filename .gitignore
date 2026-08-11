@@ -8,3 +8,7 @@ Thumbs.db
 
 # Node (only if you ever add a build step)
 node_modules/
+
+# graphify knowledge-graph build output (~7 MB of generated artifacts).
+# Rebuild with the /graphify skill; drop this line if you'd rather share it.
+graphify-out/

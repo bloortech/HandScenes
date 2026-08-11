@@ -28,14 +28,16 @@
 <main>
   <a class="back" href="index.html">‹ back to HandScenes</a>
   <h1>Privacy &amp;<br>How It Works</h1>
-  <p class="updated">Last updated: 3 July 2026</p>
+  <p class="updated">Last updated: 11 August 2026</p>
 
   <div class="tldr">
     <p><b>The short version:</b> HandScenes uses your webcam to track your hand
     and body movements, and — in the sound toys — your microphone to react to
     music or drumming, <b>entirely inside your browser, on your own device.</b> Your
-    camera video, your audio, and anything detected from them are <b>never recorded,
-    saved, or sent to us or anyone else.</b> The only thing we measure is
+    camera video, your audio, and anything detected from them are <b>never uploaded
+    and never written to disk.</b> (The DJ Booth can capture a short vocal loop so you
+    can sing over your own beat — it lives in the page's memory and vanishes the
+    moment you close the tab.) The only thing we measure is
     anonymous, cookieless visitor counts.</p>
   </div>
 
@@ -52,10 +54,18 @@
   <p>Some toys (for example Water Ink and Hand Beats) ask for microphone access
   instead of — or as well as — the camera. The audio is analysed live in your
   browser for loudness and frequency (so a kick drum can be told apart from a
-  cymbal) and the visuals react to that. The sound itself is <b>never recorded,
-  stored, or uploaded</b>, and it is not played back through your speakers. The
+  cymbal) and the visuals react to that. The sound itself is <b>never stored or
+  uploaded</b>, and it is not played back through your speakers. The
   analysis result is a handful of numbers that exist for a fraction of a second
   and are then gone.</p>
+
+  <p>The <b>DJ Booth</b> is the one exception, because singing through it is the
+  point: with the mic switched on, your voice is pitch-corrected and played back
+  live, and pressing REC keeps two bars of it so it can loop under the beat. That
+  loop is held in the page's memory only — it is never written to disk and never
+  sent anywhere, and clearing it, reloading, or closing the tab destroys it. The
+  microphone starts switched <b>off</b> in that toy and only opens when you turn it
+  on yourself.</p>
 
   <h2>What we collect</h2>
   <p>We use <b>Vercel Web Analytics</b> to count visits — aggregate,
@@ -75,19 +85,38 @@
   local flag so a repeat visit from the same browser is not counted twice.</p>
 
   <h2>Third parties</h2>
-  <p>The app and everything it needs (3D library, hand/body-tracking models, fonts,
-  and the analytics script) is served from our own host, <b>Vercel</b>, on this
-  domain — not from any outside service. Like any website, Vercel's servers
-  automatically receive standard request information — your IP address, browser
-  type, and the time of the request — to deliver the page, and Vercel also
-  provides the privacy-friendly Web Analytics described above. See
-  <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel's privacy policy</a>.
-  We do not load scripts, fonts, or trackers from any other third-party
-  service.</p>
+  <!-- Machine-readable mirror of the section below. `python tools/audit_disclosures.py`
+       scans everything that ships for external origins and fails if any host is
+       loaded but missing here, or listed here but no longer loaded. Keep this list
+       and the prose in step.
+       disclosed-hosts: cdn.jsdelivr.net fonts.googleapis.com fonts.gstatic.com -->
+  <p>The main app and everything it needs (3D library, hand/body-tracking models,
+  fonts, and the analytics script) is served from our own host, <b>Vercel</b>, on
+  this domain. Like any website, Vercel's servers automatically receive standard
+  request information — your IP address, browser type, and the time of the
+  request — to deliver the page, and Vercel also provides the privacy-friendly
+  Web Analytics described above. See
+  <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel's privacy policy</a>.</p>
+
+  <p>Three of the toys are the exception. <b>Hand Beats</b>, <b>Bubble Machine</b>
+  and the <b>DJ Booth</b> load their drawing and sound libraries (p5.js and
+  Tone.js) from the <b>jsDelivr</b> CDN, and Hand Beats and Bubble Machine load
+  their two display fonts from <b>Google
+  Fonts</b>. Loading a file from those services means your browser contacts them
+  directly, so they receive your IP address, browser type, and the address of the
+  page you are on — the same standard request information any web server
+  receives. They are content delivery networks, not trackers: no cookie is set and
+  no account or profile is involved. Neither service ever receives your camera,
+  microphone, or hand and body data, which never leave your device at all. See
+  <a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net" target="_blank" rel="noopener">jsDelivr's privacy policy</a>
+  and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's privacy policy</a>.
+  We load no other outside scripts, fonts, or trackers, and no advertising or
+  analytics from anyone but Vercel.</p>
 
   <h2>Recording your own videos</h2>
-  <p>HandScenes does not record anything. If you screen-record yourself using
-  it, that recording is created and stored by you, on your device or in
+  <p>HandScenes never records video, and the only audio it ever captures is the
+  DJ Booth's in-memory vocal loop described above. If you screen-record yourself
+  using it, that recording is created and stored by you, on your device or in
   whatever tool you chose — we are not involved and never receive it.</p>
 
   <h2>Children</h2>
@@ -104,12 +133,12 @@
   analytics or a built-in recorder), we will update this page before doing so.</p>
 
   <h2>Credits</h2>
-  <p>The Solar System explorer uses planet and Sun surface maps by
-  <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a>,
-  built from NASA imagery and licensed
-  <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>.
-  Planet positions are computed from NASA JPL's published orbital elements.
-  These files are served from our own host; the scene makes no outside requests.</p>
+  <p>The Anatomy Atlas uses a real anatomical skeleton model from
+  <a href="https://anatomytool.org/open3dmodel" target="_blank" rel="noopener">AnatomyTOOL</a>,
+  derived from BodyParts3D &copy; DBCLS and licensed
+  <a href="https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en" target="_blank" rel="noopener">CC BY-SA 2.1 JP</a>.
+  The model file is served from our own host. The Atlas uses no camera or
+  microphone at all, and is an educational reference — not medical advice.</p>
 
   <h2>Contact</h2>
   <p>Questions? Email <a href="mailto:bloortechnologies@gmail.com">bloortechnologies@gmail.com</a>.</p>
