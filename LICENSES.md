@@ -24,6 +24,9 @@ delete its entry; if one is added, add it before shipping.
   Licence: **Apache 2.0**. Requires: licence notice retained.
 - `pose_landmarker_lite.task` — MediaPipe Pose Landmarker, © Google.
   Licence: **Apache 2.0**. Requires: licence notice retained.
+- `face_landmarker.task` — MediaPipe Face Landmarker (478-point mesh), © Google.
+  Licence: **Apache 2.0**. Requires: licence notice retained.
+  Used only by the Anatomy Atlas's Live Motion mode.
 - `candy-9.onnx`, `mosaic-9.onnx`, `udnie-9.onnx` — fast-neural-style transfer,
   from the [ONNX Model Zoo](https://github.com/onnx/models/tree/main/validated/vision/style_transfer/fast_neural_style),
   originally from [pytorch/examples](https://github.com/pytorch/examples/tree/master/fast_neural_style).

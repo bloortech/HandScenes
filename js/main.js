@@ -100,7 +100,7 @@ const CATEGORIES = [
     { href: '/toys/bubbles/', title: '🫧 Bubble Machine', tag: 'Poke floating bubbles with your fingertip and pop them.' },
   ] },
   { name: 'Learn', items: [
-    { href: '/toys/atlas/', title: '🦴 Anatomy Atlas', tag: 'Spin a real human skeleton in 3D and click any bone to learn its name and what it does — 144 individually named bones. Mouse only, no camera.' },
+    { href: '/toys/atlas/', title: '🦴 Anatomy Atlas', tag: 'Spin a real human skeleton in 3D and click any bone to learn its name — 144 of them. Then hit Live Motion and the camera names your OWN bones, joints, skull and muscles as you move.' },
     { href: '/toys/asl/', title: '🤟 Sign School', tag: 'Learn the ASL fingerspelling alphabet, Duolingo-style — the camera reads your handshape and coaches you letter by letter. Earn XP, unlock lessons, spell real words.' },
   ] },
 ];

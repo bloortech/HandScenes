@@ -5,7 +5,10 @@
 //  prabhat-saharia-site build. This file only wires it to the
 //  HandScenes-style page chrome: start gate, toolbar, HUD.
 //
-//  No camera, no microphone. Mouse/touch only.
+//  The 3D atlas uses no camera. Live Motion does, but it is opt-in:
+//  motion.js is dynamically imported and getUserMedia is only called
+//  when the user presses the button, so a visitor who never touches it
+//  never loads the tracking models and is never prompted.
 // ============================================================
 import { initAtlas } from './anatomy.js';
 
@@ -92,3 +95,74 @@ btnLabels.addEventListener('click', () => {
 btnLabels.classList.add('solid');
 
 btnReset.addEventListener('click', () => atlas?.resetView());
+
+// ---- Live Motion (opt-in webcam) ----------------------------------------
+const btnMotion = $('btn-motion');
+const motionEl = $('motion');
+let motion = null;
+
+async function getMotion() {
+  if (motion) return motion;
+  // Dynamic import: a visitor who never presses the button never downloads
+  // motion.js, the three tracking models, or the MediaPipe wasm.
+  const { createMotion } = await import('./motion.js');
+  motion = createMotion({
+    video: $('motion-video'),
+    canvas: $('motion-canvas'),
+    statusEl: $('motion-status'),
+  });
+  return motion;
+}
+
+async function enterMotion() {
+  btnMotion.disabled = true;
+  btnMotion.textContent = '◉ STARTING…';
+  motionEl.hidden = false;
+  atlas?.setMotion(true);          // pause orbit/raycast under the overlay
+  try {
+    const m = await getMotion();
+    const ok = await m.start();    // motion.js writes its own failure text
+    if (!ok) { exitMotion(); return; }
+    btnMotion.textContent = '■ STOP MOTION';
+    btnMotion.classList.add('solid');
+  } catch (err) {
+    console.warn('Live Motion failed to start:', err);
+    $('motion-status').textContent = 'Live Motion could not start on this device.';
+    setTimeout(exitMotion, 2200);
+  } finally {
+    btnMotion.disabled = false;
+  }
+}
+
+function exitMotion() {
+  motion?.stop();                  // releases the camera track
+  motionEl.hidden = true;
+  atlas?.setMotion(false);
+  btnMotion.textContent = '◉ LIVE MOTION';
+  btnMotion.classList.remove('solid');
+  btnMotion.disabled = false;
+}
+
+btnMotion.addEventListener('click', () => {
+  if (motion?.isRunning()) exitMotion();
+  else enterMotion();
+});
+$('motion-exit').addEventListener('click', exitMotion);
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && motion?.isRunning()) exitMotion();
+});
+
+// Layer toggles (bones / joints / muscles / face / hands)
+for (const chip of document.querySelectorAll('[data-mlayer]')) {
+  chip.addEventListener('click', () => {
+    const on = !chip.classList.contains('solid');
+    chip.classList.toggle('solid', on);
+    motion?.setLayer(chip.dataset.mlayer, on);
+  });
+}
+
+// Never leave the camera open on a backgrounded or closing tab.
+addEventListener('pagehide', () => motion?.stop());
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && motion?.isRunning()) exitMotion();
+});

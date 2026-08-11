@@ -50,6 +50,15 @@
   stream stays in your browser tab and is discarded as it plays — there is no
   recording feature, no upload, and no server that ever sees your camera.</p>
 
+  <p>The <b>Anatomy Atlas</b> is the one place the camera is <b>off by default</b>.
+  Its 3D skeleton is mouse-driven and uses no camera at all; only when you press
+  <b>Live Motion</b> does it ask for one. That mode tracks your body pose, your
+  face mesh and your hands so it can name your own bones, joints, skull and
+  muscles on screen as you move. All three trackers run on your device through
+  MediaPipe, exactly as above — the video is drawn to a canvas, labelled, and
+  thrown away frame by frame. Nothing is recorded or uploaded, and pressing stop
+  (or leaving the tab) closes the camera immediately.</p>
+
   <h2>The microphone</h2>
   <p>Some toys (for example Water Ink and Hand Beats) ask for microphone access
   instead of — or as well as — the camera. The audio is analysed live in your
@@ -137,8 +146,9 @@
   <a href="https://anatomytool.org/open3dmodel" target="_blank" rel="noopener">AnatomyTOOL</a>,
   derived from BodyParts3D &copy; DBCLS and licensed
   <a href="https://creativecommons.org/licenses/by-sa/2.1/jp/deed.en" target="_blank" rel="noopener">CC BY-SA 2.1 JP</a>.
-  The model file is served from our own host. The Atlas uses no camera or
-  microphone at all, and is an educational reference — not medical advice.</p>
+  The model file is served from our own host. The Atlas never uses the
+  microphone, and uses the camera only in Live Motion, which you switch on
+  yourself. It is an educational reference — not medical advice.</p>
 
   <h2>Contact</h2>
   <p>Questions? Email <a href="mailto:bloortechnologies@gmail.com">bloortechnologies@gmail.com</a>.</p>
