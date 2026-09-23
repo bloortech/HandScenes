@@ -3,15 +3,14 @@
 // learn p5. Bubbles rise from the bottom; your index fingertip (tracked by
 // MediaPipe) pops them. The webcam is drawn mirrored behind, so you "reach in".
 //
-// Everything runs client-side. CDN deps for now (p5, MediaPipe + model) — we'll
-// vendor + harden before any public deploy, same as HandScenes.
+// Everything runs client-side; p5, MediaPipe and the model are self-hosted
+// under /vendor and /models, same as HandScenes.
 
 import { FilesetResolver, HandLandmarker }
-  from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+  from '/vendor/mediapipe/tasks-vision.mjs';
 
-const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/' +
-  'hand_landmarker/float16/1/hand_landmarker.task';
-const WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+const MODEL = '/models/hand_landmarker.task';
+const WASM = '/vendor/mediapipe/wasm';
 
 const gate = document.getElementById('gate');
 const startBtn = document.getElementById('start');

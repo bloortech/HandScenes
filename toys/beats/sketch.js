@@ -4,14 +4,13 @@
 //   - Tone.js Transport sweeps a playhead on a fixed tempo + metronome
 //   - aim your fingertip at a cell and DWELL ~0.45s to toggle it on/off
 //   - pick a drum machine (KIT); toggled cells loop every bar
-// Everything runs client-side. CDN deps for now (vendor before any public deploy).
+// Everything runs client-side; p5, Tone.js, MediaPipe and the model are self-hosted.
 
 import { FilesetResolver, HandLandmarker }
-  from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+  from '/vendor/mediapipe/tasks-vision.mjs';
 
-const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/' +
-  'hand_landmarker/float16/1/hand_landmarker.task';
-const WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
+const MODEL = '/models/hand_landmarker.task';
+const WASM = '/vendor/mediapipe/wasm';
 
 const gate = document.getElementById('gate');
 const startBtn = document.getElementById('start');

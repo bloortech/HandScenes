@@ -40,24 +40,26 @@ delete its entry; if one is added, add it before shipping.
   CSS2DRenderer, OBJLoader, GLTFLoader, BufferGeometryUtils, postprocessing).
 - **MediaPipe Tasks Vision** — © Google. Licence: **Apache 2.0**.
   `vendor/mediapipe/tasks-vision.mjs` plus its WASM fileset.
-- **VT323** and **Press Start 2P** — © their authors.
-  Licence: **SIL Open Font License 1.1**. Self-hosted in `vendor/fonts/`.
+  Licence text: `vendor/mediapipe/LICENSE`.
+- **VT323** (© 2011 The VT323 Project Authors) and **Press Start 2P**
+  (© 2012 The Press Start 2P Project Authors).
+  Licence: **SIL Open Font License 1.1**. Self-hosted in `vendor/fonts/`,
+  licence text in `vendor/fonts/OFL.txt`.
+- **p5.js** 1.9.4 (`toys/beats/`, `toys/bubbles/`) — © p5.js contributors.
+  Licence: **LGPL-2.1**. Unmodified `vendor/p5/p5.min.js`, licence text in
+  `vendor/p5/LICENSE`. Source: https://github.com/processing/p5.js/tree/v1.9.4
+- **Tone.js** 14.8.49 (`toys/beats/`, `toys/booth/`) — © Yotam Mann.
+  Licence: **MIT**. `vendor/tone/Tone.js`, licence text in `vendor/tone/LICENSE`.
+- **ONNX Runtime Web** 1.19.2 (the filter box's neural style filter, `js/style.js`)
+  — © Microsoft Corporation. Licence: **MIT**. `vendor/onnxruntime/`
+  (`ort.webgpu.min.mjs` + its `ort-wasm-simd-threaded.jsep` .mjs/.wasm),
+  licence text in `vendor/onnxruntime/LICENSE`.
 
-## Loaded from a CDN at runtime (not vendored)
+## Loaded from a CDN at runtime
 
-These are the only outside origins a visitor's browser contacts. They are
-disclosed in `privacy.html` under "Third parties" and mirrored in the
-`disclosed-hosts` comment there.
-
-- **p5.js** (`toys/beats/`, `toys/bubbles/`) via jsDelivr. Licence: **LGPL-2.1**.
-- **Tone.js** (`toys/beats/`) via jsDelivr. Licence: **MIT**.
-- **VT323 / Press Start 2P** via Google Fonts in those same two toys.
-  Licence: **SIL OFL 1.1**.
-
-> Note: these two toys predate the self-hosting policy the rest of the app
-> follows. Moving them onto the local `vendor/` copies would remove the last
-> two outside origins entirely — and let `privacy.html` go back to claiming
-> everything is first-party.
+None. Every script, font, model and WASM file is served from this site's own
+origin, and the `vercel.json` CSP allows only `'self'` for scripts, styles,
+fonts and network requests.
 
 ## Not medical advice
 

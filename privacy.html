@@ -100,7 +100,7 @@
        scans everything that ships for external origins and fails if any host is
        loaded but missing here, or listed here but no longer loaded. Keep this list
        and the prose in step.
-       disclosed-hosts: cdn.jsdelivr.net fonts.googleapis.com fonts.gstatic.com -->
+       disclosed-hosts: -->
   <p>The main app and everything it needs (3D library, hand/body-tracking models,
   fonts, and the analytics script) is served from our own host, <b>Vercel</b>, on
   this domain. Like any website, Vercel's servers automatically receive standard
@@ -109,20 +109,12 @@
   Web Analytics described above. See
   <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel's privacy policy</a>.</p>
 
-  <p>Three of the toys are the exception. <b>Hand Beats</b>, <b>Bubble Machine</b>
-  and the <b>DJ Booth</b> load their drawing and sound libraries (p5.js and
-  Tone.js) from the <b>jsDelivr</b> CDN, and Hand Beats and Bubble Machine load
-  their two display fonts from <b>Google
-  Fonts</b>. Loading a file from those services means your browser contacts them
-  directly, so they receive your IP address, browser type, and the address of the
-  page you are on — the same standard request information any web server
-  receives. They are content delivery networks, not trackers: no cookie is set and
-  no account or profile is involved. Neither service ever receives your camera,
-  microphone, or hand and body data, which never leave your device at all. See
-  <a href="https://www.jsdelivr.com/terms/privacy-policy-jsdelivr-net" target="_blank" rel="noopener">jsDelivr's privacy policy</a>
-  and <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's privacy policy</a>.
-  We load no other outside scripts, fonts, or trackers, and no advertising or
-  analytics from anyone but Vercel.</p>
+  <p>No page on this site loads anything from another company's servers. The
+  drawing and sound libraries (p5.js, Tone.js, ONNX Runtime), the tracking
+  library and models, and the fonts are all copies hosted on this domain, and
+  the site's security policy blocks the browser from fetching scripts, fonts or
+  data from anywhere else. We use no advertising and no analytics other than
+  Vercel's.</p>
 
   <h2>Recording your own videos</h2>
   <p>HandScenes never records video, and the only audio it ever captures is the

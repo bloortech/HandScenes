@@ -7,8 +7,10 @@
 let ortPromise = null;
 function getOrt() {
   if (!ortPromise) {
-    const base = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.19.2/dist/';
-    ortPromise = import(base + 'ort.webgpu.mjs').then((m) => {
+    // self-hosted onnxruntime-web 1.19.2 (vendor/onnxruntime); wasmPaths points
+    // the runtime at the local .jsep.mjs/.jsep.wasm so nothing loads from a CDN
+    const base = new URL('../vendor/onnxruntime/', import.meta.url).href;
+    ortPromise = import(base + 'ort.webgpu.min.mjs').then((m) => {
       const ort = m.default || m;
       ort.env.wasm.wasmPaths = base;
       ort.env.wasm.numThreads = 1;          // no SharedArrayBuffer needed
