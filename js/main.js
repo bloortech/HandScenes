@@ -105,7 +105,7 @@ const CATEGORIES = [
   ] },
   { name: 'Lab', items: [
     { href: '/lab/antfarm/', title: '🐜 Ant Farm', tag: 'Leafcutter ants at real scale and real time. Watch a queen found a city underground, or put two colonies at war over the same plants.' },
-    { soon: true, title: '🪐 Exoplanet Hunt', tag: 'Find a planet in real NASA telescope data from the tiny dip in its star\'s light.' },
+    { href: '/lab/exoplanets/', title: '🪐 Exoplanet Hunt', tag: 'Find a planet in real NASA telescope data from the tiny dip in its star\'s light.' },
     { soon: true, title: '🌀 Diagrams', tag: 'Animated diagrams of Vervaeke\'s Meaning Crisis and the Three-Body trilogy.' },
     { soon: true, title: '🟡 Toronto Pac-Man', tag: 'Real streets from any neighbourhood become the maze.' },
     { soon: true, title: '🎧 Mini Shazam', tag: 'Name a song from ten seconds of mic audio, and see its fingerprint.' },
