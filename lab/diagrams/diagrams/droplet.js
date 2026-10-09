@@ -119,7 +119,7 @@ export function mount(el) {
 
       ctx.font = "11px monospace";
       ctx.fillStyle = INK + "0.4)";
-      ctx.fillText("no visible weapon — it destroys ships by impact alone", 10, h - 12);
+      ctx.fillText("no visible weapon: it destroys ships by impact alone", 10, h - 12);
     });
   });
 

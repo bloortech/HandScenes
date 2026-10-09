@@ -4,10 +4,10 @@
 import { setupCanvas, buildStage, onEnterView, runLoop, INK, AMBER, CYAN, rgbCss } from "../lib/canvas-utils.js";
 
 const STEPS = [
-  { t: 0.0, name: "Shadows on the wall", line: "Eikasia — imagining", detail: "taking the image for the thing" },
-  { t: 0.33, name: "Turning to the fire and the objects", line: "Pistis — belief", detail: "trusting what the senses show, up close" },
-  { t: 0.66, name: "Climbing out of the cave", line: "Dianoia — reasoning", detail: "using concepts and inference, still from assumptions" },
-  { t: 1.0, name: "Seeing the sun directly", line: "Noesis — understanding", detail: "grasping the Form itself, the source of the light" },
+  { t: 0.0, name: "Shadows on the wall", line: "Eikasia: imagining", detail: "taking the image for the thing" },
+  { t: 0.33, name: "Turning to the fire and the objects", line: "Pistis: belief", detail: "trusting what the senses show, up close" },
+  { t: 0.66, name: "Climbing out of the cave", line: "Dianoia: reasoning", detail: "using concepts and inference, still from assumptions" },
+  { t: 1.0, name: "Seeing the sun directly", line: "Noesis: understanding", detail: "grasping the Form itself, the source of the light" },
 ];
 
 export const id = "plato";
@@ -120,7 +120,7 @@ export function mount(el) {
         ctx.font = on ? "bold 11px ui-sans-serif, sans-serif" : "10px ui-sans-serif, sans-serif";
         ctx.fillStyle = on ? rgbCss(AMBER, 1) : INK + "0.45)";
         ctx.textAlign = "center";
-        ctx.fillText(s.line.split(" — ")[0], x, ly - 14);
+        ctx.fillText(s.line.split(": ")[0], x, ly - 14);
         ctx.restore();
       });
 
@@ -129,7 +129,14 @@ export function mount(el) {
       ctx.fillText(step.line, lx, ly + 36);
       ctx.font = "12px ui-sans-serif, sans-serif";
       ctx.fillStyle = INK + "0.55)";
-      ctx.fillText(step.detail, lx, ly + 54);
+      // wrap the detail to the ladder's width so it never runs off the canvas
+      let lineText = "", lineY = ly + 54;
+      for (const word of step.detail.split(" ")) {
+        const next = lineText ? lineText + " " + word : word;
+        if (ctx.measureText(next).width > rxEnd - lx && lineText) { ctx.fillText(lineText, lx, lineY); lineText = word; lineY += 16; }
+        else lineText = next;
+      }
+      ctx.fillText(lineText, lx, lineY);
     });
   });
 

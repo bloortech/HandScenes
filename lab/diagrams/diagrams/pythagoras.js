@@ -125,7 +125,7 @@ export function mount(el) {
       // label
       ctx.font = "13px ui-sans-serif, sans-serif";
       ctx.fillStyle = INK + "0.85)";
-      ctx.fillText(`${r.id} — the ${r.name}`, left, stringY + 60);
+      ctx.fillText(`${r.id}: the ${r.name}`, left, stringY + 60);
       ctx.font = "12px ui-sans-serif, sans-serif";
       ctx.fillStyle = INK + "0.5)";
       ctx.fillText(r.desc, left, stringY + 80);

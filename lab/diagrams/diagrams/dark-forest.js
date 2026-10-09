@@ -70,7 +70,7 @@ export function mount(el) {
       outcome = "struck";
       youAlive = false;
     } else {
-      log.push("This time, no one struck. You got lucky — the theory says that doesn't hold forever.");
+      log.push("This time, no one struck. You got lucky, but the theory says that doesn't hold forever.");
       outcome = "lucky";
     }
     setTimeout(() => { againBtn.style.display = ""; }, 400);

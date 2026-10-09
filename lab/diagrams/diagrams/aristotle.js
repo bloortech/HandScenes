@@ -3,10 +3,10 @@
 import { setupCanvas, buildStage, onEnterView, runLoop, INK, AMBER, CYAN, rgbCss } from "../lib/canvas-utils.js";
 
 const CAUSES = [
-  { name: "Material", text: "what it's made of — bronze" },
-  { name: "Formal", text: "the shape/pattern that makes it that thing — “statue of a man”" },
-  { name: "Efficient", text: "what brought it about — the sculptor's work" },
-  { name: "Final", text: "what it's for — to honour or remember someone" },
+  { name: "Material", text: "what it's made of: bronze" },
+  { name: "Formal", text: "the shape/pattern that makes it that thing: “statue of a man”" },
+  { name: "Efficient", text: "what brought it about: the sculptor's work" },
+  { name: "Final", text: "what it's for: to honour or remember someone" },
 ];
 
 const VIRTUES = [
@@ -140,7 +140,7 @@ function drawVirtue(ctx, w, h, p, v) {
   ctx.lineWidth = 3;
   ctx.stroke();
 
-  // the mean is a zone, not a point — shade the healthy middle band
+  // the mean is a zone, not a point: shade the healthy middle band
   const bandL = left + (right - left) * 0.38;
   const bandR = left + (right - left) * 0.62;
   ctx.fillStyle = "rgba(124,213,232,.14)";
