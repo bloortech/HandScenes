@@ -4,7 +4,7 @@ A virtual glass ant farm of leafcutter ants (*Atta sexdens*) at real scale (1 px
 A queen lands, digs her nest, raises her first workers in the dark, and the colony grows into an
 underground city of fungus-garden chambers.
 
-    npm start            # serves on http://localhost:7790
+    python serve.py      # from the handscenes root, then open http://localhost:8000/lab/antfarm/
     npm test             # 150 sim days headless, checks the founding story, soil conservation, save/load
 
 Plain HTML + JS, no build. `sim.js` is the whole simulation (no DOM), `main.js` draws it.

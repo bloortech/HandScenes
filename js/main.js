@@ -103,6 +103,20 @@ const CATEGORIES = [
     { href: '/toys/atlas/', title: '🦴 Anatomy Atlas', tag: 'Spin a real human skeleton in 3D and click any bone to learn its name — 144 of them. Then hit Live Motion and the camera names your OWN bones, joints, skull and muscles as you move.' },
     { href: '/toys/asl/', title: '🤟 Sign School', tag: 'Learn the ASL fingerspelling alphabet, Duolingo-style — the camera reads your handshape and coaches you letter by letter. Earn XP, unlock lessons, spell real words.' },
   ] },
+  { name: 'Lab', items: [
+    { href: '/lab/antfarm/', title: '🐜 Ant Farm', tag: 'Leafcutter ants at real scale and real time. Watch a queen found a city underground, or put two colonies at war over the same plants.' },
+    { soon: true, title: '🪐 Exoplanet Hunt', tag: 'Find a planet in real NASA telescope data from the tiny dip in its star\'s light.' },
+    { soon: true, title: '🌀 Diagrams', tag: 'Animated diagrams of Vervaeke\'s Meaning Crisis and the Three-Body trilogy.' },
+    { soon: true, title: '🟡 Toronto Pac-Man', tag: 'Real streets from any neighbourhood become the maze.' },
+    { soon: true, title: '🎧 Mini Shazam', tag: 'Name a song from ten seconds of mic audio, and see its fingerprint.' },
+    { soon: true, title: '🕉 Sanskrit', tag: 'A tool to help Sanskrit live more in the world.' },
+  ] },
+  { name: 'Courses', items: [
+    { soon: true, title: '🧮 Algorithms', tag: 'The whole U of T CS theory sequence and CLRS, up to P vs NP, as sandboxes you can poke.' },
+    { soon: true, title: '🧠 Build an LLM', tag: 'A small language model from scratch, to learn how they work.' },
+    { soon: true, title: '🔐 Security', tag: 'Advanced cybersecurity through CTF puzzles.' },
+    { soon: true, title: '⚛️ Quantum', tag: 'A visual course on how quantum computers work.' },
+  ] },
 ];
 
 let renderer, hands, active;
