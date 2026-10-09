@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exoplanet Hunt: find a real planet in real TESS data</title>
+<meta name="description" content="Find a real exoplanet in real NASA TESS telescope data, by the transit method, in your browser.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="home-link" href="/">← HandScenes</a>
+
+<main>
+  <header class="intro">
+    <h1>Exoplanet Hunt</h1>
+    <p class="sub">Find a real planet, hiding in real starlight.</p>
+    <p>
+      Every planet we know about around another star was found this way, almost always: not by
+      seeing it, but by watching its star's light dim for a few hours, over and over, on a steady
+      beat. NASA's TESS telescope stares at one patch of sky for about a month at a time and
+      records the brightness of every star in it, every two minutes. Below is real TESS data for
+      three real stars. You'll walk through the same five steps astronomers use to pull a planet
+      out of the noise: clean the data, search for the beat, fold it on that rhythm, then measure
+      the planet from what the dip tells you.
+    </p>
+  </header>
+
+  <section class="picker" id="picker">
+    <button data-star="qatar1">
+      <span class="tag">Guided</span>
+      <span class="name">Star 1</span>
+      <span class="desc">A hot Jupiter with a deep, easy-to-see dip. Start here to learn the steps.</span>
+    </button>
+    <button data-star="gj357">
+      <span class="tag">Harder</span>
+      <span class="name">Star 2</span>
+      <span class="desc">A smaller planet with a faint dip. Same steps, sharper eyes needed.</span>
+    </button>
+    <button data-star="hd189733">
+      <span class="tag">Mystery</span>
+      <span class="name">Star 3</span>
+      <span class="desc">Solve it blind. We reveal what it really is at the end.</span>
+    </button>
+  </section>
+
+  <div id="status-line"></div>
+
+  <section class="step" id="step1" data-locked="true">
+    <h2><span class="num">1</span> The raw light curve</h2>
+    <p class="explain">
+      This is what TESS actually recorded: the star's brightness, point by point, for about a
+      month. Every dot is one measurement. Can you spot the planet by eye? Probably not yet.
+      There's real noise here, and the star's own brightness drifts a little on its own, which has
+      nothing to do with a planet.
+    </p>
+    <canvas class="plot" id="plot-raw"></canvas>
+    <p class="note" id="raw-note"></p>
+  </section>
+
+  <section class="step" id="step2" data-locked="true">
+    <h2><span class="num">2</span> Detrend: flatten out the drift</h2>
+    <p class="explain">
+      Stars flicker and drift for reasons that have nothing to do with planets: starspots rotating
+      in and out of view, or the telescope itself settling slightly. We flatten this out with a
+      moving median, a smooth line that tracks the slow drift but ignores quick dips. Dividing the
+      data by that line leaves the <b>flattened flux</b>, which is what we search next.
+    </p>
+    <div class="controls">
+      <label>Smoothing window (hours)
+        <input type="range" id="window-slider" min="2" max="48" step="1" value="12">
+        <span class="val" id="window-val">12 h</span>
+      </label>
+    </div>
+    <canvas class="plot" id="plot-trend"></canvas>
+    <p class="note">The cyan line is the moving median trend through the raw dots above.</p>
+    <canvas class="plot" id="plot-flat" style="margin-top:10px"></canvas>
+    <p class="note">The flattened curve: raw flux divided by the trend line.</p>
+  </section>
+
+  <section class="step" id="step3" data-locked="true">
+    <h2><span class="num">3</span> Search: find the repeating beat</h2>
+    <p class="explain">
+      A transit happens once every orbit, like clockwork. If we guess the right repeat length (the
+      <b>period</b>) and fold every orbit on top of the one before it, all the transits stack up
+      into one clean dip. Guess wrong, and they scatter and cancel out. The search below, called
+      Box Least Squares (BLS), tries thousands of candidate periods and scores each one by how
+      deep and clean a dip it finds when folded that way. It runs in a background thread so the
+      page doesn't freeze. When it's done, <b>click the tallest peak</b>.
+    </p>
+    <div class="controls">
+      <button class="go" id="search-btn">Run the search</button>
+      <span id="search-status" class="hint"></span>
+    </div>
+    <div class="progress-bar"><div id="search-progress"></div></div>
+    <canvas class="plot" id="plot-periodogram"></canvas>
+    <p class="note" id="period-pick-note">Click the tallest peak once the search finishes.</p>
+  </section>
+
+  <section class="step" id="step4" data-locked="true">
+    <h2><span class="num">4</span> Fold: stack the transits</h2>
+    <p class="explain">
+      Here the flattened data is folded on the period you picked, every orbit lined up on top of
+      the others. Fine-tune the period with the slider: when it's right, the dip sharpens into a
+      clean, narrow notch. When it's off, the dip smears out. Once it's sharp, drag the two
+      vertical lines to bracket how long the dip lasts, and drag the horizontal line down to its
+      floor to mark how deep it goes.
+    </p>
+    <div class="controls">
+      <label>Fine-tune period (days)
+        <input type="range" id="period-slider" min="0" max="1" step="0.0001" value="0">
+        <span class="val" id="period-val">–</span>
+      </label>
+    </div>
+    <canvas class="plot tall" id="plot-fold"></canvas>
+    <div class="controls">
+      <span>Marked depth: <span class="val" id="mark-depth">–</span></span>
+      <span>Marked duration: <span class="val" id="mark-duration">–</span></span>
+    </div>
+  </section>
+
+  <section class="step" id="step5" data-locked="true">
+    <h2><span class="num">5</span> Measure the planet</h2>
+    <p class="explain">
+      Three simple formulas turn the period and the shape of the dip into real numbers: the
+      planet's size, how far it orbits, and roughly how hot it would be.
+    </p>
+
+    <div class="formula" id="formula-radius"></div>
+    <div class="formula" id="formula-orbit"></div>
+    <div class="formula" id="formula-temp"></div>
+
+    <table class="measure" id="measure-table">
+      <thead><tr><th>Quantity</th><th>Your measurement</th><th id="archive-col-head">NASA archive</th><th id="error-col-head">% error</th></tr></thead>
+      <tbody id="measure-body"></tbody>
+    </table>
+
+    <div class="controls" id="reveal-controls" style="display:none">
+      <button class="go" id="reveal-btn">Reveal this star</button>
+    </div>
+    <div class="reveal-box" id="reveal-box">
+      <p id="reveal-text"></p>
+    </div>
+  </section>
+
+  <section class="panel-box">
+    <h3>Why this works</h3>
+    <p>
+      A planet's own light is far too faint to see next to its star, so we don't look for the
+      planet. We look for its shadow. As it crosses in front of the star, it blocks a small,
+      predictable fraction of the star's light, for a few hours, once every orbit. That fraction
+      depends only on how big the planet looks against the star: (planet radius / star radius)².
+      A period this regular, this clean, and this short, is the signature a transiting planet
+      leaves behind.
+    </p>
+  </section>
+
+  <section class="panel-box">
+    <h3>Limits: a dip alone doesn't prove a planet</h3>
+    <p>
+      A regular dip is strong evidence, but not proof by itself. A small star eclipsing a bigger
+      one (an eclipsing binary) can fake a shallow, "V" shaped dip that looks similar. So can a
+      faint background star blended into the same pixel. Real confirmation needs more: a
+      flat-bottomed "U" shaped dip of consistent depth, a mass measurement from the star's wobble
+      (radial velocity), or a repeat with a different telescope. Every planet in this page was
+      confirmed that way, not from TESS data alone.
+    </p>
+  </section>
+</main>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
