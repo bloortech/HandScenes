@@ -1,0 +1,158 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0b0c;
+  --panel: rgba(20, 19, 18, .72);
+  --line: rgba(237, 237, 230, .14);
+  --ink: #ededE6;
+  --dim: #9a9890;
+  --amber: #E8B84B;
+  --cyan: #7CD5E8;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+}
+a { color: var(--amber); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 14px 20px;
+  background: rgba(11,11,12,.86);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.top .home { font-size: 13px; color: var(--dim); }
+.top h1 { font-size: 16px; margin: 0; font-weight: 650; }
+
+main { max-width: 1120px; margin: 0 auto; padding: 28px 20px 80px; }
+
+.intro { color: var(--dim); max-width: 640px; margin: 0 0 32px; }
+.intro b { color: var(--ink); }
+
+.shelf h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--dim);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+  margin: 40px 0 16px;
+}
+.shelf p.note { color: var(--dim); font-size: 13px; margin: -8px 0 16px; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+.card {
+  display: block;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 16px 14px;
+  cursor: pointer;
+  transition: border-color .15s, transform .15s;
+}
+.card:hover { border-color: rgba(237,237,230,.3); transform: translateY(-1px); }
+.card h3 { margin: 0 0 6px; font-size: 15px; color: var(--ink); }
+.card p { margin: 0 0 10px; font-size: 13px; color: var(--dim); line-height: 1.5; }
+.card .src { font-size: 11px; color: var(--cyan); }
+.card .dots { height: 36px; margin-bottom: 10px; opacity: .8; }
+
+.gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 160px;
+  background: var(--panel);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+}
+.gate button {
+  background: rgba(237,237,230,.08);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.gate button:hover { background: rgba(237,237,230,.16); }
+.gate .warn { font-size: 12px; color: var(--dim); }
+
+.diagram-view { display: none; }
+.diagram-view.open { display: block; }
+.diagram-view .back { font-size: 13px; color: var(--dim); display: inline-block; margin-bottom: 14px; }
+.diagram-view h2 { margin: 0 0 4px; font-size: 20px; }
+.diagram-view .source { font-size: 12px; color: var(--cyan); margin-bottom: 18px; }
+
+.dg-wrap {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 860px) {
+  .dg-wrap { grid-template-columns: 1.3fr 1fr; align-items: start; }
+}
+.dg-stage {
+  position: relative;
+  background: #080808;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+}
+.dg-canvas { width: 100%; height: 100%; display: block; }
+.dg-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.dg-controls label {
+  font-size: 12px;
+  color: var(--dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dg-controls input[type="range"] { width: 120px; }
+.dg-controls button, .dg-controls .toggle {
+  background: rgba(237,237,230,.08);
+  border: 1px solid var(--line);
+  color: var(--ink);
+  border-radius: 7px;
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.dg-controls button.on { background: var(--amber); color: #1a1406; border-color: var(--amber); font-weight: 600; }
+.dg-controls button:hover { background: rgba(237,237,230,.16); }
+
+.dg-explain { font-size: 14px; color: var(--ink); line-height: 1.6; }
+.dg-explain .cite { display: block; margin-top: 10px; font-size: 12px; color: var(--cyan); }
+
+.index-list { list-style: none; padding: 0; margin: 10px 0 0; color: var(--dim); font-size: 13px; }
+.index-list li { padding: 3px 0; }
+
+footer.page { max-width: 1120px; margin: 0 auto; padding: 0 20px 60px; color: var(--dim); font-size: 12px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .card:hover { transform: none; }
+}
