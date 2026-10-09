@@ -9,7 +9,9 @@ const $ = id => document.getElementById(id);
 // ?mode=war&day=200&zoom=9 : start a fresh farm in that mode, fast-forwarded, zoomed in on the first queen.
 const qs = new URLSearchParams(location.search);
 const skipTo = +qs.get('day') || 0, urlMode = qs.get('mode'), zoomTo = +qs.get('zoom');
-let sim = urlMode || skipTo ? null : load();
+// Every visit starts at day 0: a saved farm is offered on the chooser, never auto-resumed.
+let sim = null;
+const saved = urlMode || skipTo ? null : load();
 let speed = 60, paused = false, owe = 0, follow = null, trueSize = false;
 let measured = { sim: 0, real: 0 }, actual = 0, lastLog = -1;
 
@@ -302,8 +304,15 @@ function frame(now) {
 }
 
 if (urlMode || skipTo) start(urlMode === 'war' ? 'war' : 'solo');
-else if (sim) buildViews();
-else $('chooser').style.display = 'block';
+else {
+  if (saved) {
+    const b = document.createElement('button'); b.className = 'opt';
+    b.innerHTML = `<b>Continue your farm</b><span>Pick up your ${saved.colonies.length > 1 ? 'war' : 'colony'} where you left it, on day ${Math.floor(saved.t / DAY)}.</span>`;
+    b.onclick = () => { sim = saved; $('chooser').style.display = 'none'; buildViews(); fit(); };
+    $('chooser').appendChild(b);
+  }
+  $('chooser').style.display = 'block';
+}
 if (sim && zoomTo) { const q = sim.agents.find(a => a.caste === 'queen'); if (q) lookAt(q.x, q.y, zoomTo); }
 requestAnimationFrame(frame);
 })();
