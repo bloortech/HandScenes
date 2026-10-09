@@ -16,11 +16,11 @@ function check(name, cond) {
 
 // --- manifest shape -------------------------------------------------------
 
-check("manifest has at least 8 diagrams", manifest.length >= 8);
+check("manifest has at least 4 diagrams", manifest.length >= 4);
 
 for (const d of manifest) {
   check(`${d.id || "?"}: has an id`, typeof d.id === "string" && d.id.length > 0);
-  check(`${d.id}: has a shelf (vervaeke|threebody)`, d.shelf === "vervaeke" || d.shelf === "threebody");
+  check(`${d.id}: has a shelf (threebody)`, d.shelf === "threebody");
   check(`${d.id}: has a title`, typeof d.title === "string" && d.title.length > 0);
   check(`${d.id}: has a source citation`, typeof d.source === "string" && d.source.length > 10);
   check(`${d.id}: has a blurb (3+ sentences worth of text)`, typeof d.blurb === "string" && d.blurb.length > 120);
@@ -30,9 +30,7 @@ for (const d of manifest) {
 const ids = manifest.map((d) => d.id);
 check("all diagram ids are unique", new Set(ids).size === ids.length);
 
-const vervaekeCount = manifest.filter((d) => d.shelf === "vervaeke").length;
 const threeBodyCount = manifest.filter((d) => d.shelf === "threebody").length;
-check("vervaeke shelf has at least 4 diagrams", vervaekeCount >= 4);
 check("three-body shelf has at least 4 diagrams", threeBodyCount >= 4);
 
 // --- three-body integrator: energy conservation ---------------------------

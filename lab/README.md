@@ -8,12 +8,8 @@ and open `/lab/<project>/`.
 - **antfarm/**: a leafcutter ant farm at real scale and real time, solo or two colonies at war.
   Imported with its full history from the old standalone repo.
 
-## Science
-- **exoplanets/**: find a planet from real NASA TESS telescope data, by the dip in its star's light.
-
 ## Diagrams
-- **diagrams/**: animated diagrams of ideas from philosophy and sci-fi: John Vervaeke's
-  *Awakening from the Meaning Crisis* and Cixin Liu's *Three-Body* trilogy.
+- **diagrams/**: animated diagrams of ideas from Cixin Liu's *Three-Body* trilogy.
 
 ## Courses
 - **courses/algorithms/**: every algorithm from the U of T CS theory sequence and CLRS, up to

@@ -13,17 +13,9 @@
 </div>
 <main>
   <p class="intro">
-    Animated, interactive diagrams of ideas that are easier to <b>see</b> than to read about.
-    One shelf walks through John Vervaeke's <i>Awakening from the Meaning Crisis</i>, with the
-    episode each idea comes from. The other walks through Liu Cixin's Three-Body trilogy, with
-    the book and chapter. Click a card, then play with the controls inside.
+    Animated, interactive diagrams of ideas from Liu Cixin's Three-Body trilogy, with the book
+    and chapter each one comes from. Click a card, then play with the controls inside.
   </p>
-
-  <section class="shelf" id="vervaeke">
-    <h2>Awakening from the Meaning Crisis · John Vervaeke</h2>
-    <p class="note">All open. Episode numbers cited on each card.</p>
-    <div class="grid" data-shelf="vervaeke"></div>
-  </section>
 
   <section class="shelf" id="threebody">
     <h2>The Three-Body Trilogy · Liu Cixin</h2>
@@ -37,7 +29,7 @@
   </section>
 </main>
 <footer class="page">
-  Built from the show's own episode numbers and the novels' own chapters. Where a claim
+  Built from the novels' own chapters. Where a claim
   couldn't be checked against a primary source, it was left out rather than guessed.
   See <a href="README.md">README</a> for sources and what's next.
 </footer>
@@ -53,9 +45,6 @@
         <span class="src">${d.source}</span>
       </a>`;
   }
-
-  const vervaeke = manifest.filter((d) => d.shelf === "vervaeke");
-  document.querySelector('[data-shelf="vervaeke"]').innerHTML = vervaeke.map(cardHtml).join("");
 
   const book1 = manifest.filter((d) => d.shelf === "threebody" && (d.spoilerBook || 1) === 1);
   const book23 = manifest.filter((d) => d.shelf === "threebody" && (d.spoilerBook || 1) > 1);

@@ -60,6 +60,7 @@
   <table id="stats"></table>
   <div id="plants"></div>
   <div class="btns" style="margin:10px 0 0"><button id="pause">Pause</button><button id="size">True size</button><button id="reset">New farm</button></div>
+  <div class="btns" style="margin:4px 0 0"><button id="download" title="Your farm also saves in this browser automatically. A file keeps it safe for good, and works in any browser.">Save to file</button><button id="upload">Load file</button><input id="file" type="file" accept=".json,application/json" hidden></div>
 </div>
 
 <div id="log" class="panel"><h2 id="logtoggle">Diary ▾</h2><div id="entries"></div></div>
@@ -73,6 +74,7 @@
   <p>1 pixel = 1 mm, and the clock is real. Food comes from the plants on the surface, and they can run out.</p>
   <button class="opt" data-mode="solo"><b>One colony</b><span>Watch a queen found a nest and grow it into an underground fungus city.</span></button>
   <button class="opt" data-mode="war"><b>Two colonies at war</b><span>Red and Gold queens land 50 cm apart and compete for the same plants. Rival ants fight on contact.</span></button>
+  <button class="opt" id="chooser-upload"><b>Load a saved file</b><span>Open a farm you saved with "Save to file", from any browser.</span></button>
 </div>
 
 <script src="sim.js"></script>

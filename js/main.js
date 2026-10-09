@@ -105,8 +105,7 @@ const CATEGORIES = [
   ] },
   { name: 'Lab', items: [
     { href: '/lab/antfarm/', title: '🐜 Ant Farm', tag: 'Leafcutter ants at real scale and real time. Watch a queen found a city underground, or put two colonies at war over the same plants.' },
-    { href: '/lab/exoplanets/', title: '🪐 Exoplanet Hunt', tag: 'Find a planet in real NASA telescope data from the tiny dip in its star\'s light.' },
-    { href: '/lab/diagrams/', title: '🌀 Diagrams', tag: 'Animated diagrams of Vervaeke\'s Meaning Crisis and the Three-Body trilogy.' },
+    { href: '/lab/diagrams/', title: '🌀 Diagrams', tag: 'Animated diagrams of ideas from the Three-Body trilogy: the three suns, sophons, the dark forest, the droplet.' },
     { soon: true, title: '🟡 Toronto Pac-Man', tag: 'Real streets from any neighbourhood become the maze.' },
     { soon: true, title: '🎧 Mini Shazam', tag: 'Name a song from ten seconds of mic audio, and see its fingerprint.' },
     { soon: true, title: '🕉 Sanskrit', tag: 'A tool to help Sanskrit live more in the world.' },
@@ -358,7 +357,7 @@ function buildHome() {
         card.className = 'card';
         card.dataset.scene = item.key;
         card.innerHTML = `<div class="t">${m.title}</div><div class="d">${m.tag}</div>`;
-        card.addEventListener('click', () => selectScene(item.key));
+        card.addEventListener('click', () => (booted ? selectScene(item.key) : askCamera(item.key)));
       }
       grid.appendChild(card);
     }
@@ -411,13 +410,14 @@ function toggleTrack() {
 trackBtn.addEventListener('click', toggleTrack);
 
 addEventListener('keydown', (e) => {
-  if (['1', '2', '3', '4'].includes(e.key)) selectScene(e.key);
+  if (['1', '2', '3', '4'].includes(e.key)) booted ? selectScene(e.key) : askCamera(e.key);
   if (e.key === 'v') toggleCam();
   if (e.key === 'h') toggleUI();
   if (e.key === 't') toggleTrack();
   if (e.key === 'c') openSheet();
   if (e.key === 'Escape') {
-    if (document.body.classList.contains('sheet-open')) closeSheet();
+    if (!booted && !gate.classList.contains('off')) closeCameraAsk();
+    else if (document.body.classList.contains('sheet-open')) closeSheet();
     else openHome();
   }
 });
@@ -430,11 +430,33 @@ addEventListener('unhandledrejection', (e) => {
 });
 
 // ---- boot ----------------------------------------------------------------
+// PRESS START opens the gallery with no camera: most flows (Lab, Courses) never
+// need it. The gate comes back, as a camera ask, only when a hand-tracked scene
+// is picked, so the permission prompt is tied to the thing that uses it.
+let pendingScene = '1';
+let cameraAsk = false;
+const gateBack = $('gate-back');
+function enterHome() {
+  track('start');                 // pressed START — funnel: did they try at all?
+  gate.classList.add('off');
+  buildHome();
+  openHome();
+}
+function askCamera(key) {
+  pendingScene = key;
+  cameraAsk = true;
+  startBtn.textContent = '▶ TURN ON CAMERA';
+  gateNote.textContent = SCENE_META[key].title + ' uses your webcam for hand tracking, all on your device. Click allow when prompted.';
+  gateBack.hidden = false;
+  gate.classList.remove('off');
+}
+function closeCameraAsk() { gate.classList.add('off'); }
+gateBack.addEventListener('click', (e) => { e.preventDefault(); closeCameraAsk(); });
+
 async function init() {
   startBtn.disabled = true;
   gate.classList.add('loading');
   gateNote.textContent = 'Setting up… this may take a few seconds.';
-  track('start');                 // pressed START — funnel: did they try at all?
   try {
     if (!renderer) {
       renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -443,9 +465,7 @@ async function init() {
     }
     hands = await createHands(video);
     layout();
-    buildHome();
-    selectScene('1');   // builds scene 1 lazily so the stage renders behind home
-    openHome();         // ...then let the user pick a scene/category first
+    selectScene(pendingScene);   // the scene they picked, built lazily
     gate.remove();
     booted = true;
     track('ready');               // camera granted + app running (got past the gate)
@@ -465,7 +485,7 @@ async function init() {
     }
   }
 }
-startBtn.addEventListener('click', init);
+startBtn.addEventListener('click', () => (cameraAsk ? init() : enterHome()));
 
 let last = performance.now();
 let fpsAccum = 0, fpsFrames = 0;

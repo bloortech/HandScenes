@@ -1,13 +1,14 @@
 # Diagrams
 
 Animated, interactive diagrams of ideas worth seeing rather than just reading about.
-Two shelves: John Vervaeke's *Awakening from the Meaning Crisis*, and Liu Cixin's
-Three-Body trilogy. Open `/lab/diagrams/` (or `index.html` under this folder) from the
+One shelf: Liu Cixin's Three-Body trilogy. (A Vervaeke *Meaning Crisis* shelf was
+built and then removed on 9 Oct 2026, since Ishan wants to go through that course
+himself first. It's in git history at commit 8ac8782 if he comes back to it.) Open `/lab/diagrams/` (or `index.html` under this folder) from the
 site root.
 
 ## Structure
 
-- `index.html` — the two shelves, cards link to `diagram.html#<id>`.
+- `index.html` — the shelf, cards link to `diagram.html#<id>`.
 - `diagram.html` — single viewer page, reads the id from the URL hash and mounts that
   diagram's module next to its explanation and citation.
 - `manifest.js` — imports every diagram module and lists them in one place.
@@ -25,14 +26,7 @@ site root.
   the required fields, and that the three-body integrator conserves energy within 1%
   over 2000 steps for both presets.
 
-## What's built (10 diagrams)
-
-**Vervaeke shelf** (all open, episode numbers verified against meaningcrisis.co):
-1. Pythagoras and the monochord — string ratios, playable tones via WebAudio (ep. 4)
-2. Socrates and the elenchus — claim to aporia, five stages (ep. 4)
-3. Plato's cave and the divided line — one climb, two views (ep. 5)
-4. Aristotle: four causes, virtue as a mean (ep. 6)
-5. The four kinds of knowing — propositional, procedural, perspectival, participatory (ep. 1)
+## What's built (5 diagrams)
 
 **Three-Body shelf** (Book 1 open, Books 2–3 behind a spoiler gate):
 1. The three-body problem — real velocity-Verlet gravity sim, draggable suns, stable
@@ -44,13 +38,6 @@ site root.
 
 ## Sources and what couldn't be verified
 
-Vervaeke episode numbers were checked against meaningcrisis.co's own episode titles
-(ep. 1 Introduction, ep. 4 Socrates and the Quest for Wisdom, ep. 5 Plato and the
-Cave, ep. 6 Aristotle, Kant, and Evolution). The relevance-realization/opponent-
-processing diagram was left out of v1: its clearest home is episodes 27–32, but no
-single primary-source episode title pinned "opponent processing" precisely enough to
-cite with confidence in the time available — it's next, see below.
-
 Three-Body citations: the sophon-unfolding chapter (33, "Trisolaris: Sophon") and the
 droplet's ship count (600+ ships in the Doomsday Battle) were checked against
 secondary sources (LitCharts, plot summaries); I did not have the physical text to
@@ -60,8 +47,6 @@ part/sequence level rather than a specific chapter number.
 
 ## Next diagrams (skipped for v1, quality over count)
 
-- Vervaeke: the Axial revolution's "two worlds" mythology; relevance realization as
-  opponent processing (needs a firmer episode citation first).
 - Three-Body: the dimensional strike flattening the Solar System (Death's End);
   lightspeed propulsion and the black domain (Death's End). Both are Book 3 and need
   their own spoiler handling plus a two-stage animation (fold-down, then the

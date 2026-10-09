@@ -235,8 +235,27 @@ function buildViews() {   // camera shortcuts: whole farm, each queen, the plant
 $('pause').onclick = togglePause;
 $('size').onclick = toggleSize;
 $('reset').onclick = () => { $('chooser').style.display = 'block'; };
+// Long-term keeping without accounts: the browser copy can be wiped (Safari clears
+// site data after ~7 days unvisited), so the farm can also live in a file you own.
+$('download').onclick = () => {
+  if (!sim) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(sim.toJSON())], { type: 'application/json' }));
+  a.download = `antfarm-${sim.colonies.length > 1 ? 'war' : 'colony'}-day-${Math.floor(sim.t / DAY)}.json`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('upload').onclick = $('chooser-upload').onclick = () => $('file').click();
+$('file').onchange = async () => {
+  const f = $('file').files[0]; $('file').value = '';
+  if (!f) return;
+  try {
+    sim = Sim.fromJSON(JSON.parse(await f.text()));
+    follow = null; lastLog = -1; $('chooser').style.display = 'none';
+    buildViews(); fit(); save();
+  } catch (e) { alert("That file isn't an ant farm save, or it's from an older version."); }
+};
 $('logtoggle').onclick = () => { $('log').classList.toggle('closed'); $('logtoggle').textContent = $('log').classList.contains('closed') ? 'Diary ▸' : 'Diary ▾'; };
-for (const b of document.querySelectorAll('#chooser .opt')) b.onclick = () => start(b.dataset.mode);
+for (const b of document.querySelectorAll('#chooser .opt[data-mode]')) b.onclick = () => start(b.dataset.mode);
 refreshButtons();
 
 const PHASE = { landing: 'just landed', digging: 'queen digging', claustral: 'sealed in', opening: 'digging out', open: 'open' };
