@@ -19,6 +19,13 @@ is a real clock (1× means one real second per second).
   spent fungus is removed. Egg-laying slows when the garden is short.
 - **Nest size follows colony size.** Ants dig when space runs short and stop when it doesn't
   (demand-driven excavation), so the nest grows with the colony.
+- **Food is finite.** Leaves come from real plants on the surface. Each dot that cuts a fragment
+  takes leaves off that plant, and plants regrow logistically: fast when healthy, slowly when stripped.
+  A hungry garden means fewer eggs and more worker deaths, so the colony's size settles where its
+  plants can feed it.
+- **Rival colonies fight.** Leafcutter colonies are territorial; workers of different colonies that
+  meet usually fight, and big-headed majors win far more often than small workers. Fighting raises an
+  alarm that sends soldiers out to patrol. A colony whose queen dies can't make new workers and fades out.
 - **Soil is conserved.** Every grain dug out is carried to the surface and dropped on the mound
   (rolling to a stable slope), so the mound's stripes show which soil layer it came from.
 - **Most workers are idle at any moment**, resting in the garden. That's real, and it's also what
@@ -36,8 +43,8 @@ and how fast the garden is consumed.
 - **Blueprints.** Real ants have no plan; tunnels and chambers emerge from local cues (pheromone in the
   soil, crowding, gravity). Here the colony picks a meandering tunnel path or chamber shape, then the
   individual ants dig it pellet by pellet. The digging is agent-by-agent; the plan is not.
-- **Foraging off-screen.** Foragers walk the surface to the edge and come back with a leaf after a
-  20–70 minute trip. The trees aren't simulated.
+- **Short trails.** Real *Atta* forage up to ~100 m from the nest; here the plants are within the 1 m farm.
+- **Fights are one-on-one** and decided by caste strength, with no injuries, no group pile-ons, and no raids.
 - **Dots stand for several ants** once the colony passes 900 workers (the HUD shows the ratio).
 - **The farm is 1 m × 70 cm**, so it fills up around the end of year one. A real *Atta* nest keeps
   going for years and metres.

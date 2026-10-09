@@ -5,33 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Atta ant farm</title>
 <style>
-  :root { color-scheme: dark; --ink: #e9e2d4; --dim: #9a917f; --panel: rgba(16, 13, 10, .82); --line: rgba(233, 226, 212, .14); --accent: #d9783a; }
+  :root { color-scheme: dark; --ink: #e9e2d4; --dim: #9a917f; --panel: rgba(16, 13, 10, .84); --line: rgba(233, 226, 212, .14);
+          --accent: #d9783a; --red: #e0703a; --gold: #ecc244; }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; background: #0b0907; color: var(--ink); font: 13px/1.45 ui-sans-serif, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
   canvas { display: block; width: 100vw; height: 100vh; cursor: grab; }
   canvas.dragging { cursor: grabbing; }
-  .panel { position: fixed; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; backdrop-filter: blur(6px); }
-  #hud { top: 12px; left: 12px; width: 300px; }
-  #hud h1 { margin: 0; font-size: 15px; font-weight: 650; letter-spacing: .01em; }
+  .panel { position: fixed; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; backdrop-filter: blur(6px); }
+  body.bare .panel:not(#chooser) { display: none; }
+  #hud { top: 12px; left: 12px; width: 320px; }
+  #hud h1 { margin: 0; font-size: 14px; font-weight: 650; }
   #hud h1 i { font-weight: 500; }
-  #phase { color: var(--accent); margin: 2px 0 8px; font-size: 12px; }
-  #clock { font: 600 22px/1.1 ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; }
-  #speedline { color: var(--dim); font-size: 12px; margin: 2px 0 8px; }
-  .speeds { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+  #clock { font: 600 20px/1.2 ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  #speedline { color: var(--dim); font-size: 12px; margin-bottom: 8px; }
+  .btns { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
   button { background: rgba(255,255,255,.06); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font: inherit; font-size: 12px; cursor: pointer; }
   button:hover { background: rgba(255,255,255,.12); }
   button.on { background: var(--accent); border-color: var(--accent); color: #1a0f08; font-weight: 600; }
-  dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0; font-size: 12px; }
-  dt { color: var(--dim); }
-  dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-  #log { top: 12px; right: 12px; width: 320px; max-height: 46vh; overflow: auto; font-size: 12px; }
-  #log h2, #ant h2 { margin: 0 0 6px; font-size: 12px; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
-  #log div { padding: 3px 0; border-top: 1px solid var(--line); }
-  #log b { color: var(--dim); font-weight: 500; font-variant-numeric: tabular-nums; }
-  #ant { right: 12px; bottom: 12px; width: 240px; display: none; font-size: 12px; }
-  #help { left: 12px; bottom: 12px; font-size: 12px; color: var(--dim); padding: 8px 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+  th { text-align: right; font-weight: 600; padding: 0 0 2px 8px; }
+  th:first-child { text-align: left; padding-left: 0; }
+  td { padding: 1px 0 1px 8px; text-align: right; }
+  td:first-child { color: var(--dim); text-align: left; padding-left: 0; }
+  .red { color: var(--red); } .gold { color: var(--gold); }
+  #plants { margin-top: 8px; font-size: 12px; color: var(--dim); }
+  .bar { display: inline-block; width: 52px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.1); margin: 0 6px 0 3px; vertical-align: middle; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: #5fa83a; }
+  #log { top: 12px; right: 12px; width: 300px; font-size: 12px; }
+  #log h2, #ant h2 { margin: 0; font-size: 11px; color: var(--dim); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; user-select: none; }
+  #entries { max-height: 38vh; overflow: auto; margin-top: 6px; }
+  #log.closed #entries { display: none; }
+  #entries div { padding: 3px 0; border-top: 1px solid var(--line); }
+  #entries b { color: var(--dim); font-weight: 500; font-variant-numeric: tabular-nums; }
+  #ant { right: 12px; bottom: 12px; width: 230px; display: none; font-size: 12px; }
+  #help { left: 12px; bottom: 12px; font-size: 12px; color: var(--dim); padding: 7px 11px; }
   #help kbd { background: rgba(255,255,255,.08); border-radius: 4px; padding: 0 4px; color: var(--ink); font: 11px ui-monospace, monospace; }
-  .row { display: flex; gap: 6px; margin-top: 10px; }
+  #chooser { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 460px; padding: 20px 22px; display: none; }
+  #chooser h2 { margin: 0 0 4px; font-size: 18px; }
+  #chooser p { color: var(--dim); margin: 0 0 14px; }
+  #chooser .opt { display: block; width: 100%; text-align: left; padding: 12px 14px; margin-bottom: 8px; font-size: 13px; }
+  #chooser .opt b { display: block; font-size: 14px; margin-bottom: 2px; }
+  #chooser .opt span { color: var(--dim); }
 </style>
 </head>
 <body>
@@ -39,18 +53,26 @@
 
 <div id="hud" class="panel">
   <h1><i>Atta sexdens</i> · leafcutter ant farm</h1>
-  <div id="phase"></div>
   <div id="clock">Day 0 · 07:00</div>
   <div id="speedline"></div>
-  <div class="speeds" id="speeds"></div>
-  <dl id="stats"></dl>
-  <div class="row"><button id="pause">Pause</button><button id="fit">Fit view</button><button id="reset">New colony</button></div>
+  <div class="btns" id="speeds"></div>
+  <div class="btns" id="views"></div>
+  <table id="stats"></table>
+  <div id="plants"></div>
+  <div class="btns" style="margin:10px 0 0"><button id="pause">Pause</button><button id="size">True size</button><button id="reset">New farm</button></div>
 </div>
 
-<div id="log" class="panel"><h2>Colony diary</h2><div id="entries"></div></div>
+<div id="log" class="panel"><h2 id="logtoggle">Diary ▾</h2><div id="entries"></div></div>
 <div id="ant" class="panel"><h2>Following</h2><div id="antinfo"></div></div>
 <div id="help" class="panel">
-  scroll to zoom · drag to pan · click an ant to follow it · <kbd>space</kbd> pause · <kbd>1</kbd>–<kbd>6</kbd> speed · <kbd>f</kbd> fit · 1 px = 1 mm
+  scroll zoom · drag pan · click an ant to follow · <kbd>space</kbd> pause · <kbd>1</kbd>–<kbd>6</kbd> speed · <kbd>f</kbd> whole farm · <kbd>t</kbd> true size · <kbd>h</kbd> hide panels
+</div>
+
+<div id="chooser" class="panel">
+  <h2>Start a farm</h2>
+  <p>1 pixel = 1 mm, and the clock is real. Food comes from the plants on the surface, and they can run out.</p>
+  <button class="opt" data-mode="solo"><b>One colony</b><span>Watch a queen found a nest and grow it into an underground fungus city.</span></button>
+  <button class="opt" data-mode="war"><b>Two colonies at war</b><span>Red and Gold queens land 50 cm apart and compete for the same plants. Rival ants fight on contact.</span></button>
 </div>
 
 <script src="sim.js"></script>
