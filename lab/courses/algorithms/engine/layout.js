@@ -50,3 +50,18 @@ export function layoutTree(root, opts) {
 export function layoutBST(root, opts) {
   layoutGeneric(root, (n) => [n.left, n.right].filter(Boolean), opts);
 }
+
+// Places a flat list of nodes (states of an automaton, not a tree) evenly
+// around a circle in the same normalised 0..100 box, so diagrams with
+// cycles (DFAs, NFAs) can reuse the tree/box renderer's node+edge drawing
+// without needing a parent/child shape at all. Mutates each node's x/y.
+export function layoutCircle(nodes, { cx = 50, cy = 50, r = 36 } = {}) {
+  const n = nodes.length;
+  if (n === 0) return;
+  if (n === 1) { nodes[0].x = cx; nodes[0].y = cy; return; }
+  nodes.forEach((node, i) => {
+    const angle = (i / n) * Math.PI * 2 - Math.PI / 2;
+    node.x = cx + r * Math.cos(angle);
+    node.y = cy + r * Math.sin(angle);
+  });
+}

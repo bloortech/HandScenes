@@ -1,5 +1,141 @@
 # Build log
 
+## ALG02 — m03: proofs, recurrences and automata (2026-10-10)
+
+Built all nine m03 topics, reusing and extending the ALG00/ALG01 engine:
+
+- **Engine additions**:
+  - `engine/automaton.js` (new, pure, no DOM, like `bintree.js`): DFA/NFA
+    simulation, epsilon-closure, the subset construction, Moore's
+    partition-refinement DFA minimisation, a brute-force DFA-language-
+    equality checker (sound up to the Myhill-Nerode string-length bound), a
+    small regex parser (literals, `|`, implicit concatenation, `* + ?`,
+    parentheses), Thompson's construction from that parser's AST, an
+    independent backtracking regex matcher (used only to cross-check
+    Thompson's construction from an unrelated direction), and
+    `randomDFA`/`randomNFA`/`randomString` generators for `makeInput`.
+  - `engine/layout.js`: added `layoutCircle`, placing a flat list of nodes
+    (not a tree) evenly around a circle in the same normalised 0..100 box,
+    so automaton diagrams (which have cycles) can reuse the existing
+    `kind: 'tree'` node/edge renderer without needing a parent/child shape.
+  - `engine/renderer.js`'s `_drawTree`: extended to draw edge labels (a
+    third `[from, to, label]` element, used for transition symbols),
+    self-loops (`from === to`, drawn as a small arc above the node instead
+    of a degenerate line), a double ring for `node.accept` (an automaton's
+    accepting states), and a short incoming arrow for `node.start`. All
+    additive and optional, so m01/m02's existing tree frames (which never
+    set these fields) render exactly as before.
+  - `engine/sandbox.js`: added a third sandbox kind, `type: 'string'`, for
+    topics whose editable input is a single text string (dfa/nfa-subset's
+    test string, regex-nfa's regex) instead of an array or a bare number,
+    following the same "preserve extra fields across edits" pattern the
+    array sandbox already uses for bst/linked-list.
+
+- **Topics**:
+  - `induction`: three modes picked at random (like recursion-stack picks
+    its three modes), animated as falling dominoes. Simple induction proves
+    sum_{i=1}^n i = n(n+1)/2; strong induction proves a Fibonacci-style
+    F(n) < 2^n, needing the *two* previous dominoes, not just one; structural
+    induction builds a random full binary tree leaf-by-leaf and proves
+    leaves = internal+1 by combining two already-proven subtrees under a new
+    root (`kind: 'tree'`, reusing `layoutTree`).
+  - `loop-invariant`: steps insertion sort (invariant: `a[0..i-1]` is
+    sorted) or binary search (invariant: if the target is anywhere in the
+    array, it's within `a[lo..hi]`), chosen at random, reusing the m01
+    array-bar renderer. `check` fails closed if any recorded invariant
+    check was false, not just if the final answer was wrong.
+  - `recursion-tree`: expands T(n) = aT(n/b) + f(n), f(n) = c*n^d, level by
+    level as an actual tree (`kind: 'tree'`), with a running total shown
+    each level; `check` recomputes the same sum independently via the
+    closed-form per-level formula rather than re-running the tree builder.
+  - `master-theorem`: compares d to e = log_b(a) and picks the matching
+    case; `check` does not just recompute the same comparison, it also
+    numerically iterates the actual recurrence T(n) = aT(floor(n/b)) +
+    c*n^d out to n = b^15 and confirms the real growth ratio matches what
+    the claimed case predicts, as a brute-force sanity check independent of
+    the classification formula.
+  - `dfa`: a random total DFA (`engine/automaton.js randomDFA`) fed a
+    user-edited test string one character at a time, drawn as a node/edge
+    diagram with the double-ring/start-arrow renderer additions.
+  - `nfa-subset`: a random NFA (with real nondeterminism: multiple
+    transitions per symbol, and epsilon edges) simulated as a *set* of
+    active states, then the subset construction building the equivalent DFA
+    state by state. `check` brute-forces language equality between the NFA
+    and the constructed DFA over every string up to the Myhill-Nerode bound,
+    not just the one test string shown.
+  - `regex-nfa`: Thompson's construction from a user-typed regex over
+    {a,b}, animated fragment by fragment (literal, concat, union, star,
+    plus, optional). `check` cross-verifies the independent backtracking
+    matcher against the built NFA over every string up to length 6.
+    **Found and fixed a real bug** here: the `opt` (`?`) case of
+    `thompson()` originally reused the inner fragment's own start/accept
+    nodes for its "skip the whole group" epsilon edge; whenever the inner
+    fragment itself looped back through its own start (e.g. `(a+)?`), that
+    skip edge became wrongly reachable again after every repetition,
+    letting the NFA accept strings like `"a"` for `((a)+bb)?...` that the
+    regex should reject (missing the required trailing `bb`). Fixed by
+    giving `opt` its own fresh start/accept pair, the same shape `star`
+    already correctly uses minus the loop-back edge. Caught by `regex-nfa`'s
+    own independent-matcher cross-check during development, before this was
+    ever wired into `test.mjs`.
+  - `dfa-minimise`: a random DFA deliberately padded with a few states that
+    are exact duplicates of existing ones (so there is always real merging
+    to watch), minimised with Moore's partition-refinement algorithm.
+    `check` brute-forces that the minimised DFA accepts exactly the same
+    language as the original.
+  - `pumping-lemma`: played as a game against the computer for L = {a^n
+    b^n}, the standard non-regular witness language. The computer claims a
+    pumping length p; the player's string s = a^p b^p is split so that y
+    always lands entirely inside the leading a-block (the only way `|xy| <=
+    p` can be satisfied for this s), and pumping y to y^2 is shown to break
+    membership for every valid split, which is the whole proof. `check`
+    re-verifies the split obeys the lemma's own constraints (`|xy| <= p`,
+    `|y| >= 1`) and that the pumped string is genuinely not in the language.
+
+- `test.mjs`/`coverage.mjs`: unchanged, same as ALG01 found. The structured
+  all-duplicates/sorted/reverse-sorted edge cases spread an unused `array`
+  field onto inputs for topics whose sandbox type isn't `array-sorted`
+  (here: all nine m03 topics, which use `n` or `string` sandboxes); that
+  field is simply ignored by every m03 topic's `run`/`check`, same as
+  ALG01's `n`-shaped topics. 664 total cases across all 22 built topics (m01
+  + m02 + m03), 0 failures.
+
+### Screenshot pass
+
+Served the worktree with `python3 -m http.server 8830` and captured the
+course map plus all nine new topic pages with headless Chrome. First pass
+caught one real rendering issue: `regex-nfa`'s very first frame (before any
+NFA fragment is built) showed a literally empty canvas ("(empty tree)"),
+since its node set started genuinely empty. Fixed by showing every state's
+final laid-out position from frame 0 onward (dimmed, unconnected), with
+edges still revealed one at a time by the actual construction, so the
+diagram is never blank. After the fix, all nine re-screenshotted cleanly:
+the domino rows for `induction`, the array-bar invariant panels for
+`loop-invariant`, the growing level-by-level tree for `recursion-tree`, the
+three-box case picker for `master-theorem`, and the state diagrams (with
+double rings on accepting states and an incoming arrow on the start state)
+for `dfa`, `nfa-subset`, `regex-nfa`, and `dfa-minimise`, plus the domino
+row again for `pumping-lemma`.
+
+### Skipped / deferred
+
+- Nothing in m03's required topic list was skipped.
+- The brief's "build a DFA by clicking" and "simulate an NFA, then convert
+  it" framing is interpreted here the same way every other topic in this
+  engine interprets "sandbox": the automaton itself is randomly generated
+  by `makeInput` (seeded, reproducible, regenerable with "Randomize"), and
+  the user drives the *test string* fed into it, not a click-to-add-states-
+  and-edges graph editor. A true click-to-build state-diagram editor would
+  need its own bespoke sandbox input type (mouse-driven node placement and
+  edge drawing, not just a text/array field), which is a materially bigger
+  UI surface than this ticket's other topics; flagging it as a
+  simplification rather than hiding it, the same way ALG01 flagged
+  `recursion-stack`'s mode picker and `stack-queue`'s single continuous run.
+- `master-theorem`'s sandbox slider is labelled "example" and has no real
+  effect on the recurrence shown (a, b, d, c are entirely chosen by
+  `makeInput`'s rng); it exists only so "Randomize" has a size argument to
+  pass through, consistent with the `n`-sandbox's shape used elsewhere.
+
 ## ALG01 — m02: recursion, lists and trees (2026-10-10)
 
 Built all seven m02 topics, reusing and extending the ALG00 engine rather than

@@ -175,10 +175,16 @@ export class ArrayRenderer {
     }
   }
 
-  // A node-and-edge tree diagram: recursion trees and binary search trees.
-  // `frame.nodes` is `[{ id, label, x, y, active, compare, dim, memoHit }]`
-  // with x/y already laid out in a normalised 0..100 box (engine/layout.js).
-  // `frame.edges` is `[[id, id]]`, parent to child.
+  // A node-and-edge diagram: recursion trees, binary search trees, and
+  // (reused as a plain graph, not necessarily tree-shaped) automaton state
+  // diagrams. `frame.nodes` is
+  // `[{ id, label, x, y, active, compare, dim, memoHit, accept, start }]`
+  // with x/y already laid out in a normalised 0..100 box (engine/layout.js:
+  // layoutTree/layoutBST for trees, layoutCircle for automata). `frame.edges`
+  // is `[[fromId, toId]]` or `[[fromId, toId, label]]`; a self-loop
+  // (`fromId === toId`) draws as a small arc above the node instead of a
+  // line. `accept` draws a double ring (an automaton's accepting states);
+  // `start` draws a short arrow pointing into the node from outside.
   _drawTree(frame) {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.width, this.height);
@@ -199,15 +205,48 @@ export class ArrayRenderer {
 
     ctx.strokeStyle = `rgba(${INK.join(',')},0.35)`;
     ctx.lineWidth = 1.5;
-    for (const [fromId, toId] of frame.edges || []) {
+    ctx.font = '10px ui-monospace, Menlo, monospace';
+    for (const edge of frame.edges || []) {
+      const [fromId, toId, label] = edge;
       const a = byId.get(fromId), b = byId.get(toId);
       if (!a || !b) continue;
       const pa = this._toPx(frame, a.x, a.y);
+      if (fromId === toId) {
+        // Self-loop: a small arc above the node.
+        const loopR = r * 0.8;
+        const cx = pa.px, cy = pa.py - r - loopR;
+        ctx.beginPath();
+        ctx.arc(cx, cy, loopR, 0.25 * Math.PI, 0.75 * Math.PI);
+        ctx.stroke();
+        if (label != null) {
+          ctx.fillStyle = `rgba(${INK.join(',')},0.85)`;
+          ctx.textAlign = 'center';
+          ctx.fillText(String(label), cx, cy - loopR - 3);
+        }
+        continue;
+      }
       const pb = this._toPx(frame, b.x, b.y);
       ctx.beginPath();
       ctx.moveTo(pa.px, pa.py);
       ctx.lineTo(pb.px, pb.py);
       ctx.stroke();
+      // Arrowhead at the midpoint, pointing from a to b (works for directed
+      // graphs even when a<->b both have edges drawn as separate lines).
+      const mx = (pa.px + pb.px) / 2, my = (pa.py + pb.py) / 2;
+      const angle = Math.atan2(pb.py - pa.py, pb.px - pa.px);
+      const ah = 5;
+      ctx.beginPath();
+      ctx.moveTo(mx, my);
+      ctx.lineTo(mx - ah * Math.cos(angle - Math.PI / 7), my - ah * Math.sin(angle - Math.PI / 7));
+      ctx.lineTo(mx - ah * Math.cos(angle + Math.PI / 7), my - ah * Math.sin(angle + Math.PI / 7));
+      ctx.closePath();
+      ctx.fillStyle = `rgba(${INK.join(',')},0.6)`;
+      ctx.fill();
+      if (label != null) {
+        ctx.fillStyle = `rgba(${INK.join(',')},0.85)`;
+        ctx.textAlign = 'center';
+        ctx.fillText(String(label), mx, my - 7);
+      }
     }
 
     for (const n of nodes) {
@@ -219,6 +258,25 @@ export class ArrayRenderer {
       if (n.compare) { fillColor = 'rgba(124,213,232,0.35)'; strokeColor = CYAN; }
       if (n.active) { fillColor = 'rgba(232,184,75,0.45)'; strokeColor = AMBER; }
 
+      if (n.start) {
+        const angle = Math.PI; // arrow comes in from the left
+        const ah = { x: px - r - 14, y: py };
+        ctx.strokeStyle = `rgba(${INK.join(',')},0.6)`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(ah.x, ah.y);
+        ctx.lineTo(px - r - 2, py);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(px - r - 2, py);
+        ctx.lineTo(px - r - 8, py - 4);
+        ctx.lineTo(px - r - 8, py + 4);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(${INK.join(',')},0.6)`;
+        ctx.fill();
+        void angle;
+      }
+
       ctx.beginPath();
       ctx.fillStyle = fillColor;
       ctx.arc(px, py, r, 0, Math.PI * 2);
@@ -226,6 +284,11 @@ export class ArrayRenderer {
       ctx.lineWidth = 2;
       ctx.strokeStyle = strokeColor;
       ctx.stroke();
+      if (n.accept) {
+        ctx.beginPath();
+        ctx.arc(px, py, r - 4, 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
       if (n.label != null) {
         ctx.fillStyle = `rgba(${INK.join(',')},${n.dim ? 0.6 : 0.95})`;
