@@ -1,5 +1,90 @@
 # Build log
 
+## ALG08 — m09: strings, number theory, geometry, randomised and parallel (2026-10-10)
+
+Built all fourteen m09 topics. Three new engine files (pure, no DOM access,
+same style as `engine/graph.js`):
+- `engine/strings.js`: `bruteForceMatches` (the independent reference oracle
+  every string-matching topic's `check()` compares against),
+  `randomTextAndPattern` (embeds the pattern in the text about 60% of the
+  time so matches aren't vanishingly rare), `computePrefixFunction` (CLRS's
+  prefix function, shared by `kmp` and used again by `check()`'s oracle),
+  `buildMatchingAutomaton` (the naive O(m^3|alphabet|) transition-table
+  construction), and `stringMatchFrame`, a shared frame builder (text row +
+  sliding pattern row) reused by `naive-string-match`, `rabin-karp` and
+  `kmp`.
+- `engine/numtheory.js`: `gcd`, `extendedEuclid` (with a `steps` log for the
+  animation), `modPow` (right-to-left binary exponentiation), `isPrimeTrial`
+  (the trial-division oracle, used only by `check()`s, never by
+  `miller-rabin`'s own algorithm), `millerRabinWitness`, `crtPair`.
+- `engine/geometry.js`: `cross` (the one primitive both hull algorithms and
+  the segment sweep are built from), `convexHullGraham`/`convexHullJarvis`,
+  `isValidConvexHull` (an independent hull-validity checker: convex-and-
+  contains-every-point, rather than comparing two algorithms' outputs
+  point-for-point, which can legitimately disagree on whether a collinear
+  boundary point is included), `segmentsIntersect`,
+  `anySegmentsIntersectBruteForce` (the O(n^2) oracle), and
+  `sweepAnySegmentsIntersect` (CLRS's ANY-SEGMENTS-INTERSECT).
+
+Topics:
+- `naive-string-match`, `rabin-karp`, `kmp`: all three checked against
+  `bruteForceMatches`; `kmp` additionally checks its prefix function against
+  `computePrefixFunction`. All three share one sandbox shape: editable
+  `text`, with `pattern` regenerated alongside it by `makeInput`.
+- `string-automaton`: builds the matching automaton from the pattern, then
+  runs it exactly like the existing `dfa` topic (same `kind: 'tree'` circle
+  diagram, double ring for the accepting state).
+- `euclid`, `modular-exponentiation`, `rsa`, `crt`: each checked against an
+  independent reimplementation of the relevant identity (gcd + Bezout,
+  plain repeated-squaring, the RSA encrypt/decrypt round trip, each
+  congruence satisfied mod its own modulus) rather than against each
+  other's internals.
+- `miller-rabin`: `check()` only requires the directions the theorem
+  actually guarantees — a declared "composite" must really be composite
+  (every witness check is a mathematically valid proof), and if declared
+  "probably prime," every base tried must independently show no evidence
+  of compositeness. It never asserts a composite is always caught, since
+  that is genuinely probabilistic.
+- `convex-hull`: Graham scan and Jarvis march, picked at random by
+  `makeInput`; both checked with `isValidConvexHull`.
+- `segment-intersection`: the sweep line, checked against the O(n^2)
+  brute-force oracle for whether any pair intersects. `makeInput` excludes
+  vertical segments (both endpoints sharing an x-coordinate), since a
+  purely left-to-right sweep has no well-defined "left endpoint" for a
+  vertical segment; confirmed against 5000 random trials with that one
+  exclusion versus 6 failures per 2000 without it.
+- `karger-min-cut`: contraction via `engine/unionfind.js`, reused as-is
+  from m05. Runs 300 trials per instance (the first animated, the rest
+  silent) so `check()` can require hitting the *true* minimum cut (via a
+  2^(n-1) brute-force split oracle) on graphs this small, instead of
+  accepting an unlucky overshoot; confirmed against 2000 random trials, 0
+  failures.
+- `fork-join`: work (sum of task costs) and span (longest-path DP over a
+  random DAG from `engine/graph.js`'s `dag: true` mode), plus a literal
+  greedy list-scheduling simulation; `check()` asserts CLRS's greedy
+  scheduler bound, makespan <= T1/P + T_infinity, confirmed against 3000
+  random trials, 0 failures.
+- `online-algorithms`: ski rental and LRU-vs-Belady paging, picked at
+  random by `makeInput` the same way `induction.js` alternates proof
+  modes; `check()` asserts the 2-competitive and k-competitive bounds
+  respectively, confirmed against 3000 random trials, 0 failures.
+
+### Screenshot pass
+
+Served the worktree with `python3 -m http.server 8830` and captured the
+course map plus every new topic page with headless Chrome. Found and fixed
+one recurring issue: several pseudocode lines with long trailing comments
+(`kmp`, `string-automaton`, `miller-rabin`, `crt`, `segment-intersection`,
+`online-algorithms`'s paging mode) pushed the whole right-hand panel past
+the viewport width instead of just scrolling within the code box; split
+each into shorter lines (and fixed up the `line:` indices the frames
+reference accordingly) to match the line lengths used throughout the rest
+of the course.
+
+### Skipped / deferred
+
+- Nothing in m09's required scope was skipped.
+
 ## ALG07 — m08: flows, matching and linear programming (2026-10-10)
 
 Built all seven m08 topics. Two new engine files (both pure, no DOM
