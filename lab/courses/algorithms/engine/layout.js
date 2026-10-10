@@ -55,6 +55,28 @@ export function layoutBST(root, opts) {
 // around a circle in the same normalised 0..100 box, so diagrams with
 // cycles (DFAs, NFAs) can reuse the tree/box renderer's node+edge drawing
 // without needing a parent/child shape at all. Mutates each node's x/y.
+// Lays out a complete-binary-tree-by-index array (a binary heap, m04) so the
+// node/edge tree renderer can draw it without a real left/right node object
+// graph: index i's parent is floor((i-1)/2), children are 2i+1 and 2i+2.
+// Positions by level (depth = floor(log2(i+1))), centered within that level,
+// which keeps every level readable without needing the leaf-counting pass
+// layoutGeneric uses for real trees (a heap's shape is always known from n).
+export function layoutHeapPositions(n, { width = 100, height = 100, padX = 8, padY = 10 } = {}) {
+  const positions = [];
+  if (n === 0) return positions;
+  const maxDepth = Math.floor(Math.log2(n));
+  for (let i = 0; i < n; i++) {
+    const depth = Math.floor(Math.log2(i + 1));
+    const levelStart = (1 << depth) - 1;
+    const levelSize = 1 << depth;
+    const posInLevel = i - levelStart;
+    const x = levelSize <= 1 ? width / 2 : padX + ((posInLevel + 0.5) / levelSize) * (width - 2 * padX);
+    const y = maxDepth <= 0 ? height / 2 : padY + (depth / maxDepth) * (height - 2 * padY);
+    positions.push({ x, y });
+  }
+  return positions;
+}
+
 export function layoutCircle(nodes, { cx = 50, cy = 50, r = 36 } = {}) {
   const n = nodes.length;
   if (n === 0) return;
