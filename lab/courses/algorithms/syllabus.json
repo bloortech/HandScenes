@@ -36,15 +36,15 @@
       "course": "CSC236/240",
       "clrs": "Divide-and-Conquer (recurrences, Master theorem)",
       "topics": [
-        { "id": "induction", "title": "Induction", "status": "todo" },
-        { "id": "loop-invariant", "title": "Loop invariants", "status": "todo" },
-        { "id": "recursion-tree", "title": "Recursion trees", "status": "todo" },
-        { "id": "master-theorem", "title": "The Master theorem", "status": "todo" },
-        { "id": "dfa", "title": "Deterministic finite automata", "status": "todo" },
-        { "id": "nfa-subset", "title": "NFAs and the subset construction", "status": "todo" },
-        { "id": "regex-nfa", "title": "Regular expressions to NFAs", "status": "todo" },
-        { "id": "dfa-minimise", "title": "Minimising a DFA", "status": "todo" },
-        { "id": "pumping-lemma", "title": "The pumping lemma", "status": "todo" }
+        { "id": "induction", "title": "Induction", "status": "built" },
+        { "id": "loop-invariant", "title": "Loop invariants", "status": "built" },
+        { "id": "recursion-tree", "title": "Recursion trees", "status": "built" },
+        { "id": "master-theorem", "title": "The Master theorem", "status": "built" },
+        { "id": "dfa", "title": "Deterministic finite automata", "status": "built" },
+        { "id": "nfa-subset", "title": "NFAs and the subset construction", "status": "built" },
+        { "id": "regex-nfa", "title": "Regular expressions to NFAs", "status": "built" },
+        { "id": "dfa-minimise", "title": "Minimising a DFA", "status": "built" },
+        { "id": "pumping-lemma", "title": "The pumping lemma", "status": "built" }
       ]
     },
     {
