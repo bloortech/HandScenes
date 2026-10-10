@@ -7,6 +7,7 @@ export function createSandbox(container, topic, { onChange }) {
   const desc = topic.sandbox || { type: 'array', min: 1, max: 40, default: 12 };
   if (desc.type === 'n') return createNSandbox(container, topic, desc, onChange);
   if (desc.type === 'string') return createStringSandbox(container, topic, desc, onChange);
+  if (desc.type === 'text') return createStringSandbox(container, topic, desc, onChange);
 
   let seedCounter = Date.now() % 100000;
   let size = desc.default;
@@ -184,8 +185,12 @@ function createNSandbox(container, topic, desc, onChange) {
 // uses for bst/linked-list's non-array params. `desc.field` names which key
 // in makeInput's return value is the editable string (defaults to
 // `"string"`); `desc.min`/`max` size the random string/regex length.
+// `desc.type === 'text'` swaps the single-line `<input>` for a multi-line
+// `<textarea>` (turing-machine's editable transition table): same field/
+// extras plumbing, just a bigger editable surface for multi-line text.
 function createStringSandbox(container, topic, desc, onChange) {
   const field = desc.field || 'string';
+  const multiline = desc.type === 'text';
   let seedCounter = Date.now() % 100000;
   let len = desc.default;
   let value = '';
@@ -219,9 +224,12 @@ function createStringSandbox(container, topic, desc, onChange) {
   const strRow = document.createElement('div');
   strRow.className = 'sandbox-row sandbox-array-row';
   const strLabel = document.createElement('label');
-  strLabel.textContent = `${desc.fieldLabel || field} (${(desc.alphabet || []).join('/') || 'text'}):`;
-  const strInput = document.createElement('input');
-  strInput.type = 'text';
+  strLabel.textContent = multiline
+    ? `${desc.fieldLabel || field}:`
+    : `${desc.fieldLabel || field} (${(desc.alphabet || []).join('/') || 'text'}):`;
+  const strInput = document.createElement(multiline ? 'textarea' : 'input');
+  if (!multiline) strInput.type = 'text';
+  else strInput.rows = desc.rows || 6;
   strInput.className = 'sandbox-array-input';
   strInput.addEventListener('change', () => {
     value = strInput.value;

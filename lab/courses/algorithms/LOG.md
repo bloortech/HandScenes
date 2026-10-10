@@ -1,5 +1,91 @@
 # Build log
 
+## ALG09 — m10: computability (2026-10-11)
+
+Built all eight m10 topics. One new engine file plus one engine extension:
+
+- `engine/turing.js` (pure, no DOM access): a one-tape Turing machine
+  simulator shared by most of this module. `parseRules(text)` reads a
+  transition table written as short lines ("state,symbol => write,move,
+  nextState"); `step()`/`simulate()` run it with a step budget AND exact
+  configuration-cycle detection, so an infinite loop is reported as a
+  *proven* loop (an exact (state, tape, head) triple repeated, which is
+  decidable for these bounded instances) rather than just "timed out".
+  `hardwireInput()` builds the standard "ignore the real input, overwrite
+  the tape with a fixed literal string, then jump into the original
+  machine" construction behind several of Sipser's A_TM reductions, used by
+  `mapping-reductions`.
+- `engine/sandbox.js`: extended `createStringSandbox` to also render a
+  multi-line `<textarea>` (`sandbox.type === 'text'`), reusing the exact
+  same field/extras/randomize plumbing as the existing single-line string
+  sandbox. Used by `turing-machine` to make the transition table itself the
+  editable surface, per the ticket ("edit the transition table, run it on a
+  tape").
+- `topics/turing-machine.js`: ships a hand-verified table that decides
+  {0^n 1^n} (order-check pass, then repeatedly cross off one 0 and its
+  nearest unmarked 1). Edit the table live; `check()` compares the result
+  against an independent regex-based definition of the language, not
+  against the table at all.
+- `topics/multitape.js`: a two-tape "are these strings equal" machine, with
+  the one-tape interleaved-tape simulation narrated as a later frame (same
+  verdict, more steps, not more power).
+- `topics/diagonalisation.js`: Cantor's table on a finite n x n grid of
+  bits; the diagonal construction is checked directly (every flipped bit
+  really differs from its row, and the resulting string really isn't equal
+  to any row).
+- `topics/halting-problem.js`: self-reference without ever actually
+  recursing forever. Toy programs return a symbolic 'accept'/'reject'/
+  'loop' tag instead of really looping, so H can just run them; D is built
+  from H, and the case-split contradiction (both possible verdicts for
+  H(D,D) are wrong) is verified from D's own two-line rule, never by
+  literally calling H(D,D) (which would be the actual paradox).
+- `topics/decidability-map.js`: four buckets (decidable, recognisable,
+  co-recognisable, neither), with real bounded-halting/A_TM/co-A_TM
+  instances executed via `engine/turing.js` and the "neither" bucket
+  (EQ_TM) stated with its citation rather than executed, since by
+  definition no algorithm can even semi-decide it.
+- `topics/mapping-reductions.js`: a genuine mapping reduction from "does M
+  accept w" to "does M' accept the empty string", via `hardwireInput`. Runs
+  both the direct question and the reduced one on the same instance and
+  confirms they agree, every time, not just once.
+- `topics/rice-theorem.js`: M2 is M1 (the {0^n 1^n} machine) with every
+  state renamed and a harmless extra detour state spliced in: a
+  syntactically different table computing the identical language, which
+  `check()` confirms on every test string actually run.
+- `topics/post-correspondence.js`: PCP tiles built from a shared random
+  string cut two different ways, so the canonical sequence "0123" always
+  solves it by construction; the "play" interaction is a typed tile
+  sequence, checked by direct concatenation regardless of whether it
+  happens to solve the puzzle.
+
+Two bugs caught by writing standalone fuzz checks before wiring topics into
+`test.mjs` (both fixed in `engine/turing.js`): `hardwireInput`'s writer
+states left the head sitting right after the written string instead of
+rewinding it to position 0 before handing off to the original machine (an
+extra `r0..r{n-1}` rewind phase fixed it); and `rice-theorem`'s spliced
+detour state only had a transition rule for one specific symbol, so it
+"got stuck" (silently rejected) whenever the tape held anything else at
+that point (fixed by making the detour state symbol-agnostic).
+
+### Screenshot pass
+
+Served the worktree with `python3 -m http.server 8830` and captured the
+course map (confirms all eight m10 cards show LIVE) plus all eight topic
+pages with headless Chrome. Two cosmetic bugs found and fixed: a text label
+floating as its own bordered box in `rice-theorem` overlapped the tape (now
+a `pointers` label instead of a node); and `decidability-map`'s
+"complement of A_TM" box label overflowed its neighbour (shortened to
+"co-A_TM" and the four boxes respaced). Re-screenshotted both after the
+fix; everything else rendered cleanly first try.
+
+### Skipped / deferred
+
+- Nothing in m10's required scope was skipped. The eighth topic,
+  post-correspondence, is the brief's "play PCP tiles" nice-to-have made
+  concrete as a typed tile-index sequence (repeats and reordering allowed)
+  rather than drag-and-drop, since the engine has no drag primitive yet and
+  the ticket only asked to "play PCP tiles", not specifically drag them.
+
 ## ALG08 — m09: strings, number theory, geometry, randomised and parallel (2026-10-10)
 
 Built all fourteen m09 topics. Three new engine files (pure, no DOM access,

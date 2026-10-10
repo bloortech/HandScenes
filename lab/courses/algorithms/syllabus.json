@@ -528,42 +528,42 @@
         {
           "id": "turing-machine",
           "title": "Turing machines",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "multitape",
           "title": "Multitape Turing machines",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "diagonalisation",
           "title": "Diagonalisation",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "halting-problem",
           "title": "The halting problem",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "decidability-map",
           "title": "Map of decidable and undecidable problems",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "mapping-reductions",
           "title": "Mapping reductions",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "rice-theorem",
           "title": "Rice's theorem",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "post-correspondence",
           "title": "The Post correspondence problem",
-          "status": "todo"
+          "status": "built"
         }
       ]
     },
