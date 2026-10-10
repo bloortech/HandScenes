@@ -1,5 +1,54 @@
 # Build log
 
+## ALG05 — m06: graph algorithms (2026-10-10)
+
+Built all twelve m06 topics on one new engine module, `engine/graph.js`
+(pure, DOM-free): `makeRandomGraph` (a connected random spanning structure
+plus extra edges, with `directed`/`weighted`/`allowNegative`/`dag` options),
+`adjList`/`adjMatrix`, `bfsDistances` (also the reachability oracle other
+checks call), `isShortestPathCertificate` (the CLRS relaxation-optimality
+certificate: `dist[src] = 0`, every edge relaxed, finite dist iff
+reachable), and `hasNegativeCycleReachableFrom` (a plain |V|+1-round
+relaxation oracle). Every weighted shortest-path topic's `check()` verifies
+this certificate instead of recomputing the same algorithm, so it is a real
+independent check.
+
+- `graph-representations`: builds an adjacency list and an adjacency matrix
+  from the same graph, one row at a time, reusing the `boxes` frame kind as
+  a grid.
+- `bfs`, `dfs` (discovery/finish times, tree/back/forward/cross edge
+  classification via CLRS's parenthesis-theorem invariants, checked
+  independently rather than recomputed), `topological-sort` (DFS finish
+  order, verified as a real topological order against every edge),
+  `scc` (Kosaraju's two-pass DFS; checked against a brute-force mutual
+  BFS-reachability oracle, independent of the finish-order trick).
+- `kruskal`: sorts edges, grows the MST with `engine/unionfind.js` (reused
+  from m05, not forked), and draws the graph and the live disjoint-set
+  forest stacked in one canvas. `prim`: grows a tree from vertex 0 by
+  cheapest fringe edge. Each checks spanning-tree validity itself and cross-
+  checks its MST weight against the other algorithm run independently.
+- `dijkstra` (array-scan, non-negative weights), `bellman-ford` (|V|-1
+  relax rounds plus one more to detect a negative cycle reachable from the
+  source), `dag-shortest-paths` (topological-order relaxation, one pass,
+  works with negative weights since a DAG has no cycles to go negative).
+- `floyd-warshall`: the O(V^3) distance table filling in, one allowed
+  intermediate vertex at a time, drawn as a grid of cells (cyan row/column
+  for the current *k*, amber for whichever cell just improved). `johnson`:
+  dummy-source Bellman-Ford for the reweighting potentials, then Dijkstra
+  from every vertex on the reweighted (non-negative) graph, un-reweighted
+  back.
+- Floyd-Warshall and Johnson's random inputs are generated as DAGs
+  (`dag: true`), which allows negative edge weights while guaranteeing no
+  negative-weight cycle exists anywhere, keeping every table entry a
+  well-defined finite distance to check (CLRS notes Floyd-Warshall's
+  negative-diagonal cycle detection is a sound check for *whether* a
+  negative cycle exists, but makes no correctness promise about unrelated
+  table entries once one does, so letting the generator produce one would
+  make a precise `check()` for every cell impossible without re-deriving a
+  separate negative-cycle-aware all-pairs algorithm just for the test).
+  Bellman-Ford's own topic still exercises real negative cycles directly,
+  since detecting them is that topic's job.
+
 ## ALG04 — m05: amortised analysis and advanced data structures (2026-10-10)
 
 Built all six m05 topics, reusing the existing player/renderer/sandbox engine

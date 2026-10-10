@@ -256,62 +256,62 @@
         {
           "id": "graph-representations",
           "title": "Graph representations",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "bfs",
           "title": "Breadth-first search",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "dfs",
           "title": "Depth-first search",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "topological-sort",
           "title": "Topological sort",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "scc",
           "title": "Strongly connected components",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "kruskal",
           "title": "Kruskal's algorithm",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "prim",
           "title": "Prim's algorithm",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "dijkstra",
           "title": "Dijkstra's algorithm",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "bellman-ford",
           "title": "Bellman-Ford",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "dag-shortest-paths",
           "title": "Shortest paths in a DAG",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "floyd-warshall",
           "title": "Floyd-Warshall",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "johnson",
           "title": "Johnson's algorithm",
-          "status": "todo"
+          "status": "built"
         }
       ]
     },
