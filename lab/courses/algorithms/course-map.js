@@ -5,7 +5,7 @@ const mapEl = document.getElementById('course-map');
 const toggleEl = document.getElementById('view-toggle');
 
 let syllabus = null;
-let view = 'course';
+let view = 'year';
 
 async function load() {
   const res = await fetch('./syllabus.json');
@@ -28,21 +28,39 @@ function topicCard(topic) {
   return el;
 }
 
-function renderByCourse() {
+// Groups modules by their approximate U of T program year (syllabus.json's
+// own module order is already the U of T teaching order within and across
+// years, so modules simply keep that order inside each year group too).
+function renderByYear() {
   mapEl.innerHTML = '';
+  const years = new Map();
   for (const mod of syllabus.modules) {
-    const group = document.createElement('section');
-    group.className = 'module-group';
-    const h2 = document.createElement('h2');
-    h2.textContent = `${mod.id.toUpperCase()}. ${mod.title}`;
-    const meta = document.createElement('p');
-    meta.className = 'module-meta';
-    meta.textContent = `${mod.course} · CLRS: ${mod.clrs}`;
-    const grid = document.createElement('div');
-    grid.className = 'topic-grid';
-    for (const topic of mod.topics) grid.appendChild(topicCard(topic));
-    group.append(h2, meta, grid);
-    mapEl.appendChild(group);
+    const y = mod.year || 'Year ?';
+    if (!years.has(y)) years.set(y, []);
+    years.get(y).push(mod);
+  }
+  for (const [year, mods] of years) {
+    const yearSection = document.createElement('section');
+    yearSection.className = 'year-group';
+    const yh = document.createElement('h1');
+    yh.className = 'year-title';
+    yh.textContent = year;
+    yearSection.appendChild(yh);
+    for (const mod of mods) {
+      const group = document.createElement('section');
+      group.className = 'module-group';
+      const h2 = document.createElement('h2');
+      h2.textContent = `${mod.id.toUpperCase()}. ${mod.title}`;
+      const meta = document.createElement('p');
+      meta.className = 'module-meta';
+      meta.textContent = `${mod.course} · CLRS: ${mod.clrs}`;
+      const grid = document.createElement('div');
+      grid.className = 'topic-grid';
+      for (const topic of mod.topics) grid.appendChild(topicCard(topic));
+      group.append(h2, meta, grid);
+      yearSection.appendChild(group);
+    }
+    mapEl.appendChild(yearSection);
   }
 }
 
@@ -71,7 +89,7 @@ function renderByClrs() {
 }
 
 function render() {
-  if (view === 'course') renderByCourse();
+  if (view === 'year') renderByYear();
   else renderByClrs();
 }
 

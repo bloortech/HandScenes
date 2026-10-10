@@ -1,5 +1,5 @@
 {
-  "note": "Course codes checked against artsci.calendar.utoronto.ca (Oct 2026). All codes below are real, current U of T St. George CS course codes. CLRS chapter names (not numbers, since numbering differs by edition) are given per module; per-topic clrs/course fields refine that where a topic's home chapter differs from the rest of its module.",
+  "note": "Course codes checked against artsci.calendar.utoronto.ca (Oct 2026). All codes below are real, current U of T St. George CS course codes. CLRS chapter names (not numbers, since numbering differs by edition) are given per module; per-topic clrs/course fields refine that where a topic's home chapter differs from the rest of its module. Each module also carries an approximate \"year\" label (Year 1-4) for the course map's by-year view, based on the typical U of T sequencing of its listed course code(s) (e.g. CSC108/148 is first-year, CSC373 is third-year); this is an approximation for navigation, not an official program year requirement.",
   "modules": [
     {
       "id": "m01",
@@ -43,7 +43,8 @@
           "status": "built",
           "clrs": "Getting Started (classic divide-and-conquer exercise)"
         }
-      ]
+      ],
+      "year": "Year 1"
     },
     {
       "id": "m02",
@@ -86,7 +87,8 @@
           "title": "Tree traversals",
           "status": "built"
         }
-      ]
+      ],
+      "year": "Year 1"
     },
     {
       "id": "m03",
@@ -139,7 +141,8 @@
           "title": "The pumping lemma",
           "status": "built"
         }
-      ]
+      ],
+      "year": "Year 2"
     },
     {
       "id": "m04",
@@ -207,7 +210,8 @@
           "title": "Counting, radix and bucket sort",
           "status": "built"
         }
-      ]
+      ],
+      "year": "Year 2"
     },
     {
       "id": "m05",
@@ -245,7 +249,8 @@
           "title": "van Emde Boas trees",
           "status": "built"
         }
-      ]
+      ],
+      "year": "Year 2-3"
     },
     {
       "id": "m06",
@@ -313,7 +318,8 @@
           "title": "Johnson's algorithm",
           "status": "built"
         }
-      ]
+      ],
+      "year": "Year 3"
     },
     {
       "id": "m07",
@@ -396,7 +402,8 @@
           "title": "Optimal binary search trees",
           "status": "built"
         }
-      ]
+      ],
+      "year": "Year 3"
     },
     {
       "id": "m08",
@@ -439,7 +446,8 @@
           "title": "LP duality",
           "status": "built"
         }
-      ]
+      ],
+      "year": "Year 3"
     },
     {
       "id": "m09",
@@ -517,7 +525,8 @@
           "title": "Online algorithms",
           "status": "built"
         }
-      ]
+      ],
+      "year": "Year 3-4"
     },
     {
       "id": "m10",
@@ -565,7 +574,8 @@
           "title": "The Post correspondence problem",
           "status": "built"
         }
-      ]
+      ],
+      "year": "Year 3-4"
     },
     {
       "id": "m11",
@@ -576,84 +586,85 @@
         {
           "id": "complexity-map",
           "title": "Map of complexity classes",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "verifiers",
           "title": "Verifiers and NP",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "cook-levin",
           "title": "The Cook-Levin theorem",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "sat-to-3sat",
           "title": "SAT to 3SAT",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "3sat-to-independent-set",
           "title": "3SAT to Independent Set",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "clique-is-vc",
           "title": "Clique, Independent Set and Vertex Cover",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "3sat-to-subset-sum",
           "title": "3SAT to Subset Sum",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "hamiltonian-cycle",
           "title": "Hamiltonian cycle",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "vertex-cover-approx",
           "title": "Vertex cover approximation",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "set-cover-greedy",
           "title": "Greedy set cover",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "metric-tsp-approx",
           "title": "Metric TSP approximation",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "savitch",
           "title": "Savitch's theorem",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "tqbf-game",
           "title": "TQBF and game trees (PSPACE)",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "hierarchy-theorems",
           "title": "Time and space hierarchy theorems",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "bpp",
           "title": "Randomised complexity (BPP)",
-          "status": "todo"
+          "status": "built"
         },
         {
           "id": "p-vs-np",
           "title": "P vs NP",
-          "status": "todo"
+          "status": "built"
         }
-      ]
+      ],
+      "year": "Year 4"
     }
   ]
 }
