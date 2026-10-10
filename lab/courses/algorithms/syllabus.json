@@ -1,659 +1,659 @@
 {
-  "note": "Course codes checked against artsci.calendar.utoronto.ca (Oct 2026). All codes below are real, current U of T St. George CS course codes. CLRS chapter names (not numbers, since numbering differs by edition) are given per module; per-topic clrs/course fields refine that where a topic's home chapter differs from the rest of its module.",
-  "modules": [
-    {
-      "id": "m01",
-      "title": "Sorting and searching basics",
-      "course": "CSC108/148 (or CSC110/111)",
-      "clrs": "Getting Started; Quicksort",
-      "topics": [
+    "note": "Course codes checked against artsci.calendar.utoronto.ca (Oct 2026). All codes below are real, current U of T St. George CS course codes. CLRS chapter names (not numbers, since numbering differs by edition) are given per module; per-topic clrs/course fields refine that where a topic's home chapter differs from the rest of its module.",
+    "modules": [
         {
-          "id": "selection-sort",
-          "title": "Selection sort",
-          "status": "built",
-          "clrs": "Getting Started (classic intro sort, covered as warm-up / exercise material)"
+            "id": "m01",
+            "title": "Sorting and searching basics",
+            "course": "CSC108/148 (or CSC110/111)",
+            "clrs": "Getting Started; Quicksort",
+            "topics": [
+                {
+                    "id": "selection-sort",
+                    "title": "Selection sort",
+                    "status": "built",
+                    "clrs": "Getting Started (classic intro sort, covered as warm-up / exercise material)"
+                },
+                {
+                    "id": "insertion-sort",
+                    "title": "Insertion sort",
+                    "status": "built",
+                    "clrs": "Getting Started"
+                },
+                {
+                    "id": "bubble-sort",
+                    "title": "Bubble sort",
+                    "status": "built",
+                    "clrs": "Getting Started (problem 2-2 in several editions)"
+                },
+                {
+                    "id": "merge-sort",
+                    "title": "Merge sort",
+                    "status": "built",
+                    "clrs": "Getting Started"
+                },
+                {
+                    "id": "quicksort",
+                    "title": "Quicksort",
+                    "status": "built",
+                    "clrs": "Quicksort"
+                },
+                {
+                    "id": "binary-search",
+                    "title": "Binary search",
+                    "status": "built",
+                    "clrs": "Getting Started (classic divide-and-conquer exercise)"
+                }
+            ]
         },
         {
-          "id": "insertion-sort",
-          "title": "Insertion sort",
-          "status": "built",
-          "clrs": "Getting Started"
+            "id": "m02",
+            "title": "Recursion, lists and trees",
+            "course": "CSC148, CSC165",
+            "clrs": "Growth of Functions; Elementary Data Structures; Binary Search Trees",
+            "topics": [
+                {
+                    "id": "big-o-race",
+                    "title": "Big-O race",
+                    "status": "built"
+                },
+                {
+                    "id": "recursion-stack",
+                    "title": "Recursion and the call stack",
+                    "status": "built"
+                },
+                {
+                    "id": "hanoi",
+                    "title": "Towers of Hanoi",
+                    "status": "built"
+                },
+                {
+                    "id": "linked-list",
+                    "title": "Linked lists",
+                    "status": "built"
+                },
+                {
+                    "id": "stack-queue",
+                    "title": "Stacks and queues",
+                    "status": "built"
+                },
+                {
+                    "id": "bst",
+                    "title": "Binary search trees",
+                    "status": "built"
+                },
+                {
+                    "id": "tree-traversals",
+                    "title": "Tree traversals",
+                    "status": "built"
+                }
+            ]
         },
         {
-          "id": "bubble-sort",
-          "title": "Bubble sort",
-          "status": "built",
-          "clrs": "Getting Started (problem 2-2 in several editions)"
+            "id": "m03",
+            "title": "Proofs, recurrences and automata",
+            "course": "CSC236/240",
+            "clrs": "Divide-and-Conquer (recurrences, Master theorem)",
+            "topics": [
+                {
+                    "id": "induction",
+                    "title": "Induction",
+                    "status": "built"
+                },
+                {
+                    "id": "loop-invariant",
+                    "title": "Loop invariants",
+                    "status": "built"
+                },
+                {
+                    "id": "recursion-tree",
+                    "title": "Recursion trees",
+                    "status": "built"
+                },
+                {
+                    "id": "master-theorem",
+                    "title": "The Master theorem",
+                    "status": "built"
+                },
+                {
+                    "id": "dfa",
+                    "title": "Deterministic finite automata",
+                    "status": "built"
+                },
+                {
+                    "id": "nfa-subset",
+                    "title": "NFAs and the subset construction",
+                    "status": "built"
+                },
+                {
+                    "id": "regex-nfa",
+                    "title": "Regular expressions to NFAs",
+                    "status": "built"
+                },
+                {
+                    "id": "dfa-minimise",
+                    "title": "Minimising a DFA",
+                    "status": "built"
+                },
+                {
+                    "id": "pumping-lemma",
+                    "title": "The pumping lemma",
+                    "status": "built"
+                }
+            ]
         },
         {
-          "id": "merge-sort",
-          "title": "Merge sort",
-          "status": "built",
-          "clrs": "Getting Started"
+            "id": "m04",
+            "title": "Heaps, balanced trees and hashing",
+            "course": "CSC263/265",
+            "clrs": "Heapsort; Quicksort; Sorting in Linear Time; Medians and Order Statistics; Hash Tables; Red-Black Trees; Augmenting Data Structures",
+            "topics": [
+                {
+                    "id": "heap",
+                    "title": "Binary heaps",
+                    "status": "built"
+                },
+                {
+                    "id": "heapsort",
+                    "title": "Heapsort",
+                    "status": "built"
+                },
+                {
+                    "id": "avl",
+                    "title": "AVL trees",
+                    "status": "built"
+                },
+                {
+                    "id": "red-black",
+                    "title": "Red-black trees",
+                    "status": "built"
+                },
+                {
+                    "id": "order-statistic-tree",
+                    "title": "Order-statistic trees",
+                    "status": "built"
+                },
+                {
+                    "id": "hashing-chaining",
+                    "title": "Hashing with chaining",
+                    "status": "built"
+                },
+                {
+                    "id": "hashing-open-addressing",
+                    "title": "Hashing with open addressing",
+                    "status": "built"
+                },
+                {
+                    "id": "universal-hashing",
+                    "title": "Universal hashing",
+                    "status": "built"
+                },
+                {
+                    "id": "randomized-quicksort",
+                    "title": "Randomized quicksort",
+                    "status": "built"
+                },
+                {
+                    "id": "quickselect-median-of-medians",
+                    "title": "Quickselect and median-of-medians",
+                    "status": "built"
+                },
+                {
+                    "id": "sorting-lower-bound",
+                    "title": "The comparison-sort lower bound",
+                    "status": "built"
+                },
+                {
+                    "id": "counting-radix-bucket",
+                    "title": "Counting, radix and bucket sort",
+                    "status": "built"
+                }
+            ]
         },
         {
-          "id": "quicksort",
-          "title": "Quicksort",
-          "status": "built",
-          "clrs": "Quicksort"
+            "id": "m05",
+            "title": "Amortised analysis and advanced data structures",
+            "course": "CSC263/265, CSC473",
+            "clrs": "Amortized Analysis; B-Trees; Fibonacci Heaps (3rd ed); van Emde Boas Trees (3rd ed); Data Structures for Disjoint Sets",
+            "topics": [
+                {
+                    "id": "dynamic-array",
+                    "title": "Dynamic arrays",
+                    "status": "built"
+                },
+                {
+                    "id": "binary-counter",
+                    "title": "The binary counter trick",
+                    "status": "built"
+                },
+                {
+                    "id": "disjoint-sets",
+                    "title": "Disjoint sets (union-find)",
+                    "status": "built"
+                },
+                {
+                    "id": "b-tree",
+                    "title": "B-trees",
+                    "status": "built"
+                },
+                {
+                    "id": "fibonacci-heap",
+                    "title": "Fibonacci heaps",
+                    "status": "built"
+                },
+                {
+                    "id": "van-emde-boas",
+                    "title": "van Emde Boas trees",
+                    "status": "built"
+                }
+            ]
         },
         {
-          "id": "binary-search",
-          "title": "Binary search",
-          "status": "built",
-          "clrs": "Getting Started (classic divide-and-conquer exercise)"
+            "id": "m06",
+            "title": "Graph algorithms",
+            "course": "CSC263/265, CSC373",
+            "clrs": "Elementary Graph Algorithms; Minimum Spanning Trees; Single-Source Shortest Paths; All-Pairs Shortest Paths",
+            "topics": [
+                {
+                    "id": "graph-representations",
+                    "title": "Graph representations",
+                    "status": "built"
+                },
+                {
+                    "id": "bfs",
+                    "title": "Breadth-first search",
+                    "status": "built"
+                },
+                {
+                    "id": "dfs",
+                    "title": "Depth-first search",
+                    "status": "built"
+                },
+                {
+                    "id": "topological-sort",
+                    "title": "Topological sort",
+                    "status": "built"
+                },
+                {
+                    "id": "scc",
+                    "title": "Strongly connected components",
+                    "status": "built"
+                },
+                {
+                    "id": "kruskal",
+                    "title": "Kruskal's algorithm",
+                    "status": "built"
+                },
+                {
+                    "id": "prim",
+                    "title": "Prim's algorithm",
+                    "status": "built"
+                },
+                {
+                    "id": "dijkstra",
+                    "title": "Dijkstra's algorithm",
+                    "status": "built"
+                },
+                {
+                    "id": "bellman-ford",
+                    "title": "Bellman-Ford",
+                    "status": "built"
+                },
+                {
+                    "id": "dag-shortest-paths",
+                    "title": "Shortest paths in a DAG",
+                    "status": "built"
+                },
+                {
+                    "id": "floyd-warshall",
+                    "title": "Floyd-Warshall",
+                    "status": "built"
+                },
+                {
+                    "id": "johnson",
+                    "title": "Johnson's algorithm",
+                    "status": "built"
+                }
+            ]
+        },
+        {
+            "id": "m07",
+            "title": "Divide and conquer, greedy, dynamic programming",
+            "course": "CSC373",
+            "clrs": "Divide-and-Conquer; Dynamic Programming; Greedy Algorithms; Polynomials and the FFT",
+            "topics": [
+                {
+                    "id": "max-subarray",
+                    "title": "Maximum subarray",
+                    "status": "built"
+                },
+                {
+                    "id": "karatsuba",
+                    "title": "Karatsuba multiplication",
+                    "status": "built"
+                },
+                {
+                    "id": "strassen",
+                    "title": "Strassen's matrix multiplication",
+                    "status": "built"
+                },
+                {
+                    "id": "closest-pair",
+                    "title": "Closest pair of points",
+                    "status": "built"
+                },
+                {
+                    "id": "fft",
+                    "title": "The Fast Fourier Transform",
+                    "status": "built"
+                },
+                {
+                    "id": "interval-scheduling",
+                    "title": "Interval scheduling",
+                    "status": "built"
+                },
+                {
+                    "id": "huffman",
+                    "title": "Huffman coding",
+                    "status": "built"
+                },
+                {
+                    "id": "fractional-knapsack",
+                    "title": "Fractional knapsack",
+                    "status": "built"
+                },
+                {
+                    "id": "weighted-interval-scheduling",
+                    "title": "Weighted interval scheduling",
+                    "status": "built"
+                },
+                {
+                    "id": "knapsack-01",
+                    "title": "0/1 knapsack",
+                    "status": "built"
+                },
+                {
+                    "id": "rod-cutting",
+                    "title": "Rod cutting",
+                    "status": "built"
+                },
+                {
+                    "id": "lcs",
+                    "title": "Longest common subsequence",
+                    "status": "built"
+                },
+                {
+                    "id": "edit-distance",
+                    "title": "Edit distance",
+                    "status": "built"
+                },
+                {
+                    "id": "matrix-chain",
+                    "title": "Matrix chain multiplication",
+                    "status": "built"
+                },
+                {
+                    "id": "optimal-bst",
+                    "title": "Optimal binary search trees",
+                    "status": "built"
+                }
+            ]
+        },
+        {
+            "id": "m08",
+            "title": "Flows, matching and linear programming",
+            "course": "CSC373",
+            "clrs": "Maximum Flow; Linear Programming; Matchings in Bipartite Graphs (4th ed)",
+            "topics": [
+                {
+                    "id": "ford-fulkerson",
+                    "title": "Ford-Fulkerson",
+                    "status": "todo"
+                },
+                {
+                    "id": "edmonds-karp",
+                    "title": "Edmonds-Karp",
+                    "status": "todo"
+                },
+                {
+                    "id": "max-flow-min-cut",
+                    "title": "Max-flow min-cut theorem",
+                    "status": "todo"
+                },
+                {
+                    "id": "bipartite-matching",
+                    "title": "Bipartite matching",
+                    "status": "todo"
+                },
+                {
+                    "id": "stable-matching",
+                    "title": "Stable matching",
+                    "status": "todo"
+                },
+                {
+                    "id": "lp-geometry",
+                    "title": "Linear programming, geometrically",
+                    "status": "todo"
+                },
+                {
+                    "id": "lp-duality",
+                    "title": "LP duality",
+                    "status": "todo"
+                }
+            ]
+        },
+        {
+            "id": "m09",
+            "title": "Strings, number theory, geometry, randomised and parallel",
+            "course": "CSC373, CSC473",
+            "clrs": "String Matching; Number-Theoretic Algorithms; Computational Geometry; Multithreaded Algorithms; Online Algorithms (4th ed)",
+            "topics": [
+                {
+                    "id": "naive-string-match",
+                    "title": "Naive string matching",
+                    "status": "todo"
+                },
+                {
+                    "id": "rabin-karp",
+                    "title": "Rabin-Karp",
+                    "status": "todo"
+                },
+                {
+                    "id": "kmp",
+                    "title": "Knuth-Morris-Pratt",
+                    "status": "todo"
+                },
+                {
+                    "id": "string-automaton",
+                    "title": "String matching with a finite automaton",
+                    "status": "todo"
+                },
+                {
+                    "id": "euclid",
+                    "title": "Euclid's algorithm",
+                    "status": "todo"
+                },
+                {
+                    "id": "modular-exponentiation",
+                    "title": "Modular exponentiation",
+                    "status": "todo"
+                },
+                {
+                    "id": "rsa",
+                    "title": "RSA",
+                    "status": "todo"
+                },
+                {
+                    "id": "miller-rabin",
+                    "title": "Miller-Rabin primality testing",
+                    "status": "todo"
+                },
+                {
+                    "id": "crt",
+                    "title": "The Chinese Remainder Theorem",
+                    "status": "todo"
+                },
+                {
+                    "id": "convex-hull",
+                    "title": "Convex hull",
+                    "status": "todo"
+                },
+                {
+                    "id": "segment-intersection",
+                    "title": "Segment intersection",
+                    "status": "todo"
+                },
+                {
+                    "id": "karger-min-cut",
+                    "title": "Karger's min-cut algorithm",
+                    "status": "todo"
+                },
+                {
+                    "id": "fork-join",
+                    "title": "Fork-join parallelism",
+                    "status": "todo"
+                },
+                {
+                    "id": "online-algorithms",
+                    "title": "Online algorithms",
+                    "status": "todo"
+                }
+            ]
+        },
+        {
+            "id": "m10",
+            "title": "Computability",
+            "course": "CSC363, CSC438/448",
+            "clrs": "(Sipser Part Two: Computability Theory)",
+            "topics": [
+                {
+                    "id": "turing-machine",
+                    "title": "Turing machines",
+                    "status": "todo"
+                },
+                {
+                    "id": "multitape",
+                    "title": "Multitape Turing machines",
+                    "status": "todo"
+                },
+                {
+                    "id": "diagonalisation",
+                    "title": "Diagonalisation",
+                    "status": "todo"
+                },
+                {
+                    "id": "halting-problem",
+                    "title": "The halting problem",
+                    "status": "todo"
+                },
+                {
+                    "id": "decidability-map",
+                    "title": "Map of decidable and undecidable problems",
+                    "status": "todo"
+                },
+                {
+                    "id": "mapping-reductions",
+                    "title": "Mapping reductions",
+                    "status": "todo"
+                },
+                {
+                    "id": "rice-theorem",
+                    "title": "Rice's theorem",
+                    "status": "todo"
+                },
+                {
+                    "id": "post-correspondence",
+                    "title": "The Post correspondence problem",
+                    "status": "todo"
+                }
+            ]
+        },
+        {
+            "id": "m11",
+            "title": "Complexity and P vs NP",
+            "course": "CSC363/463, CSC373",
+            "clrs": "NP-Completeness; Approximation Algorithms",
+            "topics": [
+                {
+                    "id": "complexity-map",
+                    "title": "Map of complexity classes",
+                    "status": "todo"
+                },
+                {
+                    "id": "verifiers",
+                    "title": "Verifiers and NP",
+                    "status": "todo"
+                },
+                {
+                    "id": "cook-levin",
+                    "title": "The Cook-Levin theorem",
+                    "status": "todo"
+                },
+                {
+                    "id": "sat-to-3sat",
+                    "title": "SAT to 3SAT",
+                    "status": "todo"
+                },
+                {
+                    "id": "3sat-to-independent-set",
+                    "title": "3SAT to Independent Set",
+                    "status": "todo"
+                },
+                {
+                    "id": "clique-is-vc",
+                    "title": "Clique, Independent Set and Vertex Cover",
+                    "status": "todo"
+                },
+                {
+                    "id": "3sat-to-subset-sum",
+                    "title": "3SAT to Subset Sum",
+                    "status": "todo"
+                },
+                {
+                    "id": "hamiltonian-cycle",
+                    "title": "Hamiltonian cycle",
+                    "status": "todo"
+                },
+                {
+                    "id": "vertex-cover-approx",
+                    "title": "Vertex cover approximation",
+                    "status": "todo"
+                },
+                {
+                    "id": "set-cover-greedy",
+                    "title": "Greedy set cover",
+                    "status": "todo"
+                },
+                {
+                    "id": "metric-tsp-approx",
+                    "title": "Metric TSP approximation",
+                    "status": "todo"
+                },
+                {
+                    "id": "savitch",
+                    "title": "Savitch's theorem",
+                    "status": "todo"
+                },
+                {
+                    "id": "tqbf-game",
+                    "title": "TQBF and game trees (PSPACE)",
+                    "status": "todo"
+                },
+                {
+                    "id": "hierarchy-theorems",
+                    "title": "Time and space hierarchy theorems",
+                    "status": "todo"
+                },
+                {
+                    "id": "bpp",
+                    "title": "Randomised complexity (BPP)",
+                    "status": "todo"
+                },
+                {
+                    "id": "p-vs-np",
+                    "title": "P vs NP",
+                    "status": "todo"
+                }
+            ]
         }
-      ]
-    },
-    {
-      "id": "m02",
-      "title": "Recursion, lists and trees",
-      "course": "CSC148, CSC165",
-      "clrs": "Growth of Functions; Elementary Data Structures; Binary Search Trees",
-      "topics": [
-        {
-          "id": "big-o-race",
-          "title": "Big-O race",
-          "status": "built"
-        },
-        {
-          "id": "recursion-stack",
-          "title": "Recursion and the call stack",
-          "status": "built"
-        },
-        {
-          "id": "hanoi",
-          "title": "Towers of Hanoi",
-          "status": "built"
-        },
-        {
-          "id": "linked-list",
-          "title": "Linked lists",
-          "status": "built"
-        },
-        {
-          "id": "stack-queue",
-          "title": "Stacks and queues",
-          "status": "built"
-        },
-        {
-          "id": "bst",
-          "title": "Binary search trees",
-          "status": "built"
-        },
-        {
-          "id": "tree-traversals",
-          "title": "Tree traversals",
-          "status": "built"
-        }
-      ]
-    },
-    {
-      "id": "m03",
-      "title": "Proofs, recurrences and automata",
-      "course": "CSC236/240",
-      "clrs": "Divide-and-Conquer (recurrences, Master theorem)",
-      "topics": [
-        {
-          "id": "induction",
-          "title": "Induction",
-          "status": "built"
-        },
-        {
-          "id": "loop-invariant",
-          "title": "Loop invariants",
-          "status": "built"
-        },
-        {
-          "id": "recursion-tree",
-          "title": "Recursion trees",
-          "status": "built"
-        },
-        {
-          "id": "master-theorem",
-          "title": "The Master theorem",
-          "status": "built"
-        },
-        {
-          "id": "dfa",
-          "title": "Deterministic finite automata",
-          "status": "built"
-        },
-        {
-          "id": "nfa-subset",
-          "title": "NFAs and the subset construction",
-          "status": "built"
-        },
-        {
-          "id": "regex-nfa",
-          "title": "Regular expressions to NFAs",
-          "status": "built"
-        },
-        {
-          "id": "dfa-minimise",
-          "title": "Minimising a DFA",
-          "status": "built"
-        },
-        {
-          "id": "pumping-lemma",
-          "title": "The pumping lemma",
-          "status": "built"
-        }
-      ]
-    },
-    {
-      "id": "m04",
-      "title": "Heaps, balanced trees and hashing",
-      "course": "CSC263/265",
-      "clrs": "Heapsort; Quicksort; Sorting in Linear Time; Medians and Order Statistics; Hash Tables; Red-Black Trees; Augmenting Data Structures",
-      "topics": [
-        {
-          "id": "heap",
-          "title": "Binary heaps",
-          "status": "built"
-        },
-        {
-          "id": "heapsort",
-          "title": "Heapsort",
-          "status": "built"
-        },
-        {
-          "id": "avl",
-          "title": "AVL trees",
-          "status": "built"
-        },
-        {
-          "id": "red-black",
-          "title": "Red-black trees",
-          "status": "built"
-        },
-        {
-          "id": "order-statistic-tree",
-          "title": "Order-statistic trees",
-          "status": "built"
-        },
-        {
-          "id": "hashing-chaining",
-          "title": "Hashing with chaining",
-          "status": "built"
-        },
-        {
-          "id": "hashing-open-addressing",
-          "title": "Hashing with open addressing",
-          "status": "built"
-        },
-        {
-          "id": "universal-hashing",
-          "title": "Universal hashing",
-          "status": "built"
-        },
-        {
-          "id": "randomized-quicksort",
-          "title": "Randomized quicksort",
-          "status": "built"
-        },
-        {
-          "id": "quickselect-median-of-medians",
-          "title": "Quickselect and median-of-medians",
-          "status": "built"
-        },
-        {
-          "id": "sorting-lower-bound",
-          "title": "The comparison-sort lower bound",
-          "status": "built"
-        },
-        {
-          "id": "counting-radix-bucket",
-          "title": "Counting, radix and bucket sort",
-          "status": "built"
-        }
-      ]
-    },
-    {
-      "id": "m05",
-      "title": "Amortised analysis and advanced data structures",
-      "course": "CSC263/265, CSC473",
-      "clrs": "Amortized Analysis; B-Trees; Fibonacci Heaps (3rd ed); van Emde Boas Trees (3rd ed); Data Structures for Disjoint Sets",
-      "topics": [
-        {
-          "id": "dynamic-array",
-          "title": "Dynamic arrays",
-          "status": "built"
-        },
-        {
-          "id": "binary-counter",
-          "title": "The binary counter trick",
-          "status": "built"
-        },
-        {
-          "id": "disjoint-sets",
-          "title": "Disjoint sets (union-find)",
-          "status": "built"
-        },
-        {
-          "id": "b-tree",
-          "title": "B-trees",
-          "status": "built"
-        },
-        {
-          "id": "fibonacci-heap",
-          "title": "Fibonacci heaps",
-          "status": "built"
-        },
-        {
-          "id": "van-emde-boas",
-          "title": "van Emde Boas trees",
-          "status": "built"
-        }
-      ]
-    },
-    {
-      "id": "m06",
-      "title": "Graph algorithms",
-      "course": "CSC263/265, CSC373",
-      "clrs": "Elementary Graph Algorithms; Minimum Spanning Trees; Single-Source Shortest Paths; All-Pairs Shortest Paths",
-      "topics": [
-        {
-          "id": "graph-representations",
-          "title": "Graph representations",
-          "status": "built"
-        },
-        {
-          "id": "bfs",
-          "title": "Breadth-first search",
-          "status": "built"
-        },
-        {
-          "id": "dfs",
-          "title": "Depth-first search",
-          "status": "built"
-        },
-        {
-          "id": "topological-sort",
-          "title": "Topological sort",
-          "status": "built"
-        },
-        {
-          "id": "scc",
-          "title": "Strongly connected components",
-          "status": "built"
-        },
-        {
-          "id": "kruskal",
-          "title": "Kruskal's algorithm",
-          "status": "built"
-        },
-        {
-          "id": "prim",
-          "title": "Prim's algorithm",
-          "status": "built"
-        },
-        {
-          "id": "dijkstra",
-          "title": "Dijkstra's algorithm",
-          "status": "built"
-        },
-        {
-          "id": "bellman-ford",
-          "title": "Bellman-Ford",
-          "status": "built"
-        },
-        {
-          "id": "dag-shortest-paths",
-          "title": "Shortest paths in a DAG",
-          "status": "built"
-        },
-        {
-          "id": "floyd-warshall",
-          "title": "Floyd-Warshall",
-          "status": "built"
-        },
-        {
-          "id": "johnson",
-          "title": "Johnson's algorithm",
-          "status": "built"
-        }
-      ]
-    },
-    {
-      "id": "m07",
-      "title": "Divide and conquer, greedy, dynamic programming",
-      "course": "CSC373",
-      "clrs": "Divide-and-Conquer; Dynamic Programming; Greedy Algorithms; Polynomials and the FFT",
-      "topics": [
-        {
-          "id": "max-subarray",
-          "title": "Maximum subarray",
-          "status": "todo"
-        },
-        {
-          "id": "karatsuba",
-          "title": "Karatsuba multiplication",
-          "status": "todo"
-        },
-        {
-          "id": "strassen",
-          "title": "Strassen's matrix multiplication",
-          "status": "todo"
-        },
-        {
-          "id": "closest-pair",
-          "title": "Closest pair of points",
-          "status": "todo"
-        },
-        {
-          "id": "fft",
-          "title": "The Fast Fourier Transform",
-          "status": "todo"
-        },
-        {
-          "id": "interval-scheduling",
-          "title": "Interval scheduling",
-          "status": "todo"
-        },
-        {
-          "id": "huffman",
-          "title": "Huffman coding",
-          "status": "todo"
-        },
-        {
-          "id": "fractional-knapsack",
-          "title": "Fractional knapsack",
-          "status": "todo"
-        },
-        {
-          "id": "weighted-interval-scheduling",
-          "title": "Weighted interval scheduling",
-          "status": "todo"
-        },
-        {
-          "id": "knapsack-01",
-          "title": "0/1 knapsack",
-          "status": "todo"
-        },
-        {
-          "id": "rod-cutting",
-          "title": "Rod cutting",
-          "status": "todo"
-        },
-        {
-          "id": "lcs",
-          "title": "Longest common subsequence",
-          "status": "todo"
-        },
-        {
-          "id": "edit-distance",
-          "title": "Edit distance",
-          "status": "todo"
-        },
-        {
-          "id": "matrix-chain",
-          "title": "Matrix chain multiplication",
-          "status": "todo"
-        },
-        {
-          "id": "optimal-bst",
-          "title": "Optimal binary search trees",
-          "status": "todo"
-        }
-      ]
-    },
-    {
-      "id": "m08",
-      "title": "Flows, matching and linear programming",
-      "course": "CSC373",
-      "clrs": "Maximum Flow; Linear Programming; Matchings in Bipartite Graphs (4th ed)",
-      "topics": [
-        {
-          "id": "ford-fulkerson",
-          "title": "Ford-Fulkerson",
-          "status": "todo"
-        },
-        {
-          "id": "edmonds-karp",
-          "title": "Edmonds-Karp",
-          "status": "todo"
-        },
-        {
-          "id": "max-flow-min-cut",
-          "title": "Max-flow min-cut theorem",
-          "status": "todo"
-        },
-        {
-          "id": "bipartite-matching",
-          "title": "Bipartite matching",
-          "status": "todo"
-        },
-        {
-          "id": "stable-matching",
-          "title": "Stable matching",
-          "status": "todo"
-        },
-        {
-          "id": "lp-geometry",
-          "title": "Linear programming, geometrically",
-          "status": "todo"
-        },
-        {
-          "id": "lp-duality",
-          "title": "LP duality",
-          "status": "todo"
-        }
-      ]
-    },
-    {
-      "id": "m09",
-      "title": "Strings, number theory, geometry, randomised and parallel",
-      "course": "CSC373, CSC473",
-      "clrs": "String Matching; Number-Theoretic Algorithms; Computational Geometry; Multithreaded Algorithms; Online Algorithms (4th ed)",
-      "topics": [
-        {
-          "id": "naive-string-match",
-          "title": "Naive string matching",
-          "status": "todo"
-        },
-        {
-          "id": "rabin-karp",
-          "title": "Rabin-Karp",
-          "status": "todo"
-        },
-        {
-          "id": "kmp",
-          "title": "Knuth-Morris-Pratt",
-          "status": "todo"
-        },
-        {
-          "id": "string-automaton",
-          "title": "String matching with a finite automaton",
-          "status": "todo"
-        },
-        {
-          "id": "euclid",
-          "title": "Euclid's algorithm",
-          "status": "todo"
-        },
-        {
-          "id": "modular-exponentiation",
-          "title": "Modular exponentiation",
-          "status": "todo"
-        },
-        {
-          "id": "rsa",
-          "title": "RSA",
-          "status": "todo"
-        },
-        {
-          "id": "miller-rabin",
-          "title": "Miller-Rabin primality testing",
-          "status": "todo"
-        },
-        {
-          "id": "crt",
-          "title": "The Chinese Remainder Theorem",
-          "status": "todo"
-        },
-        {
-          "id": "convex-hull",
-          "title": "Convex hull",
-          "status": "todo"
-        },
-        {
-          "id": "segment-intersection",
-          "title": "Segment intersection",
-          "status": "todo"
-        },
-        {
-          "id": "karger-min-cut",
-          "title": "Karger's min-cut algorithm",
-          "status": "todo"
-        },
-        {
-          "id": "fork-join",
-          "title": "Fork-join parallelism",
-          "status": "todo"
-        },
-        {
-          "id": "online-algorithms",
-          "title": "Online algorithms",
-          "status": "todo"
-        }
-      ]
-    },
-    {
-      "id": "m10",
-      "title": "Computability",
-      "course": "CSC363, CSC438/448",
-      "clrs": "(Sipser Part Two: Computability Theory)",
-      "topics": [
-        {
-          "id": "turing-machine",
-          "title": "Turing machines",
-          "status": "todo"
-        },
-        {
-          "id": "multitape",
-          "title": "Multitape Turing machines",
-          "status": "todo"
-        },
-        {
-          "id": "diagonalisation",
-          "title": "Diagonalisation",
-          "status": "todo"
-        },
-        {
-          "id": "halting-problem",
-          "title": "The halting problem",
-          "status": "todo"
-        },
-        {
-          "id": "decidability-map",
-          "title": "Map of decidable and undecidable problems",
-          "status": "todo"
-        },
-        {
-          "id": "mapping-reductions",
-          "title": "Mapping reductions",
-          "status": "todo"
-        },
-        {
-          "id": "rice-theorem",
-          "title": "Rice's theorem",
-          "status": "todo"
-        },
-        {
-          "id": "post-correspondence",
-          "title": "The Post correspondence problem",
-          "status": "todo"
-        }
-      ]
-    },
-    {
-      "id": "m11",
-      "title": "Complexity and P vs NP",
-      "course": "CSC363/463, CSC373",
-      "clrs": "NP-Completeness; Approximation Algorithms",
-      "topics": [
-        {
-          "id": "complexity-map",
-          "title": "Map of complexity classes",
-          "status": "todo"
-        },
-        {
-          "id": "verifiers",
-          "title": "Verifiers and NP",
-          "status": "todo"
-        },
-        {
-          "id": "cook-levin",
-          "title": "The Cook-Levin theorem",
-          "status": "todo"
-        },
-        {
-          "id": "sat-to-3sat",
-          "title": "SAT to 3SAT",
-          "status": "todo"
-        },
-        {
-          "id": "3sat-to-independent-set",
-          "title": "3SAT to Independent Set",
-          "status": "todo"
-        },
-        {
-          "id": "clique-is-vc",
-          "title": "Clique, Independent Set and Vertex Cover",
-          "status": "todo"
-        },
-        {
-          "id": "3sat-to-subset-sum",
-          "title": "3SAT to Subset Sum",
-          "status": "todo"
-        },
-        {
-          "id": "hamiltonian-cycle",
-          "title": "Hamiltonian cycle",
-          "status": "todo"
-        },
-        {
-          "id": "vertex-cover-approx",
-          "title": "Vertex cover approximation",
-          "status": "todo"
-        },
-        {
-          "id": "set-cover-greedy",
-          "title": "Greedy set cover",
-          "status": "todo"
-        },
-        {
-          "id": "metric-tsp-approx",
-          "title": "Metric TSP approximation",
-          "status": "todo"
-        },
-        {
-          "id": "savitch",
-          "title": "Savitch's theorem",
-          "status": "todo"
-        },
-        {
-          "id": "tqbf-game",
-          "title": "TQBF and game trees (PSPACE)",
-          "status": "todo"
-        },
-        {
-          "id": "hierarchy-theorems",
-          "title": "Time and space hierarchy theorems",
-          "status": "todo"
-        },
-        {
-          "id": "bpp",
-          "title": "Randomised complexity (BPP)",
-          "status": "todo"
-        },
-        {
-          "id": "p-vs-np",
-          "title": "P vs NP",
-          "status": "todo"
-        }
-      ]
-    }
-  ]
+    ]
 }
