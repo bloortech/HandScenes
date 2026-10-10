@@ -1,5 +1,82 @@
 # Build log
 
+## ALG04 — m05: amortised analysis and advanced data structures (2026-10-10)
+
+Built all six m05 topics, reusing the existing player/renderer/sandbox engine
+and adding four new pure, DOM-free engine modules alongside `avltree.js`/
+`rbtree.js`:
+
+- **Engine additions**:
+  - `engine/unionfind.js`: a disjoint-set forest, union by rank with path
+    compression, plus `components()` to independently re-derive the
+    partition from a parent array for `check()`.
+  - `engine/btree.js`: a CLRS B-tree of minimum degree t, insert with
+    proactive splits on the way down, delete with CLRS's full six-case
+    algorithm (predecessor/successor swap, borrow from a sibling, merge
+    with a sibling). Keys are a set, like this course's other search trees,
+    so a duplicate insert is a checked no-op (an unguarded duplicate was
+    the first fuzz-test failure: the validity checker assumes strictly
+    increasing keys per node). `isValidBTree` independently re-verifies
+    every invariant (key order, min/max degree per node, equal leaf depth)
+    for `check()`.
+  - `engine/fibheap.js`: a Fibonacci heap with lazy insert, extract-min via
+    degree-bucketed consolidation, and decrease-key with cascading cuts.
+    Degree is read directly from `children.length` rather than maintained
+    as a separate counter (equivalent, simpler). `isHeapOrdered`
+    independently re-verifies the heap-order invariant across the whole
+    forest for `check()`.
+  - `engine/veb.js`: a recursive van Emde Boas tree restricted to universe
+    sizes on the u=2, 4, 16, 256, ... tower (so the upper/lower sqrt split
+    CLRS uses for general powers of two collapses to one exact sqrt(u) on
+    both sides, without changing the algorithm's shape), with the classic
+    min-excluded-from-recursion trick for O(lg lg u) member/successor.
+    Values are a set here too (an unguarded duplicate insert corrupted a
+    cluster in the first fuzz test, since the algorithm assumes the
+    inserted value is genuinely new). `allMembers` independently
+    re-enumerates every present value by direct traversal, not via the
+    structure's own recursive logic, for `check()`.
+  - Both new forest-shaped topics (disjoint-sets, fibonacci-heap) draw
+    their structure as several small trees side by side via the existing
+    `kind: 'tree'` renderer and `layoutTree`, one call per root, shifted
+    into its own horizontal slot: no renderer changes needed.
+  - `topic.js` already supports a `counters` object per frame (shown in a
+    live strip under the player); dynamic-array's three amortised-analysis
+    views (aggregate/accounting/potential) use this as-is, no engine change.
+
+- **Topics**:
+  - `dynamic-array`: doubling capacity, with all three classic
+    amortised-analysis proofs computed and shown side by side every push:
+    the aggregate method's running average, the accounting method's bank
+    balance (a flat per-push charge of 3, `check()` asserts it never goes
+    negative), and the potential method's `2*size - capacity`.
+  - `binary-counter`: a k-bit counter, incremented n times; `check()`
+    asserts the classic 2n bound on total bit flips.
+  - `disjoint-sets`: union by rank with path compression, driven by
+    reading the array two values at a time as `union(a, b)` requests
+    (each reduced mod the element count); `check()` recomputes the
+    expected partition with a plain reference union-find and compares
+    connectivity, independent of compression.
+  - `b-tree`: a t=2 (2-3-4) B-tree, inserting every array value then
+    deleting every third one, exercising both splits and merges/borrows.
+  - `fibonacci-heap`: inserts every value, decrease-keys some of them, then
+    extracts everything; since repeated extract-min from a correct heap
+    must come out in sorted order, `check()` just compares the extracted
+    sequence to the (decrease-adjusted) sorted input, a strong end-to-end
+    correctness test of insert + decrease-key + cascading cuts +
+    consolidation together.
+  - `van-emde-boas`: a fixed u=16 universe (two real recursion levels),
+    inserting every distinct array value (reduced mod 16), then a few
+    member/successor queries; `check()` exhaustively re-checks member and
+    successor against the known inserted set for every value in the
+    universe, not just the demoed queries.
+
+Nothing skipped. `node test.mjs` and `node coverage.mjs m05` both pass.
+Screenshots of the course map and all six topics (mid-animation where
+applicable) were reviewed; two topics (binary-counter, van-emde-boas)
+initially rendered a stray second numeric line under each bar from setting
+custom `labels` alongside non-integer "dimming" array values, fixed by using
+plain 0/1 values with no custom labels, which is also just a cleaner read.
+
 ## ALG03 — m04: heaps, balanced trees and hashing (2026-10-10)
 
 Built all twelve m04 topics, reusing and extending the ALG00-ALG02 engine:
