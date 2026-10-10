@@ -48,7 +48,10 @@ async function main() {
       frames,
       onFrame: (frame, idx) => {
         renderer.render(frame);
-        renderCode(topic.code, frame.line);
+        // Some topics (e.g. recursion-stack) switch between a few different
+        // pseudocode listings depending on the input, so a frame can carry
+        // its own `code` to show instead of the topic's default.
+        renderCode(frame.code || topic.code, frame.line);
         $('caption').textContent = frame.caption || '';
         $('counters').textContent = formatCounters(frame.counters);
         $('scrub').value = String(idx);
