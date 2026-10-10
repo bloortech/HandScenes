@@ -21,13 +21,13 @@
       "course": "CSC148, CSC165",
       "clrs": "Growth of Functions; Elementary Data Structures; Binary Search Trees",
       "topics": [
-        { "id": "big-o-race", "title": "Big-O race", "status": "todo" },
-        { "id": "recursion-stack", "title": "Recursion and the call stack", "status": "todo" },
-        { "id": "hanoi", "title": "Towers of Hanoi", "status": "todo" },
-        { "id": "linked-list", "title": "Linked lists", "status": "todo" },
-        { "id": "stack-queue", "title": "Stacks and queues", "status": "todo" },
-        { "id": "bst", "title": "Binary search trees", "status": "todo" },
-        { "id": "tree-traversals", "title": "Tree traversals", "status": "todo" }
+        { "id": "big-o-race", "title": "Big-O race", "status": "built" },
+        { "id": "recursion-stack", "title": "Recursion and the call stack", "status": "built" },
+        { "id": "hanoi", "title": "Towers of Hanoi", "status": "built" },
+        { "id": "linked-list", "title": "Linked lists", "status": "built" },
+        { "id": "stack-queue", "title": "Stacks and queues", "status": "built" },
+        { "id": "bst", "title": "Binary search trees", "status": "built" },
+        { "id": "tree-traversals", "title": "Tree traversals", "status": "built" }
       ]
     },
     {

@@ -51,7 +51,7 @@ export class ArrayRenderer {
     this.width = w;
     this.height = h;
     // resizing a canvas clears it, so repaint whatever was showing
-    if (this._lastFrame) this._drawFrame(this._lastFrame);
+    if (this._lastFrame) this._dispatch(this._lastFrame);
   }
 
   destroy() {
@@ -60,10 +60,182 @@ export class ArrayRenderer {
   }
 
   // Render a single frame (plain object from a topic's run() generator).
+  // Frames that describe an array (m01-style) have no `kind` and use the
+  // bar-chart drawing below. Newer topics (m02+) set `kind: 'boxes'` for a
+  // row/stack of labelled boxes (linked list, stack, queue, hanoi) or
+  // `kind: 'tree'` for a node-and-edge diagram (recursion tree, BST).
   render(frame) {
     if (!frame) return;
     this._lastFrame = frame;
-    this._drawFrame(frame);
+    this._dispatch(frame);
+  }
+
+  _dispatch(frame) {
+    if (frame.kind === 'tree') this._drawTree(frame);
+    else if (frame.kind === 'boxes') this._drawBoxes(frame);
+    else this._drawFrame(frame);
+  }
+
+  _toPx(frame, x, y) {
+    const padX = 16, padTop = 16, padBottom = 16;
+    const plotW = this.width - padX * 2;
+    const plotH = this.height - padTop - padBottom;
+    return { px: padX + (x / 100) * plotW, py: padTop + (y / 100) * plotH, plotW, plotH };
+  }
+
+  // A row (or stack) of labelled boxes: linked lists, array/linked stacks
+  // and queues, and the Towers of Hanoi pegs. `frame.nodes` is
+  // `[{ id, label, x, y, w, h, active, compare, dim }]` with x/y/w/h in a
+  // normalised 0..100 box (see engine/layout.js for the trees case; boxes
+  // position themselves directly since their layouts are simple grids/rows).
+  // `frame.edges` is `[[id, id]]` drawn as arrows (e.g. a "next" pointer).
+  // `frame.pointers` is `[{ x, y, text }]`, a label floating at a position
+  // (e.g. "head", "top", "front").
+  _drawBoxes(frame) {
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    const nodes = frame.nodes || [];
+    if (nodes.length === 0) {
+      ctx.fillStyle = `rgba(${INK.join(',')},0.5)`;
+      ctx.font = '13px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(frame.emptyText || '(empty)', this.width / 2, this.height / 2);
+      return;
+    }
+
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    const boxSize = (n) => {
+      const { plotW, plotH } = this._toPx(frame, 0, 0);
+      const w = ((n.w != null ? n.w : 14) / 100) * plotW;
+      const h = ((n.h != null ? n.h : 14) / 100) * plotH;
+      return { w, h };
+    };
+
+    // Edges first, so boxes draw on top.
+    ctx.strokeStyle = `rgba(${INK.join(',')},0.45)`;
+    ctx.lineWidth = 1.5;
+    for (const [fromId, toId] of frame.edges || []) {
+      const a = byId.get(fromId), b = byId.get(toId);
+      if (!a || !b) continue;
+      const pa = this._toPx(frame, a.x, a.y);
+      const pb = this._toPx(frame, b.x, b.y);
+      ctx.beginPath();
+      ctx.moveTo(pa.px, pa.py);
+      ctx.lineTo(pb.px, pb.py);
+      ctx.stroke();
+      // Small arrowhead pointing at b.
+      const angle = Math.atan2(pb.py - pa.py, pb.px - pa.px);
+      const ah = 6;
+      ctx.beginPath();
+      ctx.moveTo(pb.px, pb.py);
+      ctx.lineTo(pb.px - ah * Math.cos(angle - Math.PI / 7), pb.py - ah * Math.sin(angle - Math.PI / 7));
+      ctx.lineTo(pb.px - ah * Math.cos(angle + Math.PI / 7), pb.py - ah * Math.sin(angle + Math.PI / 7));
+      ctx.closePath();
+      ctx.fillStyle = `rgba(${INK.join(',')},0.45)`;
+      ctx.fill();
+    }
+
+    for (const n of nodes) {
+      const { px, py } = this._toPx(frame, n.x, n.y);
+      const { w, h } = boxSize(n);
+      const x = px - w / 2, y = py - h / 2;
+
+      let fillColor = `rgba(${INK.join(',')},${n.dim ? 0.18 : 0.14})`;
+      let strokeColor = `rgba(${INK.join(',')},${n.dim ? 0.3 : 0.7})`;
+      if (n.compare) { fillColor = 'rgba(124,213,232,0.35)'; strokeColor = CYAN; }
+      if (n.active) { fillColor = 'rgba(232,184,75,0.4)'; strokeColor = AMBER; }
+
+      ctx.fillStyle = fillColor;
+      roundRect(ctx, x, y, w, h, 5);
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = strokeColor;
+      roundRect(ctx, x, y, w, h, 5);
+      ctx.stroke();
+
+      if (n.label != null) {
+        ctx.fillStyle = `rgba(${INK.join(',')},${n.dim ? 0.55 : 0.95})`;
+        ctx.font = '12px ui-monospace, Menlo, monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(n.label), px, py);
+        ctx.textBaseline = 'alphabetic';
+      }
+    }
+
+    for (const p of frame.pointers || []) {
+      const { px, py } = this._toPx(frame, p.x, p.y);
+      ctx.fillStyle = p.color || AMBER;
+      ctx.font = 'bold 11px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(p.text, px, py);
+    }
+  }
+
+  // A node-and-edge tree diagram: recursion trees and binary search trees.
+  // `frame.nodes` is `[{ id, label, x, y, active, compare, dim, memoHit }]`
+  // with x/y already laid out in a normalised 0..100 box (engine/layout.js).
+  // `frame.edges` is `[[id, id]]`, parent to child.
+  _drawTree(frame) {
+    const ctx = this.ctx;
+    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.fillStyle = BG;
+    ctx.fillRect(0, 0, this.width, this.height);
+
+    const nodes = frame.nodes || [];
+    if (nodes.length === 0) {
+      ctx.fillStyle = `rgba(${INK.join(',')},0.5)`;
+      ctx.font = '13px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(frame.emptyText || '(empty tree)', this.width / 2, this.height / 2);
+      return;
+    }
+
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    const r = Math.max(12, Math.min(22, (this.width / Math.max(8, nodes.length)) * 0.9));
+
+    ctx.strokeStyle = `rgba(${INK.join(',')},0.35)`;
+    ctx.lineWidth = 1.5;
+    for (const [fromId, toId] of frame.edges || []) {
+      const a = byId.get(fromId), b = byId.get(toId);
+      if (!a || !b) continue;
+      const pa = this._toPx(frame, a.x, a.y);
+      const pb = this._toPx(frame, b.x, b.y);
+      ctx.beginPath();
+      ctx.moveTo(pa.px, pa.py);
+      ctx.lineTo(pb.px, pb.py);
+      ctx.stroke();
+    }
+
+    for (const n of nodes) {
+      const { px, py } = this._toPx(frame, n.x, n.y);
+
+      let fillColor = `rgba(${INK.join(',')},${n.dim ? 0.12 : 0.16})`;
+      let strokeColor = `rgba(${INK.join(',')},${n.dim ? 0.35 : 0.8})`;
+      if (n.memoHit) { fillColor = 'rgba(124,213,232,0.3)'; strokeColor = CYAN; }
+      if (n.compare) { fillColor = 'rgba(124,213,232,0.35)'; strokeColor = CYAN; }
+      if (n.active) { fillColor = 'rgba(232,184,75,0.45)'; strokeColor = AMBER; }
+
+      ctx.beginPath();
+      ctx.fillStyle = fillColor;
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+
+      if (n.label != null) {
+        ctx.fillStyle = `rgba(${INK.join(',')},${n.dim ? 0.6 : 0.95})`;
+        ctx.font = `${r > 16 ? 11 : 9}px ui-monospace, Menlo, monospace`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(n.label), px, py);
+        ctx.textBaseline = 'alphabetic';
+      }
+    }
   }
 
   _drawFrame(frame) {
@@ -144,12 +316,18 @@ export class ArrayRenderer {
         ctx.fill();
       }
 
-      // Value label under small arrays.
-      if (n <= 24) {
+      // Value label under small arrays (or a custom label, e.g. a growth
+      // function's name for the big-O race, which always shows one bar per
+      // function regardless of array length).
+      if (n <= 24 || frame.labels) {
         ctx.fillStyle = `rgba(${INK.join(',')},0.7)`;
         ctx.font = '10px ui-monospace, Menlo, monospace';
         ctx.textAlign = 'center';
-        ctx.fillText(String(v), x + blockW / 2, h - padBottom + 14);
+        const label = frame.labels ? frame.labels[i] : String(v);
+        ctx.fillText(label, x + blockW / 2, h - padBottom + 14);
+        if (frame.labels) {
+          ctx.fillText(String(v), x + blockW / 2, h - padBottom + 26);
+        }
       }
 
       // Index pointer markers for binary search (lo/hi/mid/target region).

@@ -1,5 +1,133 @@
 # Build log
 
+## ALG01 — m02: recursion, lists and trees (2026-10-10)
+
+Built all seven m02 topics, reusing and extending the ALG00 engine rather than
+forking it:
+
+- **Engine additions** (all pure, no DOM, like `rng.js`):
+  - `engine/layout.js`: a leaf-counting tree layout (`layoutTree` for
+    `children`-array trees, `layoutBST` for `left`/`right` trees), assigning
+    every node an (x, y) in a normalised 0..100 box so topics never need to
+    know about canvas pixels.
+  - `engine/bintree.js`: a plain binary search tree (insert, search path,
+    delete with the three CLRS cases reported back as `leaf` /
+    `one-child` / `two-children`, the four traversals, `isValidBST`), shared
+    by `bst.js` and `tree-traversals.js` so the structure isn't duplicated.
+  - `engine/renderer.js`: added two new frame kinds alongside the existing
+    array-bars drawing: `kind: 'boxes'` (labelled rounded-rect boxes with
+    arrows and floating pointer labels, used by linked-list, stack-queue,
+    and hanoi's pegs) and `kind: 'tree'` (circular nodes and edges, used by
+    recursion-stack, bst, and tree-traversals). Also fixed a real bug this
+    ticket's own screenshots caught: `resize()`'s repaint-on-resize path
+    called `_drawFrame` directly instead of dispatching on `frame.kind`, so
+    any non-array topic rendered as a blank "(empty array)" the moment the
+    canvas's `ResizeObserver` fired (which is always, a frame or two after
+    first paint). Fixed by routing both the main `render()` entry point and
+    the resize repaint through one `_dispatch()` method.
+  - `engine/renderer.js`: array-bars drawing can now show a custom label
+    per bar (`frame.labels`) instead of the bar's own value, used by
+    big-o-race to show growth-function names under five bars that are
+    otherwise just counts.
+  - `engine/sandbox.js`: added a second sandbox kind, `type: 'n'`, for
+    topics whose whole input is one size-like number with no array to edit
+    (big-o-race's max n, recursion-stack's n, hanoi's disk count). Also
+    fixed the existing `array`/`array-sorted` sandbox to preserve any extra
+    fields a topic's `makeInput` returns beyond `array`/`target` (bst's
+    `searchValue`/`insertValue`/`deleteValue`, linked-list's
+    `insertValue`/`insertPos`/`deleteValue`) across manual array edits,
+    instead of silently dropping them.
+  - `topic.js`: a frame can now carry its own `code` to show in the
+    pseudocode panel, overriding the topic's default `code`. Needed because
+    recursion-stack picks one of three pseudocode listings (factorial, naive
+    fib, memoized fib) per run, chosen by its own `makeInput`.
+
+- **Topics** (all seven, each with `run`/`check`/`makeInput`/`sandbox` per the
+  brief's contract):
+  - `big-o-race`: races five *actually counted* step totals (not the
+    closed-form formula) for O(1), O(log n), O(n), O(n log n), O(n^2) as n
+    grows from 1 to a chosen max; `check` recomputes the same counts by
+    direct formula and compares.
+  - `recursion-stack`: builds the full recursion tree up front for
+    factorial, naive Fibonacci, or memoized Fibonacci (mode chosen randomly
+    by `makeInput`, same as the engine's seed-driven pattern elsewhere),
+    then walks it in real call order, marking the active call-stack path in
+    amber and memo hits in cyan. Naive fib's n is clamped to 9 (its tree size
+    is exponential); factorial/memoized fib are clamped to 20.
+  - `hanoi`: classic recursive solve, disks drawn as stacked boxes on three
+    pegs; `check` replays the returned move log against a fresh peg state to
+    confirm every move was legal (top disk only, never onto a smaller disk)
+    and ends with all n disks on peg C in exactly 2^n - 1 moves. Disk count
+    clamped to 8 (255 moves).
+  - `linked-list`: real `.next`-linked node objects (not an array standing
+    in for one). Builds a list from the array, inserts one value at a
+    chosen position, deletes one value if present, then reverses the whole
+    list in place, re-pointing every `.next`. `check` mirrors the same
+    sequence of operations on a plain array independently.
+  - `stack-queue`: pushes/enqueues every value onto an array-backed stack,
+    a linked stack, an array-backed queue, and a linked queue, then
+    pops/dequeues everything back off all four, so the sandbox shows array
+    vs. linked side by side (by scrubbing) and LIFO vs. FIFO. `check`
+    verifies all four end up with the stacks reversed and the queues
+    unchanged.
+  - `bst`: search, insert, and delete, built on the shared
+    `engine/bintree.js`. Delete reports which of the three CLRS cases fired
+    and the sandbox's `makeInput` biases its random search/delete values to
+    land inside the tree most of the time, so all three cases (and the
+    not-found case) come up across the 30+ seeded runs. `check` recomputes
+    the expected final sorted value set from a plain `Set` and checks
+    `isValidBST`.
+  - `tree-traversals`: all four orders (pre, in, post, level) on the same
+    tree, built with the shared `engine/bintree.js`. `check` recomputes all
+    four with an independent brute-force walk and compares.
+
+- Found and fixed a real bug in `engine/bintree.js`'s delete, caught by the
+  very first edge-size-2 test case: when a node with two children was
+  deleted, the old code searched the right subtree for the *original*
+  target value to splice out the in-order successor, but after copying the
+  successor's value onto the deleted node, that search could silently miss
+  the successor's actual node (if the successor's value didn't match the
+  comparison path from the new, already-overwritten node value) and instead
+  delete the wrong node, or none, leaving a duplicate value and an invalid
+  tree. Fixed with a `delMin` that splices out the successor by tree
+  identity/position (always the leftmost node of the right subtree), not by
+  re-searching for its value.
+
+- `test.mjs`/`coverage.mjs`: unchanged. `inputHasWork` only checks
+  `input.array`, so it doesn't force frame counts for the `n`-shaped topics,
+  but all three still always yield frames regardless. The structured
+  all-duplicates/sorted/reverse-sorted edge cases in `test.mjs` get applied
+  to every topic including the new ones; for `n`-shaped topics the
+  overridden `array` field is simply unused by `run`/`check`, which is
+  harmless. 392 total cases, 0 failures.
+
+### Screenshot pass
+
+Served the worktree with `python3 -m http.server` and captured the course
+map plus all seven new topic pages with headless Chrome. The first pass
+caught the `resize()`/`_dispatch` bug above (recursion-stack rendered a
+blank "(empty array)" canvas despite the right caption and pseudocode); after
+the fix, all seven re-screenshotted cleanly: big-o-race's five labelled
+bars, the recursion/call-stack tree, the hanoi pegs, the linked list with a
+"head" pointer, the stack/queue boxes with "top"/"front"/"rear" pointers,
+and the BST and tree-traversal node diagrams.
+
+### Skipped / deferred
+
+- Nothing in m02's required topic list was skipped.
+- `recursion-stack`'s sandbox only exposes an `n` slider; which of the three
+  modes (factorial, naive fib, memoized fib) gets demonstrated is chosen
+  randomly by `makeInput` on each randomize, not picked explicitly in the
+  UI. Flagged as a simplification rather than hidden: a mode picker would
+  need its own sandbox input type, and the three modes are already
+  exercised thoroughly by the random seeds used in both the sandbox and
+  `test.mjs`.
+- `stack-queue` demonstrates all four structures (array stack, linked stack,
+  array queue, linked queue) in one continuous run rather than letting the
+  user pick push/pop operations interactively one at a time; the user still
+  drives the *input values* and can scrub through every push/pop/enqueue/
+  dequeue step at their own pace.
+
 ## ALG00 — bootstrap the engine + syllabus, build m01 (2026-10-09)
 
 Built from scratch (first ticket for this course):
