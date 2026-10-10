@@ -64,11 +64,12 @@ in the letterbox margins, never over the video.
 - **⌨️ Filter box** — both hands frame a rectangle (index = top corners,
   thumbs = bottom); pick the effect inside it (ascii terminal, thermal, riso,
   cyanotype, halftone, b&w, invert, duotone).
-- **◈ Mandelbox fractal** — open fist zooms, hand x orbits, hand y folds, pinch
-  morphs. Ported from a TouchDesigner build.
 - **🪐 Cosmos** — a solar system at the heart of a spiral galaxy. Open your fist
   to fly out from the planets into the whole galaxy; hand x orbits, hand y tilts
   the disk, pinch spins it faster.
+- **☀️ Three Suns** — three suns with real gravity drag a little planet between
+  them, Liu Cixin's three-body problem. Hand controls match Cosmos; pinch near a
+  sun to grab, drag, and fling it.
 
 Each scene exposes live knobs (colors, density, glow, etc.) in the CONTROLS
 panel.
@@ -99,8 +100,9 @@ js/
     cradle.js       cat's cradle + per-finger filter matrix (selective bloom)
     garden.js       wireframe dandelion garden
     shapes.js       filter box (8 pickable filters)
-    fractal.js      morphing Mandelbox raymarch
     cosmos.js       solar system <-> spiral galaxy (geometry + bloom)
+    suns.js         three-body gravity sim (geometry + bloom)
+    suns-physics.js three-body gravity + era classifier (DOM-free, unit-tested)
 models/
   hand_landmarker.task   MediaPipe hand model
 vendor/             self-hosted deps: three/, mediapipe/ (+wasm), fonts/

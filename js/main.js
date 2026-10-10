@@ -11,6 +11,7 @@ import { CradleScene } from './scenes/cradle.js';
 import { GardenScene } from './scenes/garden.js';
 import { ShapesScene } from './scenes/shapes.js';
 import { CosmosScene } from './scenes/cosmos.js';
+import { SunsScene } from './scenes/suns.js';
 
 const $ = (id) => document.getElementById(id);
 const stage = $('stage');
@@ -39,7 +40,7 @@ const HAND_CONNECTIONS = [
 ];
 
 // Vercel Web Analytics custom events (aggregate, anonymous; no-op if blocked).
-const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'cosmos' };
+const SCENE_NAMES = { 1: 'cradle', 2: 'garden', 3: 'filterbox', 4: 'cosmos', 5: 'suns' };
 function track(name, data) {
   try { if (window.va) window.va('event', { name, data }); } catch (e) { /* ignore */ }
 }
@@ -83,12 +84,22 @@ const SCENE_META = {
       'week) to read it, or hit <span class="g">📷 TODAY IN SPACE</span> for the ' +
       'day\'s real photos.',
   },
+  5: {
+    make: (r) => new SunsScene(r),
+    title: '☀️ Three Suns',
+    tag: 'Three suns with real gravity drag a little planet between them, Liu Cixin style. Pinch a sun to grab and fling it.',
+    body: '<span class="g">Right hand</span>: open your fist to zoom out, close ' +
+      'to zoom in, move left/right to orbit. <span class="g">Left hand</span>: ' +
+      'up/down to tilt, left/right to pan. <span class="g">Pinch</span> near a ' +
+      'sun to grab it, drag it around, and let go to fling it. Watch the label ' +
+      'for Stable and Chaotic Eras as the planet gets tossed between suns.',
+  },
 };
 
 // Home gallery grouping. Visual scenes reference SCENE_META by key; flows not
 // built yet show as dimmed "soon" cards so the categories read as a roadmap.
 const CATEGORIES = [
-  { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }] },
+  { name: 'Visuals', items: [{ key: '1' }, { key: '2' }, { key: '3' }, { key: '4' }, { key: '5' }] },
   { name: 'Music', items: [
     { href: '/toys/beats/', title: '🥁 Hand Beats', tag: 'Tap out a beat in the air — a hand-tracked step sequencer with 808 / 909 / acoustic kits.' },
     { href: '/toys/ink/', title: '🖋 Water Ink', tag: 'Play drums (or any sound) and coloured ink drops swirl and bleed on paper — a different ink per drum.' },
@@ -105,7 +116,6 @@ const CATEGORIES = [
   ] },
   { name: 'Lab', items: [
     { href: '/lab/antfarm/', title: '🐜 Ant Farm', tag: 'Leafcutter ants at real scale and real time. Watch a queen found a city underground, or put two colonies at war over the same plants.' },
-    { href: '/lab/diagrams/', title: '🌀 Diagrams', tag: 'Animated diagrams of ideas from the Three-Body trilogy: the three suns, sophons, the dark forest, the droplet.' },
     { soon: true, title: '🟡 Toronto Pac-Man', tag: 'Real streets from any neighbourhood become the maze.' },
     { soon: true, title: '🎧 Mini Shazam', tag: 'Name a song from ten seconds of mic audio, and see its fingerprint.' },
     { soon: true, title: '🕉 Sanskrit', tag: 'A tool to help Sanskrit live more in the world.' },
@@ -410,7 +420,7 @@ function toggleTrack() {
 trackBtn.addEventListener('click', toggleTrack);
 
 addEventListener('keydown', (e) => {
-  if (['1', '2', '3', '4'].includes(e.key)) booted ? selectScene(e.key) : askCamera(e.key);
+  if (['1', '2', '3', '4', '5'].includes(e.key)) booted ? selectScene(e.key) : askCamera(e.key);
   if (e.key === 'v') toggleCam();
   if (e.key === 'h') toggleUI();
   if (e.key === 't') toggleTrack();

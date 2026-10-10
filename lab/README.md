@@ -8,9 +8,6 @@ and open `/lab/<project>/`.
 - **antfarm/**: a leafcutter ant farm at real scale and real time, solo or two colonies at war.
   Imported with its full history from the old standalone repo.
 
-## Diagrams
-- **diagrams/**: animated diagrams of ideas from Cixin Liu's *Three-Body* trilogy.
-
 ## Courses
 - **courses/algorithms/**: every algorithm from the U of T CS theory sequence and CLRS, up to
   P vs NP, as sandboxes you can poke. Built overnight by the night runner, one module per ticket.
