@@ -1,5 +1,81 @@
 # Build log
 
+## ALG06 — m07: divide and conquer, greedy, dynamic programming (2026-10-10)
+
+Built all fifteen m07 topics, reusing the existing engine as-is (no engine
+changes needed: the `kind: 'boxes'` grid pattern floyd-warshall established
+for m06 covers every DP table and matrix here, `kind: 'tree'` covers
+huffman and optimal-bst's constructed tree, and the plain array-bar frames
+cover max-subarray/rod-cutting). Sandbox types span all four existing
+kinds: `array` (max-subarray, rod-cutting, matrix-chain's dimensions,
+optimal-bst's frequencies, huffman's frequencies, fft's polynomial A),
+`n` (karatsuba's digit count, strassen's matrix size, closest-pair's point
+count, interval-scheduling, fractional-knapsack, weighted-interval-
+scheduling, knapsack-01), and `string` (lcs, edit-distance, with the second
+string kept as a preserved extra field, the same pattern bst/linked-list
+already use for their extra params).
+
+Every topic's `check()` is independent of its own `run()`, mostly via
+brute force on small clamped sizes rather than re-running the same
+algorithm:
+- `max-subarray` (Kadane's scan): checked against an O(n^2) try-every-
+  subarray brute force.
+- `karatsuba`, `strassen`: checked against `BigInt` multiplication and a
+  plain triple-loop matrix multiply, respectively.
+- `closest-pair`: checked against an O(n^2) all-pairs distance scan.
+- `fft` (recursive Cooley-Tukey, used to multiply two polynomials): checked
+  against direct O(n^2) convolution; coefficients are small integers so the
+  rounded inverse transform is exact.
+- `interval-scheduling` (greedy by finish time): count checked against an
+  independent weighted-interval-scheduling-style DP with every weight set
+  to 1, a genuinely different algorithm, not a replay of the greedy.
+- `huffman`: checked for prefix-freedom and against a from-scratch brute
+  force over every full binary tree *shape* with n leaves (Catalan(n-1) of
+  them, feasible up to the n <= 10 this topic allows), picking the best
+  frequency-to-depth assignment per shape via the rearrangement inequality.
+  An earlier version of this brute force wrongly assumed an optimal tree's
+  leaves stay in sorted-contiguous order (true for the *alphabetic* tree
+  problem, not plain Huffman); caught before it ever shipped by reasoning
+  through a potential counterexample, replaced with the true per-shape
+  enumeration above.
+- `fractional-knapsack`: checked against the greedy's own exchange-argument
+  optimality certificate (every fully-taken item's ratio >= every partial
+  or untaken item's ratio, at most one item partially taken), not a second
+  simulation.
+- `weighted-interval-scheduling`, `knapsack-01`: checked against an O(2^n)
+  bitmask brute force, n clamped to 16.
+- `rod-cutting`: checked against an unmemoized recursive brute force over
+  every composition of the rod length, n clamped to 14.
+- `lcs`: checked that the returned subsequence is genuinely common to both
+  strings, and that its length is maximal by brute-force enumeration of
+  every subsequence of the shorter string, length clamped to 15.
+- `edit-distance`: checked against an independent top-down memoized
+  reimplementation (distinct code path from the bottom-up table `run()`
+  fills), plus replaying the returned edit script step by step to confirm
+  it actually turns a into b in exactly the claimed number of edits.
+- `matrix-chain`, `optimal-bst`: checked against an unmemoized recursive
+  brute force over every parenthesization/tree shape (the same recursive-
+  partition idea as rod-cutting), n clamped to 10 and 10 respectively
+  (Catalan(9) = 4862 shapes, fine at that size).
+
+Nothing in m07's required topic list was skipped.
+
+### Screenshot pass
+
+Served the worktree with `python3 -m http.server 8830` and captured the
+course map plus all fifteen new topic pages with headless Chrome. Two
+real rendering issues found and fixed:
+- `knapsack-01`'s default-sized DP table (capacity up to ~80 from 16 items
+  of weight up to 10) packed dozens of cells into one row, overlapping
+  their "0" labels into an unreadable blob. Fixed by capping the generated
+  capacity at 16 and item weights at 1-5, keeping every cell wide enough to
+  read, matching how floyd-warshall already caps its table size for m06.
+- `weighted-interval-scheduling`'s interval boxes labelled both the time
+  range and the weight (`"3-7 (w1)"`), which overflowed the narrower boxes
+  and smeared text across neighbouring rows. Fixed by trimming the box
+  label to just the time range (the weight is already in the caption).
+All fifteen re-screenshotted cleanly after those two fixes.
+
 ## ALG05 — m06: graph algorithms (2026-10-10)
 
 Built all twelve m06 topics on one new engine module, `engine/graph.js`
