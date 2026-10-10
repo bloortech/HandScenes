@@ -9,6 +9,24 @@ Pure static site: vanilla JS ES modules, no build step, no framework, no
 external dependencies, no CDNs. Works fully offline. Served by the repo's
 `python3 serve.py` (or any static file server) from the repo root.
 
+## How to use this
+
+Open `index.html` (or the "Algorithms" card from the main HandScenes site).
+Every bright "Live" card is a built topic; dim "Tonight" cards are still
+`"todo"` (see `LOG.md`'s module-by-module notes for what's left, if
+anything). Toggle between **by year** (the U of T teaching order, first
+year through fourth) and **by CLRS chapter** with the buttons above the
+map. Click any card to open its sandbox (`topic.html?t=<id>`): the canvas
+shows the animation, the pseudocode panel highlights the current line, and
+the controls below the canvas let you edit or randomise the input, resize
+it, and play, pause, step one frame at a time, or scrub freely. Each topic
+page also has prev/next links at the top that walk the whole course in U
+of T order, so you can read it start to finish like a book, or jump
+straight to one topic from the map and ignore the rest. The "running time"
+and "where it appears" panels on the right give the Big-O bound and the
+original U of T course plus CLRS chapter, since CLRS's own chapter
+numbers differ between editions.
+
 ## Layout
 
 - `syllabus.json` — every module and topic, with a `status` of `"built"` or
@@ -22,8 +40,8 @@ external dependencies, no CDNs. Works fully offline. Served by the repo's
   reproducible random inputs), `renderer.js` (canvas 2D array/graph
   renderer), `player.js` (play/pause/step/scrub/speed over a drained frame
   list), `sandbox.js` (array editor, randomize, size slider, target field).
-- `index.html` + `course-map.js` — the course map, browsable by U of T
-  course or by CLRS chapter.
+- `index.html` + `course-map.js` — the course map, browsable by year (the
+  U of T teaching order) or by CLRS chapter.
 - `topic.html` + `topic.js` — a single topic's sandbox: canvas, pseudocode
   with the active line highlighted, a plain-English explanation, running
   time, and where the topic appears (course + CLRS chapter).

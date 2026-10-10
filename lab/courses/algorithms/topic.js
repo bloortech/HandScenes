@@ -30,6 +30,8 @@ async function main() {
   $('t-title').textContent = topic.title;
   $('t-sub').textContent = topic.summary.split('. ')[0] + '.';
 
+  wirePrevNext(topicId);
+
   renderCode(topic.code, -1);
   renderExplain(topic.summary);
   $('meta-time').textContent = topic.complexity ? `${topic.complexity.time} ${topic.complexity.why}` : '';
@@ -115,6 +117,47 @@ function renderExplain(summary) {
   const p = document.createElement('p');
   p.textContent = sentences.join(' ');
   el.appendChild(p);
+}
+
+// prev/next links in U of T course order: syllabus.json's modules are
+// already listed in that order (m01 first-year basics through m11's P vs
+// NP), and each module's topics are listed in teaching order, so the flat
+// concatenation of every built topic, in file order, IS the U of T order.
+async function wirePrevNext(currentId) {
+  const nav = $('prev-next');
+  if (!nav) return;
+  try {
+    const res = await fetch('./syllabus.json');
+    const syllabus = await res.json();
+    const ordered = [];
+    for (const mod of syllabus.modules) {
+      for (const t of mod.topics) {
+        if (t.status === 'built') ordered.push({ id: t.id, title: t.title, module: mod.id });
+      }
+    }
+    const idx = ordered.findIndex((t) => t.id === currentId);
+    if (idx === -1) return;
+    const prev = ordered[idx - 1];
+    const next = ordered[idx + 1];
+    nav.innerHTML = '';
+    const mkLink = (t, label) => {
+      const a = document.createElement('a');
+      a.className = 'btn';
+      a.href = `./topic.html?t=${encodeURIComponent(t.id)}`;
+      a.textContent = label;
+      return a;
+    };
+    if (prev) nav.appendChild(mkLink(prev, `◀ ${prev.title}`));
+    else nav.appendChild(document.createElement('span'));
+    const pos = document.createElement('span');
+    pos.className = 'prev-next-pos';
+    pos.textContent = `${idx + 1} / ${ordered.length}`;
+    nav.appendChild(pos);
+    if (next) nav.appendChild(mkLink(next, `${next.title} ▶`));
+  } catch (e) {
+    // Non-fatal: the course map and this page's own content still work
+    // without prev/next navigation.
+  }
 }
 
 function formatCounters(counters) {

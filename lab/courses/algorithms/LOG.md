@@ -1,5 +1,133 @@
 # Build log
 
+## ALG10 — m11: complexity and P vs NP, plus a final pass over the whole course (2026-10-11)
+
+Built all sixteen m11 topics, the last module in the syllabus. One new engine
+file:
+
+- `engine/sat.js` (pure, no DOM access): CNF-SAT helpers shared by most of
+  this module. A formula is `{ numVars, clauses }`, a clause an array of
+  nonzero integer literals (positive = the variable, negative = its
+  negation). `bruteForceSAT` tries every assignment (only ever used as a
+  correctness oracle on tiny instances, never as "the algorithm", since
+  that would defeat the point of NP-completeness). `randomKCNF` generates
+  random k-CNF formulas. `convertTo3CNF` is Sipser's SAT-to-3SAT padding
+  and chaining construction. `evalFormula`/`evalClause`/`evalLiteral` and
+  two `*ToString` pretty-printers round it out.
+- `complexity-map`: P, NP, co-NP, NP-complete, PSPACE, EXP as nested/
+  overlapping boxes (reusing the `boxes` frame kind m10's
+  `decidability-map` introduced). `check()` verifies the containments
+  geometrically against the box coordinates, not just in prose, plus
+  cycles through 5 concrete example problems (sorting, 3SAT, UNSAT, TQBF,
+  brute-force search) landing in the right region.
+- `verifiers`: a real poly-time SAT verifier run on two certificates (one
+  meant to satisfy the formula, one that probably does not), checked
+  against independently re-evaluating the same formula.
+- `cook-levin`: builds a real tableau (one row per time step of a tiny
+  2-step Turing machine, tagging the head cell with the current state) and
+  its Cook-Levin-style clauses (exactly-one-symbol-per-cell, start row,
+  transition windows, accept), restricted to the handful of symbols this
+  specific run actually uses so the clause count stays small enough to
+  animate. `check()` confirms the real tableau satisfies every structural
+  clause and that an accepting cell shows up in the last row exactly when
+  the machine actually accepted, across both accepting and rejecting
+  instances. This is a deliberate SIMPLIFICATION of the full theorem (the
+  transition clauses only constrain the alphabet and windows this one
+  concrete run touches, not every theoretically possible window), noted
+  here and in the topic's own summary rather than overclaiming a fully
+  general from-scratch SAT-solver-ready reduction.
+- `sat-to-3sat`, `3sat-to-independent-set` (the triangle-gadget-plus-
+  contradiction-edges construction), `3sat-to-subset-sum` (the Kleinberg-
+  Tardos digit-column construction, base 10, with slack numbers worth 1
+  and 2 per clause): each builds a real reduced instance and brute-forces
+  both sides, checking the yes/no answer always carries over.
+- `clique-is-vc`: computes max clique, max independent set and min vertex
+  cover on the same small graph, each via two genuinely different brute-
+  force algorithms (clique-search vs independent-set-search, on G vs
+  complement(G)), and checks every pair of independent computations
+  agrees. (First draft of this topic incorrectly asserted
+  max-clique(G) == max-independent-set(G), which are unrelated numbers in
+  general; caught by `test.mjs` failing on nearly every random graph, and
+  fixed to check the theorem's actual claims instead.)
+- `hamiltonian-cycle`: the directed-to-undirected gadget (split every
+  vertex into an in/mid/out mandatory path), checked against brute-force
+  Hamiltonian-cycle search on both the directed original and the
+  undirected gadget.
+- `vertex-cover-approx` (CLRS's simple 2-approximation via picking
+  arbitrary edges), `set-cover-greedy` (CLRS's greedy-most-new-elements
+  choice, H(n)-approximation), `metric-tsp-approx` (MST + DFS-preorder-
+  with-shortcutting, the double-tree-style 2-approximation): each checked
+  against a brute-force optimum on small instances (vertex cover, set
+  cover) or against the algorithm's own MST-weight bound (TSP, since
+  optimal metric TSP is too expensive to brute force even at the sizes
+  this course animates).
+- `savitch`: the CANREACH(u, v, i) midpoint recursion, checked against
+  `engine/graph.js`'s `bfsDistances` oracle.
+- `tqbf-game`: a literal alternating-quantifier game tree (reusing
+  `engine/layout.js`'s `layoutTree` to lay it out, built incrementally and
+  positioned once the whole tree is known), checked against an
+  independent flat truth-table evaluation of the same quantifier string.
+- `hierarchy-theorems`: a real finite table of toy machines, diagonalised
+  against directly (same idea as m10's `diagonalisation`, applied to a
+  table of bounded-time machines instead of all machines at once).
+- `bpp`: reuses `engine/numtheory.js`'s Miller-Rabin witness test (the
+  same engine m09's `miller-rabin` topic uses) to demonstrate one-sided-
+  error amplification.
+- `p-vs-np`: brute-force SAT search vs certificate verification on the
+  same formula, made concrete with a live step counter for each side.
+
+### Final pass over the whole course
+
+- Every module (m01-m11) is now `"built"`; `syllabus.json` has no
+  remaining `"todo"` topics. Confirmed with a script scanning every
+  module's topic list.
+- Added a `year` field to every module in `syllabus.json` (an
+  approximation: U of T's typical year for that module's course code(s),
+  e.g. CSC108/148 => Year 1, CSC373 => Year 3, noted as an approximation
+  in `syllabus.json`'s own `note` field, not an official program
+  requirement) and changed the course map's first view from "by course"
+  to "by year" (`course-map.js`'s `renderByYear`), grouping modules under
+  Year 1-4 headers while keeping every module's own teaching order inside
+  its year. The "by CLRS chapter" view is unchanged.
+- Added prev/next links to every topic page (`topic.html` + `topic.js`'s
+  `wirePrevNext`): the flat concatenation of every built topic across
+  `syllabus.json`'s modules, in file order, already IS the U of T teaching
+  order, so prev/next just walks that list, with a "N / total" position
+  indicator.
+- Added a "How to use this" section to `README.md` explaining the two map
+  views, the sandbox controls, and the new prev/next links.
+- Screenshot pass (`python3 -m http.server 8830` from the worktree root,
+  headless Chrome): the course map (by-year view) and all 16 new m11
+  topics, plus one topic from m01 (quicksort) to confirm prev/next still
+  works on pre-existing pages. Found and fixed: `bpp`'s error-probability
+  pointer label overflowing the canvas width on screen (shortened the
+  text); `clique-is-vc`'s checked relationship being mathematically wrong
+  as described above (fixed before any screenshot, caught by `test.mjs`).
+  Nothing else was blank, broken, or overlapping.
+- Did not headlessly re-screenshot all 112 built topics individually
+  (impractical at this scope); relied instead on `test.mjs`'s existing
+  exhaustive non-DOM coverage (3364 cases across every built topic, 0
+  failures, unchanged by this ticket's DOM-only edits to `topic.js` and
+  `course-map.js`) plus a visual spot-check of the course map, all 16 new
+  topics, and one pre-existing topic page to confirm the shared
+  `topic.js`/`course-map.js` changes did not regress older pages.
+
+### Skipped / deferred
+
+- Nothing in m11's required topic list was skipped; all sixteen topics are
+  `built`, tested, and covered.
+- `cook-levin`'s clause generation is restricted to the alphabet and
+  transition windows that the one concrete run it animates actually uses,
+  rather than a fully general enumeration over every theoretically
+  possible window (which would need alphabet-size^6 clauses even for tiny
+  alphabets). This is enough to demonstrate the tableau-to-clauses idea
+  and to verify the real run's tableau against its own clauses correctly,
+  but it is not a drop-in general-purpose Cook-Levin reduction a solver
+  could run on an arbitrary machine. Noted in the topic's own summary.
+- The course's only remaining "nice to have" from earlier tickets (racing
+  two algorithms side by side, flagged as optional in ALG00) is still not
+  built; unrelated to m11 and out of this ticket's scope.
+
 ## ALG09 — m10: computability (2026-10-11)
 
 Built all eight m10 topics. One new engine file plus one engine extension:
