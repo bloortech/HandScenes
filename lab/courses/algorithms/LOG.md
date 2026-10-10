@@ -1,5 +1,149 @@
 # Build log
 
+## ALG03 — m04: heaps, balanced trees and hashing (2026-10-10)
+
+Built all twelve m04 topics, reusing and extending the ALG00-ALG02 engine:
+
+- **Engine additions**:
+  - `engine/layout.js`: `layoutHeapPositions(n)`, a complete-binary-tree-by-
+    index layout for a plain array treated as a heap (parent of i is
+    floor((i-1)/2), children 2i+1/2i+2), positioned level by level so
+    `heap.js` can draw it with the existing `kind: 'tree'` node/edge
+    renderer without needing real node objects at all, just the array
+    length.
+  - `engine/avltree.js` (new, pure, like `bintree.js`): AVL insert and
+    delete, both rebalancing with the four classic rotation cases (LL, RR,
+    LR, RL), each rotation logged as an event so the topic can show exactly
+    which fired. `isBalanced` independently re-verifies the height-balance
+    invariant at every node for `check()`.
+  - `engine/rbtree.js` (new, pure): CLRS's RB-INSERT and RB-INSERT-FIXUP,
+    with real parent pointers (unlike `bintree.js`'s plain BST) and every
+    recolour/rotation logged. `isValidRB` independently re-verifies all
+    four red-black properties (root black, no red-red parent/child, equal
+    black-height on every root-to-nil path) for `check()`. Only insert is
+    built, per this ticket's topic list (no red-black delete).
+
+- **Topics**:
+  - `heap`: build-max-heap (bottom-up sift-down, O(n)), insert (append +
+    sift-up), and extract-max (swap root with last, shrink, sift-down),
+    all drawn as the heap's implicit tree shape via `layoutHeapPositions`.
+    `check` independently re-verifies the max-heap property after each
+    phase and that every phase preserves/updates the right multiset.
+  - `heapsort`: build-max-heap then repeatedly swap the max to the sorted
+    tail and re-heapify, drawn with the same array-bar frames as the other
+    m01 sorts (heapsort's whole point is in-place sorting with no tree
+    visible in the final array), with a growing `sortedIdx` tail.
+  - `avl`: inserts a sequence then deletes one value, both animated via
+    `engine/avltree.js`'s rotation log, reusing `layoutBST` (which only
+    needs `left`/`right`, so it works unchanged on AVL's extra `height`
+    field). **Found and fixed a real bug** during the first test run: the
+    topic captured `const afterInserts = root` as a bare reference before
+    running delete, but `avlInsert`/`avlDelete` rebalance by mutating the
+    existing node objects' `left`/`right` pointers in place rather than
+    copying the tree, so that reference silently reflected the *post*-
+    delete tree by the time `inorder(afterInserts)` ran at the very end,
+    making the "values after insert, before delete" check wrong for any
+    tree where delete actually changed the structure. Fixed by snapshotting
+    `inorder(root)` and `isValidBST(root) && isBalanced(root)` right after
+    the insert loop, before delete runs at all.
+  - `red-black`: insert only (per the topic list), via `engine/rbtree.js`.
+    Colour is shown persistently per node (amber = red, plain ink = black,
+    using each node's own `active` flag) rather than `active` meaning "the
+    current step" the way other tree topics use it; a separate `compare`
+    pulse marks whichever nodes the current recolour/rotation step touched,
+    so persistent colour and "what's happening now" don't fight for the
+    same visual slot.
+  - `order-statistic-tree`: a BST augmented with each node's subtree size,
+    supporting OS-SELECT and OS-RANK per CLRS 14.1. Augments a plain BST
+    rather than a red-black tree (CLRS augments a red-black tree for a
+    guaranteed O(log n)); flagged in the summary as a simplification, since
+    the teaching point is the augmentation technique (keep an extra field
+    consistent under every update, then answer a query the base structure
+    can't on its own), not balancing, which `avl`/`red-black` already cover.
+    Caught and fixed a size-corruption bug of its own before it ever hit
+    `test.mjs`: inserting a value equal to an existing one must be a no-op,
+    but speculatively incrementing every ancestor's size while walking down
+    and only "undoing" it at the matching node leaves every ancestor
+    *above* that match wrongly inflated; fixed by checking for an existing
+    value with a plain read-only probe first, only touching sizes on the
+    walk if the value is confirmed new.
+  - `hashing-chaining`: a fixed 7-slot table, `key mod 7`, chains drawn as
+    `kind: 'boxes'` nodes hanging below each slot. `check` independently
+    recomputes every slot's expected chain from the same hash formula.
+  - `hashing-open-addressing`: linear, quadratic, and double hashing, mode
+    picked at random per run (like `induction`/`master-theorem`'s pattern).
+    Table size is always the next prime at least `2*size+1`, keeping the
+    load factor under 0.5 so quadratic probing's classic guarantee
+    (prime table, load factor <= 0.5 implies an empty slot is always found)
+    always holds, regardless of how many duplicate keys land on the same
+    first probe. `check` recomputes each key's expected slot from its
+    reported probe count and the same probe formula, an internal-
+    consistency check that doesn't just replay the stepwise insert logic.
+  - `universal-hashing`: the Carter-Wegman family h(k) = ((a*k+b) mod p)
+    mod m, p = 101 fixed (bigger than every key this topic generates).
+    Builds a chaining table with one randomly-picked (a, b), then shows a
+    second independently-picked (a', b') pair's collision count side by
+    side, to make the "holds for any key set, because the randomness is in
+    the function" property visible rather than asserted. `check`
+    recomputes both tables and both collision counts from the formula
+    independently.
+  - `randomized-quicksort`: identical partitioning to m01's quicksort, but
+    swaps a uniformly random index into the pivot slot first, seeded via
+    `input.pivotSeed` (mulberry32) so a run replays deterministically for
+    `test.mjs` despite being randomized. Captions show the expected
+    comparison count (~2n*ln(n)) and the worst case any pivot rule shares
+    (n(n-1)/2) next to the actual count for that run.
+  - `quickselect-median-of-medians`: one topic, two modes picked at random
+    per run (same pattern as `avl`'s rotations/`red-black`'s fixup, but
+    for algorithm choice): quickselect (random pivot, expected O(n)) and
+    median-of-medians (groups-of-5 deterministic pivot, worst-case O(n)).
+    Both implemented as the real recursive partition-and-recurse-one-side
+    algorithm, not a stand-in. `check` recomputes the true k-th smallest
+    via a full sort and compares, independent of which mode ran.
+  - `sorting-lower-bound`: runs real insertion sort on a random permutation
+    (size clamped to <= 8, since n! grows fast) counting its actual
+    comparisons, next to the independently-computed information-theoretic
+    bound ceil(log2(n!)). `check` recomputes that bound via a brute-force
+    factorial and `Math.log`, not by trusting `run()`'s own formula.
+  - `counting-radix-bucket`: three real linear-time sorts, mode picked at
+    random per run: counting sort (direct per-value counting, O(n+k)),
+    radix sort (counting sort applied digit by digit, least significant
+    first, relying on counting sort's stability), and bucket sort (scatter
+    by value into buckets, sort each small bucket, concatenate). `check`
+    is the same sortedness-plus-multiset check every other sort topic uses.
+
+- `test.mjs`/`coverage.mjs`: unchanged. 1024 total cases across all 34
+  built topics (m01 + m02 + m03 + m04), 0 failures after fixing the two
+  bugs above (both caught by `test.mjs` itself or by writing `check()`,
+  before any screenshot was taken).
+
+### Screenshot pass
+
+Served the worktree with `python3 -m http.server 8830` and captured the
+course map (confirming all twelve m04 cards show LIVE, not TONIGHT) plus
+every one of the twelve new topic pages with headless Chrome. All
+screenshotted cleanly on the first pass: the heap/avl/red-black/order-
+statistic-tree node diagrams, the hashing-chaining/hashing-open-addressing/
+universal-hashing slot-and-chain boxes, and the heapsort/randomized-
+quicksort/quickselect-median-of-medians/sorting-lower-bound/counting-radix-
+bucket array bars. No rendering fixes were needed this round (the two real
+bugs found this ticket were both caught by `test.mjs`/`check()` before the
+screenshot pass, not by it).
+
+### Skipped / deferred
+
+- Nothing in m04's required topic list was skipped.
+- `order-statistic-tree` augments a plain BST, not a red-black tree; see
+  above, flagged in the topic's own summary text too, not just here.
+- `red-black` builds only insert, matching this ticket's topic list exactly
+  (delete is not named as a required sub-topic the way avl's both
+  insert-and-delete are).
+- `hashing-open-addressing`'s "clustering" is shown implicitly (probe
+  counts rise visibly when keys cluster near each other, especially under
+  linear probing) rather than as its own separate tracked metric; adding an
+  explicit cluster-length counter would need another UI element for a
+  marginal gain over what the probe animation already makes visible.
+
 ## ALG02 — m03: proofs, recurrences and automata (2026-10-10)
 
 Built all nine m03 topics, reusing and extending the ALG00/ALG01 engine:

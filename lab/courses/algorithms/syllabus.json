@@ -53,18 +53,18 @@
       "course": "CSC263/265",
       "clrs": "Heapsort; Quicksort; Sorting in Linear Time; Medians and Order Statistics; Hash Tables; Red-Black Trees; Augmenting Data Structures",
       "topics": [
-        { "id": "heap", "title": "Binary heaps", "status": "todo" },
-        { "id": "heapsort", "title": "Heapsort", "status": "todo" },
-        { "id": "avl", "title": "AVL trees", "status": "todo" },
-        { "id": "red-black", "title": "Red-black trees", "status": "todo" },
-        { "id": "order-statistic-tree", "title": "Order-statistic trees", "status": "todo" },
-        { "id": "hashing-chaining", "title": "Hashing with chaining", "status": "todo" },
-        { "id": "hashing-open-addressing", "title": "Hashing with open addressing", "status": "todo" },
-        { "id": "universal-hashing", "title": "Universal hashing", "status": "todo" },
-        { "id": "randomized-quicksort", "title": "Randomized quicksort", "status": "todo" },
-        { "id": "quickselect-median-of-medians", "title": "Quickselect and median-of-medians", "status": "todo" },
-        { "id": "sorting-lower-bound", "title": "The comparison-sort lower bound", "status": "todo" },
-        { "id": "counting-radix-bucket", "title": "Counting, radix and bucket sort", "status": "todo" }
+        { "id": "heap", "title": "Binary heaps", "status": "built" },
+        { "id": "heapsort", "title": "Heapsort", "status": "built" },
+        { "id": "avl", "title": "AVL trees", "status": "built" },
+        { "id": "red-black", "title": "Red-black trees", "status": "built" },
+        { "id": "order-statistic-tree", "title": "Order-statistic trees", "status": "built" },
+        { "id": "hashing-chaining", "title": "Hashing with chaining", "status": "built" },
+        { "id": "hashing-open-addressing", "title": "Hashing with open addressing", "status": "built" },
+        { "id": "universal-hashing", "title": "Universal hashing", "status": "built" },
+        { "id": "randomized-quicksort", "title": "Randomized quicksort", "status": "built" },
+        { "id": "quickselect-median-of-medians", "title": "Quickselect and median-of-medians", "status": "built" },
+        { "id": "sorting-lower-bound", "title": "The comparison-sort lower bound", "status": "built" },
+        { "id": "counting-radix-bucket", "title": "Counting, radix and bucket sort", "status": "built" }
       ]
     },
     {
