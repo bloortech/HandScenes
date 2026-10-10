@@ -407,37 +407,37 @@
                 {
                     "id": "ford-fulkerson",
                     "title": "Ford-Fulkerson",
-                    "status": "todo"
+                    "status": "built"
                 },
                 {
                     "id": "edmonds-karp",
                     "title": "Edmonds-Karp",
-                    "status": "todo"
+                    "status": "built"
                 },
                 {
                     "id": "max-flow-min-cut",
                     "title": "Max-flow min-cut theorem",
-                    "status": "todo"
+                    "status": "built"
                 },
                 {
                     "id": "bipartite-matching",
                     "title": "Bipartite matching",
-                    "status": "todo"
+                    "status": "built"
                 },
                 {
                     "id": "stable-matching",
                     "title": "Stable matching",
-                    "status": "todo"
+                    "status": "built"
                 },
                 {
                     "id": "lp-geometry",
                     "title": "Linear programming, geometrically",
-                    "status": "todo"
+                    "status": "built"
                 },
                 {
                     "id": "lp-duality",
                     "title": "LP duality",
-                    "status": "todo"
+                    "status": "built"
                 }
             ]
         },

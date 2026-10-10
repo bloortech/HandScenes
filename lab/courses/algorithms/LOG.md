@@ -1,5 +1,67 @@
 # Build log
 
+## ALG07 — m08: flows, matching and linear programming (2026-10-10)
+
+Built all seven m08 topics. Two new engine files (both pure, no DOM
+access, same style as `engine/graph.js`):
+- `engine/flow.js`: residual-graph flow-network helpers shared by
+  Ford-Fulkerson, Edmonds-Karp, max-flow min-cut and bipartite matching
+  (`buildResidual`, `dfsAugmentingPath`/`bfsAugmentingPath`, `pushFlow`,
+  `residualReachable`, `edgeFlows`, `isMaxFlowCertificate`,
+  `minCutFromFlow`). Each residual arc carries its origin edge's index
+  (`origIdx`), which `edgeFlows`/`residualWithFlows` key off directly;
+  an earlier version guessed an edge's arc position from per-vertex
+  counting order and was wrong whenever a vertex was both a source and a
+  destination of different edges (every flow network with more than one
+  hop), caught by test.mjs failing on literally every random case before
+  it shipped.
+- `engine/lp.js`: 2D linear-programming geometry for lp-geometry and
+  lp-duality (`enumerateVertices` intersects every pair of constraint
+  lines and filters to the feasible ones, `orderAroundCentroid` turns that
+  into a polygon boundary order, `simplexWalk` walks corner to corner
+  always improving, `sharedConstraintEdges` draws an unbounded region's
+  finite boundary pieces).
+- `engine/layout.js` gained `layoutLayered`, a left-to-right DAG layout by
+  longest-path level, used by the three flow topics so flow visibly moves
+  left to right.
+
+Topics:
+- `ford-fulkerson`, `edmonds-karp`: same residual-graph loop, DFS vs. BFS
+  augmenting paths; both `check()` against `isMaxFlowCertificate` (flow
+  conservation + capacity bounds + "no augmenting path remains," the
+  max-flow min-cut theorem's own optimality certificate, independent of
+  which algorithm produced the flow).
+- `max-flow-min-cut`: runs Edmonds-Karp, then reads S (reachable from s in
+  the final residual graph), T, and the cut edges straight off it; checks
+  the cut's capacity against the flow value.
+- `bipartite-matching`: reduces to max flow (source/sink, capacity 1
+  everywhere) and checked against a from-scratch, non-flow oracle (Kuhn's
+  classic augmenting-path matching algorithm, worked directly on the
+  bipartite adjacency).
+- `stable-matching`: Gale-Shapley deferred acceptance; checked by scanning
+  every (man, woman) pair not married to each other for a blocking pair.
+- `lp-geometry`: a random bounded 2D feasible region (a box plus up to six
+  cutting half-planes), walked corner to corner from the origin; checked
+  against the true max over every enumerated vertex.
+- `lp-duality`: a 2-constraint primal and its dual side by side, primal
+  solved by the same corner walk, dual's (few, finite) corners evaluated
+  directly; checked that both optimal values equal their own independently
+  enumerated vertex maxima/minima, and equal each other (strong duality).
+
+### Screenshot pass
+
+Served the worktree with `python3 -m http.server 8830` and captured the
+course map plus all seven new topic pages with headless Chrome. Found and
+fixed two issues: `bipartite-matching`'s first pseudocode line ran past the
+canvas width (shortened it), and `lp-duality`'s summary used "." as a
+dot-product symbol ("c . x"), which collided with `topic.js`'s
+sentence-splitting (`summary.split('. ')[0]`) and truncated the page
+subtitle; reworded to "c^Tx" throughout.
+
+### Skipped / deferred
+
+- Nothing in m08's required scope was skipped.
+
 ## ALG06 — m07: divide and conquer, greedy, dynamic programming (2026-10-10)
 
 Built all fifteen m07 topics, reusing the existing engine as-is (no engine

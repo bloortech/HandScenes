@@ -77,6 +77,31 @@ export function layoutHeapPositions(n, { width = 100, height = 100, padX = 8, pa
   return positions;
 }
 
+// Lays out a flow network (m08: Ford-Fulkerson, Edmonds-Karp, max-flow
+// min-cut, bipartite matching) left to right by "level": level[v] is the
+// longest number of edges from the source to v, found in one pass since
+// these networks always direct every edge from a lower id to a higher one
+// (so id order is already a topological order). Nodes sharing a level are
+// spread evenly down that column, which keeps flow visually moving left to
+// right and never backwards. Mutates each node's x/y.
+export function layoutLayered(nodes, edges, { width = 100, height = 100, padX = 8, padY = 12 } = {}) {
+  const n = nodes.length;
+  if (n === 0) return;
+  const level = Array(n).fill(0);
+  for (const { u, v } of edges) {
+    if (v > u) level[v] = Math.max(level[v], level[u] + 1);
+  }
+  const maxLevel = Math.max(0, ...level);
+  const byLevel = Array.from({ length: maxLevel + 1 }, () => []);
+  nodes.forEach((node, id) => byLevel[level[id]].push(node));
+  byLevel.forEach((col) => {
+    col.forEach((node, slot) => {
+      node.x = maxLevel === 0 ? width / 2 : padX + (level[node.id] / maxLevel) * (width - 2 * padX);
+      node.y = col.length <= 1 ? height / 2 : padY + (slot / (col.length - 1)) * (height - 2 * padY);
+    });
+  });
+}
+
 export function layoutCircle(nodes, { cx = 50, cy = 50, r = 36 } = {}) {
   const n = nodes.length;
   if (n === 0) return;
