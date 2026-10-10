@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Algorithms sandbox</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div class="wrap">
+  <a class="back-link" href="./index.html">&larr; Back to course map</a>
+  <header class="page-head">
+    <h1 id="t-title">Loading…</h1>
+    <p id="t-sub"></p>
+  </header>
+
+  <div class="topic-layout">
+    <div class="panel-box" id="sandbox-panel">
+      <div class="canvas-wrap">
+        <canvas class="algo-canvas" id="algo-canvas"></canvas>
+      </div>
+      <div class="player-controls">
+        <button class="btn" id="btn-back">&#9664;&#9664;</button>
+        <button class="btn" id="btn-play">Play</button>
+        <button class="btn" id="btn-fwd">&#9654;&#9654;</button>
+        <input type="range" class="scrub" id="scrub" min="0" max="0" value="0">
+        <select class="btn" id="speed">
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="2">2x</option>
+          <option value="4">4x</option>
+        </select>
+      </div>
+      <div class="counters" id="counters"></div>
+      <div class="caption" id="caption"></div>
+      <div id="sandbox-controls-host"></div>
+    </div>
+
+    <div class="panel-box">
+      <h2 style="font-size:14px;margin:0 0 8px;">Pseudocode</h2>
+      <pre class="code-block" id="code-block"></pre>
+
+      <h2 style="font-size:14px;margin:18px 0 8px;">What's happening</h2>
+      <div class="explain" id="explain"></div>
+
+      <dl class="meta-table">
+        <dt>Running time</dt>
+        <dd id="meta-time"></dd>
+        <dt>Where it appears</dt>
+        <dd id="meta-where"></dd>
+      </dl>
+    </div>
+  </div>
+</div>
+<script type="module" src="./topic.js"></script>
+</body>
+</html>

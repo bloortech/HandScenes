@@ -1,0 +1,112 @@
+/* Shared "Bloort" dark style for the algorithms course: dots and blocks,
+   dark sandbox, amber for the active element, cyan for comparisons. */
+:root {
+  color-scheme: dark;
+  --bg: #0b0b0c;
+  --ink: rgba(237, 237, 230, 1);
+  --ink-dim: rgba(237, 237, 230, 0.6);
+  --ink-faint: rgba(237, 237, 230, 0.35);
+  --panel: rgba(255, 255, 255, 0.04);
+  --line: rgba(237, 237, 230, 0.12);
+  --amber: #E8B84B;
+  --cyan: #7CD5E8;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.55 ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+}
+a { color: var(--cyan); text-decoration: none; }
+a:hover { text-decoration: underline; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 28px 20px 80px; }
+header.page-head { margin-bottom: 20px; }
+header.page-head h1 { font-size: 22px; margin: 0 0 4px; }
+header.page-head p { color: var(--ink-dim); margin: 0; }
+.back-link { display: inline-block; margin-bottom: 14px; color: var(--ink-dim); font-size: 13px; }
+.btn {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn:hover { background: rgba(255,255,255,.09); }
+.btn.on { background: var(--amber); border-color: var(--amber); color: #1a1406; font-weight: 600; }
+.toggle-row { display: flex; gap: 8px; margin-bottom: 18px; }
+.module-group { margin-bottom: 26px; }
+.module-group h2 { font-size: 15px; margin: 0 0 2px; }
+.module-group .module-meta { color: var(--ink-dim); font-size: 12.5px; margin: 0 0 10px; }
+.topic-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.topic-card {
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: var(--panel);
+}
+.topic-card.built {
+  cursor: pointer;
+  border-color: rgba(232, 184, 75, 0.35);
+}
+.topic-card.built:hover { background: rgba(232, 184, 75, 0.08); }
+.topic-card.todo {
+  opacity: 0.55;
+}
+.topic-card .t-title { font-size: 13.5px; font-weight: 600; margin: 0 0 4px; }
+.topic-card .t-tag {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--ink-faint);
+}
+.topic-card.built .t-tag { color: var(--amber); }
+
+/* Topic page */
+.topic-layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 860px) {
+  .topic-layout { grid-template-columns: 1.3fr 1fr; }
+}
+.panel-box {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 14px 16px;
+}
+.canvas-wrap { position: relative; width: 100%; height: 280px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+canvas.algo-canvas { display: block; width: 100%; height: 100%; }
+.player-controls { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.player-controls input[type="range"].scrub { flex: 1; min-width: 120px; }
+.counters { font-size: 12px; color: var(--ink-dim); margin-top: 6px; font-variant-numeric: tabular-nums; }
+.caption { min-height: 2.6em; font-size: 13.5px; color: var(--ink); margin-top: 10px; }
+.sandbox-controls { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.sandbox-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-dim); }
+.sandbox-row label { min-width: 110px; }
+.sandbox-array-input, .sandbox-target-input {
+  flex: 1;
+  background: rgba(255,255,255,.04);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--ink);
+  padding: 5px 8px;
+  font: 12.5px ui-monospace, Menlo, monospace;
+}
+pre.code-block {
+  background: rgba(0,0,0,.35);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font: 12.5px/1.6 ui-monospace, Menlo, monospace;
+  overflow-x: auto;
+  margin: 0;
+}
+pre.code-block .line { display: block; padding: 1px 6px; border-radius: 4px; white-space: pre; }
+pre.code-block .line.active { background: rgba(232, 184, 75, 0.18); color: var(--amber); }
+.explain p { font-size: 13.5px; color: var(--ink); }
+.meta-table { font-size: 13px; }
+.meta-table dt { color: var(--ink-dim); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; margin-top: 10px; }
+.meta-table dd { margin: 2px 0 0; }

@@ -1,0 +1,6 @@
+{
+  "name": "handscenes-algorithms-course",
+  "private": true,
+  "type": "module",
+  "description": "Local-only package.json so plain `node` treats .js files in this folder as ES modules. No dependencies, no build step."
+}

@@ -111,7 +111,7 @@ const CATEGORIES = [
     { soon: true, title: '🕉 Sanskrit', tag: 'A tool to help Sanskrit live more in the world.' },
   ] },
   { name: 'Courses', items: [
-    { soon: true, title: '🧮 Algorithms', tag: 'The whole U of T CS theory sequence and CLRS, up to P vs NP, as sandboxes you can poke.' },
+    { href: '/lab/courses/algorithms/', title: '🧮 Algorithms', tag: 'The whole U of T CS theory sequence and CLRS, up to P vs NP, as sandboxes you can poke.' },
     { soon: true, title: '🧠 Build an LLM', tag: 'A small language model from scratch, to learn how they work.' },
     { soon: true, title: '🔐 Security', tag: 'Advanced cybersecurity through CTF puzzles.' },
     { soon: true, title: '⚛️ Quantum', tag: 'A visual course on how quantum computers work.' },
