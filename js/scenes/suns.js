@@ -288,7 +288,7 @@ export class SunsScene {
       this.grabCamDist = this.camera.position.distanceTo(new THREE.Vector3(s.x, s.y, s.z));
       this.grabTarget.set(s.x, s.y, s.z);
       this.grabVel.set(0, 0, 0);
-      dispatchEvent(new CustomEvent('hs-toast', { detail: '☉ sun grabbed — drag it, let go to fling it' }));
+      dispatchEvent(new CustomEvent('hs-toast', { detail: '☉ sun grabbed: drag it, let go to fling it' }));
     }
   }
 
